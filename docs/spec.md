@@ -74,7 +74,7 @@
 | ID | 性質 | 確かめる場所 |
 |---|---|---|
 | I-01 | 受け入れた ⇔ remote の正規の branch から到達できる | land |
-| I-02 | 同じ規則 revision（既定は head、指定時は `--policy REV`）の設定・型定義・inputs で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分の finding を（既存のものも含めて）1 つも持たない。変わっていない記録の既存の finding だけを残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため） | check |
+| I-02 | 同じ規則 revision（既定は head、指定時は `--policy REV`）の設定・型定義・inputs で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分に関わる finding（`id` が自分、または `ids` に自分を含むもの）を既存のものも含めて 1 つも持たない。複数記録に関わる finding は、その `ids` のどれか 1 つでも新しいか変わった記録なら new とする。変わっていない記録だけに関わる既存 finding は残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため。2026-10-18 に複数記録 finding の `ids` に適用を拡張） | check |
 | I-03 | `immutable` の type の記録は、変わらず、消えない | check |
 | I-04 | links は宣言された type を指し、参照先がある。acyclic（既定 true）が true の辺だけで作るグラフは循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
@@ -381,8 +381,14 @@ base 側の評価では records/base はともに base、head 側では records 
 評価ごとに 1 度だけ作り、すべての checks と treeChecks に同じ索引を渡す。view の tree もこの索引を持つ。
 base の記録は `tree.base` で読めるが、この索引の対象は `tree.records` だけである。
 
-treeChecks の finding に id を自動で補わない。記録に属する finding は id を明示する。
-記録に属さない finding は field に安定した識別子を入れる。finding の key と I-02 の数え方は変えない。
+`FindingInput` は、1 件に関わる記録を `id?: string` または `ids?: string[]` のどちらかで表す。
+両方を同時に持つことはできず、`ids` は空でない配列とする。複数記録にまたがる規則の指摘には、
+その全記録の ID を `ids` に入れる。`treeChecks` は `id` / `ids` を自動で補わない。
+記録に属さない finding は `field` に安定した識別子を入れる。finding の key は
+`[check, id-or-null-or-sorted-ids, field-or-empty-string]` の JSON tuple とし、`ids` は重複を除いて
+辞書順に正規化してから含める。従来の `id` の key は維持するため、`ids` の入力順に依存しない。
+I-02 では `id` が新規・変更記録ならその finding を new とし、`ids` の場合は含まれる ID のいずれかが
+新規・変更記録なら new とする。すべての関連記録が未変更で key が base にあれば既存として残せる。
 旧い checks は、id を省略した finding に対象の record.id を補う動作を保つ。
 両方とも信頼する純粋な policy とし、tree や索引を書き換えない。例外や不正な戻り値は終了コード 4 で、stdout は空にする。
 

@@ -155,7 +155,9 @@ view も同じ索引を使えます。索引の対象は `tree.records` です�
 `[files] inputs = [".leakcheck"]` のように指定した glob に当たるファイルも、ignore より優先して読みます。
 inputs は type の match に当たっても記録として読み出さず、strict の指摘からも外します（既定は `[]`）。
 独自 finding の `check` 名は repo が安定させてください。treeChecks は `id` を補わないため、
-記録に属する finding は `id` を明示し、記録に属さない finding は `field` に安定した識別子を入れます。
+記録に属する finding は `id` または `ids` を明示します。複数記録にまたがる指摘には、関わる記録 ID を
+`ids` に列挙できます（`id` との併用はできません）。`ids` の key は ID を並べ替えて作るため順序に依存せず、
+含まれる記録のどれかが新規・変更なら I-02 で new になります。記録に属さない finding は `field` に安定した識別子を入れます。
 
 ```ts
 treeChecks: [tree => (tree.index.byType.get("note") ?? []).flatMap(record =>

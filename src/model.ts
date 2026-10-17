@@ -25,6 +25,7 @@ export interface RecordModel {
 export interface FindingInput {
   readonly check: string;
   readonly id?: string;
+  readonly ids?: readonly string[];
   readonly path: string;
   readonly field?: string;
   readonly message: string;
@@ -148,13 +149,18 @@ export const typeSchema = z.object({
   views: z.record(z.string(), callback<View>()).default({}),
 });
 export type LoadedType = z.infer<typeof typeSchema>;
-export const findingInputSchema = z.object({
-  check: z.string().min(1),
-  id: z.string().optional(),
-  path: z.string(),
-  field: z.string().optional(),
-  message: z.string(),
-});
+export const findingInputSchema = z
+  .object({
+    check: z.string().min(1),
+    id: z.string().optional(),
+    ids: z.array(z.string().min(1)).min(1).optional(),
+    path: z.string(),
+    field: z.string().optional(),
+    message: z.string(),
+  })
+  .refine((finding) => finding.id === undefined || finding.ids === undefined, {
+    message: "finding must use either id or ids, not both",
+  });
 export const verdictSchema = z.object({
   v: z.literal(1),
   id: z.string().min(1),

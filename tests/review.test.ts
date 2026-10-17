@@ -117,6 +117,30 @@ test("I-10 blocks a record with a finding while reviewing clean records", async 
   expect(rows(result.stdout).some((r) => r.pass === true && r.id === "good")).toBe(true);
   expect(await Bun.file(`${cwd}/calls`).text()).toBe("1");
 }, 60000);
+test("I-10 blocks every member of a group finding and reviews the rest", async () => {
+  const { cwd } = await fixture();
+  const source = await Bun.file(`${cwd}/.dx/note.ts`).text();
+  await write(
+    cwd,
+    ".dx/note.ts",
+    source.replace(
+      "checks: [",
+      `treeChecks: [tree => { const ids = tree.records.filter(r => r.fields.pair === true).map(r => r.id);
+    return ids.length > 1 ? [{ check: "pair", ids, path: "records", message: "pair" }] : []; }],
+  checks: [`,
+    ),
+  );
+  await advance(cwd);
+  await write(cwd, "records/a.md", markdown("a", "pair: true\n"));
+  await write(cwd, "records/b.md", markdown("b", "pair: true\n"));
+  await write(cwd, "records/c.md", markdown("c"));
+  const result = await review(cwd);
+  expect(result.exit, result.stderr).toBe(1);
+  expect(result.stderr).toContain("REVIEW_BLOCKED: a: I-10: 既存の finding 1 件を先に消す\n");
+  expect(result.stderr).toContain("REVIEW_BLOCKED: b: I-10: 既存の finding 1 件を先に消す\n");
+  expect(rows(result.stdout).some((r) => r.pass === true && r.id === "c")).toBe(true);
+  expect(await Bun.file(`${cwd}/calls`).text()).toBe("1");
+}, 60000);
 test("oversized record or questions refuse with exit 4, no command and empty stdout", async () => {
   for (const largeQuestion of [false, true]) {
     const { cwd } = await fixture();
