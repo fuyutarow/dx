@@ -74,7 +74,7 @@
 | ID | 性質 | 確かめる場所 |
 |---|---|---|
 | I-01 | 受け入れた ⇔ remote の正規の branch から到達できる | land |
-| I-02 | head の規則で base と head の両方を数えて、新しい finding が無い | check |
+| I-02 | head の規則で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分の finding を（既存のものも含めて）1 つも持たない。変わっていない記録の既存の finding だけを残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため） | check |
 | I-03 | `immutable` の type の記録は、変わらず、消えない | check |
 | I-04 | links は宣言された type を指し、参照先があり、循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
@@ -352,4 +352,6 @@ export default defineType({
 | R-10 | soks: 生成した `knowledge/index.md`（2.7 MB）を commit している。land のたびに同じ 1 ファイルが変わるので、並行して land すると、毎回 RACE → rebase → index の作り直しになる | 読んでいるのは soks-govern の push の認証（custody.rs:134-143）だけで、外の使う側は見つからなかった（2026-10-17、soks のセッションの範囲を限った検索）。soks-govern の push を退役させたら、commit をやめて `dx view index` で読む |
 | R-11 | soks: 書き手の流れが変わる。今は、worker が scratchpad に bundle を作り、soks-govern が alpha に書く唯一の書き手である。dx では、worker が soks の自分の workspace に直接書く | 書き手の手順書（AGENTS.md）を書き換える。新しい evi の UUIDv7 は書き手が作る（今の `soks-govern ids` に当たるものは dx に無い） |
 | R-12 | soks: firedancer と QOED の harness 設定が、soks-govern の hook を指している | soks-govern を消す前に、それらの設定を harness の規則に置き換える。外すだけにすると、hook のコマンドが無くなって設定が壊れる |
+| R-14 | soks: soks-govern は、byte の同じ書き直しでも、既存の違反を持つ文書への書き込みを拒否する（cli.rs:931）。dx は木が変わらなければ何も受け入れないので、その書き込みは存在しない | 差は残らない。変わった記録の潔白は I-02 の強化で守る |
+| R-15 | soks: soks-govern の base なしの `check` は、既存の違反があれば落ちる（cli.rs:642）。dx の `check` は既定で base（`alpha@origin`）と比べるので、既存の違反を残す | 全体の監査には `dx check --base 'root()' REV` を使う。jj の root は空の木なので、すべての finding が新しいものになる。機能は足さない |
 | R-13 | soks: 誤った著者の事故（`ce4daad`、`dd4f23c`）と、replica からの直接 push（`231817a`）が過去にあった。dx は著者を検査せず、land を通らない push も止めない | 著者の設定は git と agx が持つ。push を止めるのは権限を持つ人（D2）。dx が提供するのは、`dx check --base A B` による後からの検出だけ |
