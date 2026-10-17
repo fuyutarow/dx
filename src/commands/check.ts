@@ -23,6 +23,14 @@ export async function check(
         .filter((record) => previous.get(record.id)?.has(record.sha256) !== true)
         .map((record) => record.id),
     );
+    // Records are judged by their own hash (changedIds); a file that yields no
+    // record (inputs, policy, an unparsable record file) is judged by its bytes.
+    const recordFiles = new Set(head.records.map((record) => record.path));
+    const changedPaths = new Set(
+      [...new Set([...base.fileIds.keys(), ...head.fileIds.keys()])].filter(
+        (path) => !recordFiles.has(path) && base.fileIds.get(path) !== head.fileIds.get(path),
+      ),
+    );
     const oldFindings = yield* await structural(base, base, types);
     const findings = [
       ...(yield* await structural(head, base, types)),
@@ -30,11 +38,6 @@ export async function check(
       ...(yield* reviews(base, head, types)),
       ...isolation,
     ];
-    // A rejected file has no record id/hash. Grandfather its format finding only
-    // while its bytes stay identical, so editing malformed YAML cannot bypass I-02.
-    const retained = oldFindings.filter(
-      (row) => row.check !== "format" || base.files[row.path] === head.files[row.path],
-    );
-    return ok(classify(findings, retained, changedIds));
+    return ok(classify(findings, oldFindings, changedIds, changedPaths));
   });
 }

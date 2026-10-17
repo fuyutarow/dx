@@ -195,10 +195,21 @@ import は `.dx/` 内の相対パス、`dx`、同じ固定版の `zod`・`nevert
 schema・filename・独自 checks と、id・links の指摘を安定した key で比較します。既存 finding は `new:false`、新規 finding は
 `new:true` です。stdout には新しい finding だけを出し、stderr に「新しい finding N 件 / 既存 M 件」を出します。新規があれば exit 1、なければ exit 0 です。
 既存を含むすべての finding を見るには `dx check --all` を使います。出力だけが変わり、終了コードと新規・既存の分類は変わりません。
-`--base 'root()'` は空の木との比較に使えますが、規則の inputs に対する finding は既存のまま残ることがあります。
+`--base 'root()'` は空の木との比較に使えます。head の木にある inputs の path を指す finding も、追加されたファイルの finding として new になります。
 既定の `<branch>@<remote>` が無い場合は `root()` を使い、stderr に `base: remote branch absent; using root()` を出します。
 明示した `--base` の REV が存在しない場合は exit 4 です。
-新しい記録と sha256 が変わった記録は、同じ id の既存 finding も `new:true` として拒否します。変わっていない記録の既存 finding は残せます。
+新しい記録と sha256 が変わった記録は、同じ id の既存 finding も `new:true` として拒否します。
+head で記録を 1 つも生まないファイル（`dx.toml`、`.dx/`、inputs、読めなかった記録のファイルなど）は bytes で判定します。
+`finding.path` がそのようなファイルを指し、base/head 間で bytes が違うか片方にしか無ければ、同じ key の既存 finding も `new:true` とします。
+記録を生むファイルは記録の sha256 で判定するので、同じファイルの別の記録や review のメタデータを変えても、触れていない記録の finding は既存のままです。
+`--policy` を指定しても、変更は policy revision ではなく base/head の木で決まります。
+関連する記録 ID と、記録を生まないファイルの bytes の、どちらにも変更がない既存 finding は残せます。
+
+この変更の[歴史照合](tests/fixtures/changed-paths-shadow.json)は、前回と同じ retrospectives 119 組・soks 42 組の親子 commit を対象にしました。
+照合は、記録を生むファイルも bytes で判定する、より広い規則で行いました。採用した規則で new になる finding は、その一覧の部分集合です。
+153 組を判定でき、追加拒否（exit 0 → 1）は 0 件でした。retrospectives の `5045a07b…` では、
+変更された `records/register.toml` の `retro.layout` finding 1 件が new になりましたが、終了コードは 1 のままです。
+soks の 8 組は前回と同じ Rust 正規表現の読み取りエラーで未判定です。
 
 key は JSON 配列 `[check, id または null, field または空文字]` の文字列です。
 記録を特定できない format/strict finding と、重複 id の個別発生には `field` に path/位置を含めます。

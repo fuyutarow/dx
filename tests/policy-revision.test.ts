@@ -124,3 +124,88 @@ test("policy parsing rejects missing/repeated values and non-check commands; inv
     expect((await dx(cwd, "check", "--base", base, "--policy", policy)).exit).toBe(4);
   expect((await dx(cwd, "check", "--help")).stdout).toContain("--policy");
 });
+
+const brokenInputPolicy = typeSource().replace(
+  "views:",
+  `treeChecks: [tree => tree.read(".leakcheck") === "broken" ? [{
+    check: "input", path: ".leakcheck", field: "syntax", message: "broken input"
+  }] : []], views:`,
+);
+
+test("I-02: adding only a broken input rejects; untouched input findings remain existing", async () => {
+  const { cwd } = await repo({}, '[files]\ninputs=[".leakcheck"]\n');
+  await write(cwd, ".dx/note.ts", brokenInputPolicy);
+  const base = await advance(cwd);
+  await write(cwd, ".leakcheck", "broken");
+  const rejected = await checked(cwd, base, 1);
+  expect(rejected.findings).toMatchObject([{ check: "input", path: ".leakcheck", new: true }]);
+  const next = await advance(cwd);
+  await write(cwd, "records/a.md", markdown("a"));
+  const retained = await checked(cwd, next, 0);
+  expect(retained.stderr).toContain("既存 1 件");
+});
+
+test("I-02: explicit policy compares input paths in base/head, not policy", async () => {
+  const { cwd } = await repo({}, '[files]\ninputs=[".leakcheck"]\n');
+  await write(cwd, ".dx/note.ts", brokenInputPolicy);
+  await write(cwd, ".leakcheck", "safe");
+  const base = await advance(cwd);
+  await write(cwd, ".leakcheck", "changed but safe");
+  const head = await advance(cwd);
+  await write(cwd, ".leakcheck", "broken");
+  const policy = await snapshot(cwd);
+  const result = await dx(cwd, "check", "--base", base, head, "--policy", policy);
+  expect(result.exit, result.stderr).toBe(1);
+  expect(rows(result.stdout)).toMatchObject([{ path: ".leakcheck", new: true }]);
+  // Policy has different bytes, but an unchanged base/head path stays existing.
+  const retained = await dx(cwd, "check", "--base", head, head, "--policy", policy, "--all");
+  expect(retained.exit, retained.stderr).toBe(0);
+  expect(rows(retained.stdout)).toMatchObject([{ path: ".leakcheck", new: false }]);
+  // A deletion is also a path change even though the overlay restores its content.
+  await rm(`${cwd}/.leakcheck`);
+  const deleted = await snapshot(cwd);
+  const removed = await dx(cwd, "check", "--base", head, deleted, "--policy", policy);
+  expect(removed.exit, removed.stderr).toBe(1);
+  expect(rows(removed.stdout)).toMatchObject([{ path: ".leakcheck", new: true }]);
+});
+
+test("I-02: raw blob comparison covers config, rules and ignored binary bytes, not mode", async () => {
+  const { chmod } = await import("node:fs/promises");
+  for (const path of ["dx.toml", ".dx/helper.txt", "ignored.bin"]) {
+    const { cwd } = await repo({}, '[files]\nignore=["ignored.bin"]\n');
+    const policySource = typeSource().replace(
+      "views:",
+      `treeChecks: [() => [{ check: "auxiliary", path: ${JSON.stringify(path)},
+        field: "stable", message: "existing auxiliary finding" }]], views:`,
+    );
+    await write(cwd, ".dx/note.ts", policySource);
+    if (path !== "dx.toml") await write(cwd, path, "before");
+    const base = await advance(cwd);
+    // An executable-bit change does not change bytes and must remain existing.
+    await chmod(`${cwd}/${path}`, 0o755);
+    await checked(cwd, base, 0);
+    if (path === "dx.toml") {
+      await write(
+        cwd,
+        path,
+        '[repo]\nname="fixture"\n# changed bytes\n[files]\nignore=["ignored.bin"]\n',
+      );
+    } else await write(cwd, path, "after");
+    const result = await checked(cwd, base, 1);
+    expect(result.findings).toMatchObject([{ check: "auxiliary", path, new: true }]);
+  }
+  // Two invalid UTF-8 blobs decode to the same replacement character. Their bytes differ.
+  const { cwd } = await repo({}, '[files]\nignore=["ignored.bin"]\n');
+  await write(
+    cwd,
+    ".dx/note.ts",
+    typeSource().replace(
+      "views:",
+      'treeChecks: [() => [{ check: "binary", path: "ignored.bin", message: "bad" }]], views:',
+    ),
+  );
+  await Bun.write(`${cwd}/ignored.bin`, new Uint8Array([0xff]));
+  const base = await advance(cwd);
+  await Bun.write(`${cwd}/ignored.bin`, new Uint8Array([0xfe]));
+  expect((await checked(cwd, base, 1)).findings).toMatchObject([{ check: "binary", new: true }]);
+}, 60000);

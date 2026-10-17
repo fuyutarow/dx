@@ -17,7 +17,13 @@ import {
   write,
 } from "./helpers.ts";
 
-const empty: Snapshot = { records: [], sources: new Map(), files: {}, findings: [] };
+const empty: Snapshot = {
+  fileIds: new Map(),
+  records: [],
+  sources: new Map(),
+  files: {},
+  findings: [],
+};
 const loaded = (definition: unknown) => value(validate(typeSchema, definition));
 
 test("tree checks run once per definition on each side, including empty trees, and share the index", async () => {

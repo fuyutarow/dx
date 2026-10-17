@@ -10,6 +10,7 @@ export function classify(
   head: readonly FindingInput[],
   base: readonly FindingInput[],
   changedIds: ReadonlySet<string>,
+  changedPaths: ReadonlySet<string>,
 ): Finding[] {
   const existing = new Set(base.map((row) => findingKey(row)));
   const rows = new Map<string, FindingInput>();
@@ -29,6 +30,7 @@ export function classify(
         key,
         new:
           !existing.has(key) ||
+          changedPaths.has(row.path) ||
           (row.id !== undefined && changedIds.has(row.id)) ||
           (row.ids?.some((id) => changedIds.has(id)) ?? false),
       }),

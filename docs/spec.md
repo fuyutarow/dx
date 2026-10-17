@@ -74,7 +74,7 @@
 | ID | 性質 | 確かめる場所 |
 |---|---|---|
 | I-01 | 受け入れた ⇔ remote の正規の branch から到達できる | land |
-| I-02 | 同じ規則 revision（既定は head、指定時は `--policy REV`）の設定・型定義・inputs で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分に関わる finding（`id` が自分、または `ids` に自分を含むもの）を既存のものも含めて 1 つも持たない。複数記録に関わる finding は、その `ids` のどれか 1 つでも新しいか変わった記録なら new とする。変わっていない記録だけに関わる既存 finding は残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため。2026-10-18 に複数記録 finding の `ids` に適用を拡張） | check |
+| I-02 | 同じ規則 revision（既定は head、指定時は `--policy REV`）の設定・型定義・inputs で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分に関わる finding（`id` が自分、または `ids` に自分を含むもの）を既存のものも含めて 1 つも持たない。複数記録に関わる finding は、その `ids` のどれか 1 つでも新しいか変わった記録なら new とする。さらに、head で記録を 1 つも生まないファイル（`dx.toml`、`.dx/`、inputs、読めなかった記録のファイルなど）は、bytes で判定する。`finding.path` がそのようなファイルを指し、base と head の木で bytes が違う、または片方にしか無いなら、base に同じ key があっても new とする。記録を生むファイルは、記録の sha256 で判定する（同じファイルの別の記録や、review のメタデータを変えても、触れていない記録の finding は既存のまま）。`--policy` を指定しても、比べる木は base と head であり、policy の revision ではない。記録の ID と、記録を生まないファイルの bytes の、どちらにも変更がなければ既存 finding は残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため。2026-10-18 に複数記録 finding の `ids` に適用を拡張。同日、記録を生まないファイルにも拡張。policy-rev のもとで、壊れた inputs を入れる commit が既存の finding として通る穴を塞ぐため） | check |
 | I-03 | `immutable` の type の記録は、変わらず、消えない | check |
 | I-04 | links は宣言された type を指し、参照先がある。acyclic（既定 true）が true の辺だけで作るグラフは循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
@@ -388,7 +388,9 @@ base の記録は `tree.base` で読めるが、この索引の対象は `tree.r
 `[check, id-or-null-or-sorted-ids, field-or-empty-string]` の JSON tuple とし、`ids` は重複を除いて
 辞書順に正規化してから含める。従来の `id` の key は維持するため、`ids` の入力順に依存しない。
 I-02 では `id` が新規・変更記録ならその finding を new とし、`ids` の場合は含まれる ID のいずれかが
-新規・変更記録なら new とする。すべての関連記録が未変更で key が base にあれば既存として残せる。
+新規・変更記録なら new とする。加えて、`path` が head で記録を生まないファイルを指し、
+そのファイルの bytes が base/head 間で変わっていれば new とする。
+すべての関連記録とそのようなファイルが未変更で、key が base にあれば既存として残せる。
 旧い checks は、id を省略した finding に対象の record.id を補う動作を保つ。
 両方とも信頼する純粋な policy とし、tree や索引を書き換えない。例外や不正な戻り値は終了コード 4 で、stdout は空にする。
 
@@ -455,5 +457,5 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 | R-11 | soks: 書き手の流れが変わる。今は、worker が scratchpad に bundle を作り、soks-govern が alpha に書く唯一の書き手である。dx では、worker が soks の自分の workspace に直接書く | 書き手の手順書（AGENTS.md）を書き換える。新しい evi の UUIDv7 は書き手が作る（今の `soks-govern ids` に当たるものは dx に無い） |
 | R-12 | soks: firedancer と QOED の harness 設定が、soks-govern の hook を指している | soks-govern を消す前に、それらの設定を harness の規則に置き換える。外すだけにすると、hook のコマンドが無くなって設定が壊れる |
 | R-14 | soks: soks-govern は、byte の同じ書き直しでも、既存の違反を持つ文書への書き込みを拒否する（cli.rs:931）。dx は木が変わらなければ何も受け入れないので、その書き込みは存在しない | 差は残らない。変わった記録の潔白は I-02 の強化で守る |
-| R-15 | soks: soks-govern の base なしの `check` は、既存の違反があれば落ちる（cli.rs:642）。dx の `check` は既定で base（`alpha@origin`）と比べるので、既存の違反を残す | 全件の監査には `dx check --all REV` を使う。空の木と比較するときは `--base 'root()'` も指定する。inputs に対する finding はその場合も既存のまま残りうる。--all は出力だけを変え、判定は変えない |
+| R-15 | soks: soks-govern の base なしの `check` は、既存の違反があれば落ちる（cli.rs:642）。dx の `check` は既定で base（`alpha@origin`）と比べるので、既存の違反を残す | 全件の監査には `dx check --all REV` を使う。空の木と比較するときは `--base 'root()'` も指定する。head の木にある inputs の path を指す finding も、空の木からの追加として new になる。--all は出力だけを変え、判定は変えない |
 | R-13 | soks: 誤った著者の事故（`ce4daad`、`dd4f23c`）と、replica からの直接 push（`231817a`）が過去にあった。dx は著者を検査せず、land を通らない push も止めない | 著者の設定は git と agx が持つ。push を止めるのは権限を持つ人（D2）。dx が提供するのは、`dx check --base A B` による後からの検出だけ |
