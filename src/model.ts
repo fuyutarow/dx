@@ -43,10 +43,25 @@ export type Check = (
   tree: TreeContext,
 ) => readonly FindingInput[] | Promise<readonly FindingInput[]>;
 export type View = (tree: TreeContext) => readonly Fields[] | Promise<readonly Fields[]>;
+export interface Evidence {
+  readonly locator: string;
+  readonly status: string;
+  readonly content?: string | undefined;
+  readonly original_bytes?: number | undefined;
+  readonly supplied_bytes?: number | undefined;
+}
+export type Verdict = z.infer<typeof verdictSchema>;
+export interface FormatAdapter {
+  readonly parse: (path: string, text: string) => SourceFile[];
+  readonly hash: (file: SourceFile) => string;
+  readonly reviewText: (file: SourceFile) => string;
+  readonly writeReview?: ((file: SourceFile, verdict: Verdict) => string) | undefined;
+  readonly evidence?: ((file: SourceFile, tree: TreeContext) => readonly Evidence[]) | undefined;
+}
 export interface TypeDefinition {
   readonly name: string;
   readonly match: string | readonly string[];
-  readonly format: "markdown-frontmatter" | "toml";
+  readonly format: "markdown-frontmatter" | "toml" | FormatAdapter;
   readonly id: (file: SourceFile) => string;
   readonly filename?: RegExp;
   readonly schema: z.ZodType;
@@ -63,7 +78,16 @@ const callback = <T extends (...args: never[]) => unknown>() =>
 export const typeSchema = z.object({
   name: z.string().regex(/^[a-z][a-z0-9_-]*$/u),
   match: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
-  format: z.enum(["markdown-frontmatter", "toml"]),
+  format: z.union([
+    z.enum(["markdown-frontmatter", "toml"]),
+    z.object({
+      parse: callback<FormatAdapter["parse"]>(),
+      hash: callback<FormatAdapter["hash"]>(),
+      reviewText: callback<FormatAdapter["reviewText"]>(),
+      writeReview: callback<NonNullable<FormatAdapter["writeReview"]>>().optional(),
+      evidence: callback<NonNullable<FormatAdapter["evidence"]>>().optional(),
+    }),
+  ]),
   id: callback<TypeDefinition["id"]>(),
   filename: z.instanceof(RegExp).optional(),
   schema: z.instanceof(z.ZodType),

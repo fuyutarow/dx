@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { type Config } from "./config.ts";
 import { attempt, requireValue, undetermined } from "./errors.ts";
-import { parseRecords, recordSha256 } from "./formats.ts";
+import { parseRecords, formatAdapter } from "./formats.ts";
 import { loadTypes, matches } from "./policy.ts";
 import { jj, paths, show } from "./repository.ts";
 import { type FindingInput, type LoadedType, type RecordModel, type SourceFile } from "./model.ts";
@@ -35,17 +35,15 @@ export async function readSnapshot(
   const findings: FindingInput[] = [];
   const recordPaths = new Set<string>();
   for (const path of await paths(cwd, rev, ms)) {
-    if (ignored(config, path) && !path.startsWith(".dx/") && path !== "dx.toml") continue;
+    const verdictPath = types.some(
+      (t) => t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
+    );
+    if (ignored(config, path) && !path.startsWith(".dx/") && path !== "dx.toml" && !verdictPath)
+      continue;
     const selected = types.filter((t) => matches(t.match, path));
     if (selected.length > 1) return undetermined(`file matches multiple types: ${path}`);
     // Policy/config/verdict files are infrastructure and exempt from strict matching.
-    const auxiliary =
-      path === "dx.toml" ||
-      path.startsWith(".dx/") ||
-      types.some(
-        (t) =>
-          t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
-      );
+    const auxiliary = path === "dx.toml" || path.startsWith(".dx/") || verdictPath;
     if (selected.length === 0 && !auxiliary) {
       if (config.files.strict)
         findings.push({
@@ -120,7 +118,7 @@ export async function readSnapshot(
         id,
         type: type.name,
         path,
-        sha256: recordSha256(file),
+        sha256: formatAdapter(type.format).hash(file),
         ...(by.success ? { by: by.data } : {}),
         links,
         fields: file.fields,

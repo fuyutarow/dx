@@ -19,12 +19,27 @@ export async function execute(
       execute({ command: "check", base, rev, list: false }, repo),
     );
   const base =
-    invocation.command === "check"
+    invocation.command === "check" || invocation.command === "review"
       ? await revision(repo, invocation.base ?? `${config.repo.branch}@${config.repo.remote}`)
       : undefined;
   const milliseconds = config.limits.check_seconds * 1000 - (performance.now() - started);
   if (milliseconds <= 0) return undetermined("limits.check_seconds exceeded");
-  const signal = AbortSignal.timeout(Math.ceil(milliseconds));
+  // CPU/policy work keeps the check deadline. Only an external review wait
+  // receives a separate allowance; the command itself enforces 120 seconds.
+  const controller = new AbortController();
+  let phase = 0;
+  const arm = (duration: number) => {
+    const generation = ++phase;
+    AbortSignal.timeout(Math.ceil(duration)).addEventListener(
+      "abort",
+      () => {
+        if (phase === generation) controller.abort();
+      },
+      { once: true },
+    );
+  };
+  arm(milliseconds);
+  const signal = controller.signal;
   const child = Bun.spawn({
     cmd: [process.execPath, "--no-install", `${import.meta.dir}/worker.ts`],
     cwd: repo,
@@ -37,7 +52,36 @@ export async function execute(
   });
   const [stdout, stderr, exit] = await Promise.all([
     new Response(child.stdout).text(),
-    new Response(child.stderr).text(),
+    (async () => {
+      let text = "";
+      const decoder = new TextDecoder();
+      let pending = "";
+      const line = (value: string) => {
+        if (invocation.command === "review" && value === "DX_INTERNAL_REVIEW_WAIT\n") {
+          arm(120000 + milliseconds);
+          return;
+        }
+        if (invocation.command === "review" && value === "DX_INTERNAL_REVIEW_READY\n") {
+          arm(milliseconds);
+          return;
+        }
+        if (invocation.command === "review" && !value.startsWith("UNDETERMINED:"))
+          process.stderr.write(value);
+        text += value;
+      };
+      for await (const chunk of child.stderr) {
+        pending += decoder.decode(chunk, { stream: true });
+        let end = pending.indexOf("\n");
+        while (end >= 0) {
+          line(pending.slice(0, end + 1));
+          pending = pending.slice(end + 1);
+          end = pending.indexOf("\n");
+        }
+      }
+      pending += decoder.decode();
+      if (pending !== "") line(pending);
+      return text;
+    })(),
     child.exited,
   ]);
   if (signal.aborted) return undetermined("limits.check_seconds exceeded");

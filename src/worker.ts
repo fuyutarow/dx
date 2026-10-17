@@ -4,6 +4,7 @@ import { configSchema } from "./config.ts";
 import { attemptAsync, undetermined } from "./errors.ts";
 import { loadTypes } from "./policy.ts";
 import { isolationFindings, readSnapshot, ruleFiles } from "./collection.ts";
+import { review } from "./commands/review.ts";
 import { check } from "./commands/check.ts";
 import { listRecords } from "./commands/ls.ts";
 import { schema } from "./commands/schema.ts";
@@ -18,7 +19,7 @@ export const requestSchema = z.object({
   config: configSchema,
 });
 export const responseSchema = z.object({
-  exit: z.union([z.literal(0), z.literal(1)]),
+  exit: z.union([z.literal(0), z.literal(1), z.literal(3)]),
   stdout: z.string(),
   stderr: z.string(),
 });
@@ -26,6 +27,11 @@ async function run() {
   const input = requestSchema.parse(await Bun.stdin.json());
   const { cwd, head, base, config, invocation } = input;
   const ms = Math.max(1, Math.ceil(config.limits.check_seconds * 1000));
+  const deadline = setTimeout(() => {
+    process.stderr.write("UNDETERMINED:limits.check_seconds exceeded\n");
+    process.exit(4);
+  }, ms);
+  deadline.unref();
   const types = await loadTypes(await ruleFiles(cwd, head, ms));
   if (invocation.command === "schema")
     return {
@@ -36,9 +42,19 @@ async function run() {
   const current = await readSnapshot(cwd, head, config, types, ms);
   if (
     invocation.command !== "check" &&
+    invocation.command !== "review" &&
     current.findings.some((finding) => finding.check === "format")
   )
     return undetermined("record format could not be read; run dx check for findings");
+  if (invocation.command === "review" && base !== undefined) {
+    const previous = await readSnapshot(cwd, base, config, types, ms);
+    const isolation = await isolationFindings(cwd, base, head, config, types, ms);
+    // Review commands have their own 120-second deadline per record.
+    clearTimeout(deadline);
+    return review(cwd, previous, current, types, config, isolation, (waiting) =>
+      process.stderr.write(waiting ? "DX_INTERNAL_REVIEW_WAIT\n" : "DX_INTERNAL_REVIEW_READY\n"),
+    );
+  }
   if (invocation.command === "check" && base !== undefined) {
     const previous = await readSnapshot(cwd, base, config, types, ms);
     const findings = await check(
