@@ -1,3 +1,19 @@
+import {
+  decode,
+  value,
+  advance,
+  dx,
+  jj,
+  markdown,
+  processRun,
+  repo,
+  rows,
+  snapshot,
+  write,
+} from "../helpers.ts";
+import { fieldsSchema } from "../../src/model.ts";
+import { ok } from "neverthrow";
+
 import { test, expect, beforeEach, afterEach } from "bun:test";
 import { join } from "node:path";
 import { mkdir, rm, chmod, mkdtemp } from "node:fs/promises";
@@ -6,7 +22,6 @@ import { land } from "../../src/commands/land.ts";
 import { readConfig } from "../../src/config.ts";
 import { execute } from "../../src/main.ts";
 import { pushOutcome, run } from "../../src/land/process.ts";
-import { advance, dx, jj, markdown, processRun, repo, rows, snapshot, write } from "../helpers.ts";
 
 const timeout = 60000;
 const originalConfigHome = process.env.XDG_CONFIG_HOME;
@@ -64,7 +79,7 @@ for (const colocate of [true, false])
       const head = await snapshot(cwd);
       const result = await dx(cwd, "land");
       expect(result.exit, result.stderr).toBe(0);
-      expect(JSON.parse(result.stdout)).toEqual({
+      expect(decode(fieldsSchema, result.stdout)).toEqual({
         v: 1,
         commit: head,
         base,
@@ -122,20 +137,21 @@ test(
     const winner = await snapshot(other);
     await write(cwd, "records/loser.md", markdown("loser"));
     const head = await snapshot(cwd);
-    const result = await land(
-      cwd,
-      head,
-      readConfig('[repo]\nname="fixture"'),
-      async (actualBase, rev) => {
-        expect(actualBase).toBe(base);
-        const checked = await execute(
-          { command: "check", base: actualBase, rev, list: false },
-          cwd,
-        );
-        expect(checked.exit).toBe(0);
-        expect((await dx(other, "land", winner)).exit).toBe(0);
-        return checked;
-      },
+    const result = value(
+      await land(
+        cwd,
+        head,
+        value(readConfig('[repo]\nname="fixture"')),
+        async (actualBase, rev) => {
+          expect(actualBase).toBe(base);
+          const checked = value(
+            await execute({ command: "check", base: actualBase, rev, list: false }, cwd),
+          );
+          expect(checked.exit).toBe(0);
+          expect((await dx(other, "land", winner)).exit).toBe(0);
+          return ok(checked);
+        },
+      ),
     );
     expect(result.exit).toBe(3);
     expect(result.stderr).toContain("RACE\n");
@@ -179,7 +195,7 @@ test(
     const result = await dx(cwd, "land", head);
     expect(result.exit, result.stderr).toBe(0);
     expect(result.stderr).toContain("WARNING:");
-    expect(JSON.parse(result.stdout).commit).toBe(head);
+    expect(decode(fieldsSchema, result.stdout).commit).toBe(head);
     expect(await tip(remote)).toBe(head);
   },
   timeout,
@@ -252,7 +268,7 @@ test(
     const head = await snapshot(cwd);
     const result = await dx(cwd, "land", head);
     expect(result.exit, result.stderr).toBe(0);
-    expect(JSON.parse(result.stdout)).toEqual({
+    expect(decode(fieldsSchema, result.stdout)).toEqual({
       v: 1,
       commit: head,
       base,

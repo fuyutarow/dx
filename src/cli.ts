@@ -76,15 +76,8 @@ export function parseInvocation(args: string[]): CliAction | undefined {
     const key = flag === "-h" ? "--help" : flag;
     if (seen.has(key)) usage(`repeated option: ${flag}`);
     seen.add(key);
-    if (flag === "--base") {
-      if (token.includes("=")) {
-        if (token.slice(token.indexOf("=") + 1) === "") usage("--base needs a REV");
-      } else {
-        const value = args[i + 1];
-        if (value === undefined || value.startsWith("-")) usage("--base needs a REV");
-        i += 1;
-      }
-    } else if (flag !== token) usage(`option does not take a value: ${token}`);
+    if (flag === "--base") i = baseArgument(args, i, token);
+    else if (flag !== token) usage(`option does not take a value: ${token}`);
   }
   if (positional.length > (name === "view" ? 2 : 1)) usage("too many positional arguments");
   if (seen.has("--list") && (positional.length > 0 || seen.size > 1))
@@ -143,11 +136,23 @@ export function parseInvocation(args: string[]): CliAction | undefined {
   );
   if (parsed.command === undefined) return undefined;
   const base = parsed.command === "check" ? parsed.flags.base : undefined;
-  return invocationSchema.parse({
+  const invocation = invocationSchema.safeParse({
     command: parsed.command,
     rev: positional[parsed.command === "view" ? 1 : 0] ?? "@",
     ...(base === undefined ? {} : { base }),
     ...(parsed.command === "view" || parsed.command === "schema" ? { name: positional[0] } : {}),
     list: parsed.command === "view" && parsed.flags.list === true,
   });
+  if (!invocation.success) usage(invocation.error.message);
+  return invocation.data;
+}
+
+function baseArgument(args: string[], index: number, token: string): number {
+  if (token.includes("=")) {
+    if (token.slice(token.indexOf("=") + 1) === "") usage("--base needs a REV");
+    return index;
+  }
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("-")) usage("--base needs a REV");
+  return index + 1;
 }

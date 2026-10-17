@@ -1,5 +1,6 @@
+import { ok, safeTry } from "neverthrow";
 import { z } from "zod";
-import { undetermined } from "./errors.ts";
+import { attempt, validate, undetermined } from "./errors.ts";
 import type { Evidence } from "./model.ts";
 
 export const REVIEW_INPUT_LIMIT_BYTES = 30_000;
@@ -16,13 +17,18 @@ export const rubricSchema = z.object({
     .max(53),
 });
 export function parseRubric(text: string) {
-  const rubric = rubricSchema.parse(Bun.TOML.parse(text));
-  if (
-    new Set(rubric.criteria.map((c) => c.id)).size !== rubric.criteria.length ||
-    rubric.criteria.some((c, index) => c.bit !== undefined && c.bit !== index)
-  )
-    return undetermined("rubric IDs must be unique and bits contiguous in rubric order");
-  return rubric;
+  return safeTry(function* () {
+    const rubric = yield* validate(
+      rubricSchema,
+      yield* attempt((): unknown => Bun.TOML.parse(text)),
+    );
+    if (
+      new Set(rubric.criteria.map((c) => c.id)).size !== rubric.criteria.length ||
+      rubric.criteria.some((c, index) => c.bit !== undefined && c.bit !== index)
+    )
+      return undetermined("rubric IDs must be unique and bits contiguous in rubric order");
+    return ok(rubric);
+  });
 }
 export function capEvidence(file: Evidence, cap: number): Evidence {
   if (file.content === undefined) return file;
@@ -57,7 +63,7 @@ export const assembleBits = (values: readonly boolean[]) =>
 
 export function assembleRequest(
   record: string,
-  rubric: ReturnType<typeof parseRubric>,
+  rubric: z.output<typeof rubricSchema>,
   evidence: readonly Evidence[],
 ) {
   const omitted =
@@ -110,7 +116,7 @@ export function assembleRequest(
     }
   }
   if (size() > REVIEW_INPUT_LIMIT_BYTES) return undetermined("review request exceeds 30000 bytes");
-  return request;
+  return ok(request);
 }
 export const jevResponseSchema = z.object({
   model: z.string().min(1),

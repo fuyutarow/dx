@@ -1,9 +1,5 @@
-import { test, expect } from "bun:test";
-import { rm } from "node:fs/promises";
-import { join } from "node:path";
-import { sha256, parseRecords, recordSha256 } from "../src/formats.ts";
-import { requireValue } from "../src/errors.ts";
 import {
+  value,
   advance,
   checked,
   dx,
@@ -15,6 +11,11 @@ import {
   typeSource,
   write,
 } from "./helpers.ts";
+import { test, expect } from "bun:test";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
+import { sha256, parseRecords, recordSha256 } from "../src/formats.ts";
+import { requireValue } from "../src/errors.ts";
 
 const timeout = 60000;
 
@@ -39,9 +40,9 @@ test(
     await checked(cwd, base, 0);
     await write(cwd, "records/a.md", markdown("a", "", "Changed\n"));
     const result = await checked(cwd, base, 1);
-    expect(result.findings).toContainEqual(
-      expect.objectContaining({ check: "I-03.immutable", new: true }),
-    );
+    expect(
+      result.findings.some((finding) => finding.check === "I-03.immutable" && finding.new === true),
+    ).toBe(true);
   },
   timeout,
 );
@@ -148,9 +149,8 @@ test(
     await write(cwd, "records/a.md", markdown("renamed"));
     await write(cwd, "records/b.md", markdown("renamed"));
     const result = await checked(cwd, base, 1);
-    expect(result.findings.map((r) => r.check)).toEqual(
-      expect.arrayContaining(["I-03.immutable", "I-05.identity", "I-05.duplicate"]),
-    );
+    for (const check of ["I-03.immutable", "I-05.identity", "I-05.duplicate"])
+      expect(result.findings.map((r) => r.check)).toContain(check);
   },
   timeout,
 );
@@ -158,9 +158,8 @@ test(
 async function reviewed(place: string, immutable = false) {
   const fixture = await repo({ review: place, immutable });
   const text = markdown("a");
-  const file = requireValue(
-    parseRecords("records/a.md", text, "markdown-frontmatter")[0],
-    "fixture",
+  const file = value(
+    requireValue(value(parseRecords("records/a.md", text, "markdown-frontmatter"))[0], "fixture"),
   );
   const verdict = {
     v: 1,

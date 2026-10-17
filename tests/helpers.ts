@@ -1,3 +1,5 @@
+import { jsonOf, z } from "../.dx-preset/zod.ts";
+import type { Result } from "neverthrow";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
@@ -96,7 +98,7 @@ export function rows(stdout: string) {
     : stdout
         .trim()
         .split("\n")
-        .map((line) => fieldsSchema.parse(JSON.parse(line)));
+        .map((line) => decode(fieldsSchema, line));
 }
 export async function checked(cwd: string, base: string, expected: number) {
   await snapshot(cwd);
@@ -108,4 +110,29 @@ export async function checked(cwd: string, base: string, expected: number) {
     expect(typeof finding.key).toBe("string");
   }
   return { ...result, findings };
+}
+
+export function value<T>(result: Result<T, string>): T {
+  return result.match(
+    (data) => data,
+    (error) => expect.unreachable(error),
+  );
+}
+export function expectError<T>(result: Result<T, string>, expected: string): void {
+  expect(result.isErr()).toBe(true);
+  if (result.isErr()) expect(result.error).toContain(expected);
+}
+
+export function decode<S extends z.ZodType>(schema: S, text: string): z.output<S> {
+  const parsed = jsonOf(schema).safeParse(text);
+  return parsed.success ? parsed.data : expect.unreachable(parsed.error.message);
+}
+export async function spawn(cmd: string[], options: { cwd: string }) {
+  const child = Bun.spawn(cmd, { ...options, stdout: "pipe", stderr: "pipe", timeout: 20000 });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+  return { stdout, stderr, exitCode };
 }

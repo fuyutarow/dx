@@ -1,3 +1,4 @@
+import { ok, safeTry } from "neverthrow";
 import { structural, transitions, reviews } from "../checks.ts";
 import { classify } from "../findings.ts";
 import type { Snapshot } from "../collection.ts";
@@ -12,12 +13,14 @@ export async function check(
   config: Config,
   isolation: readonly FindingInput[],
 ) {
-  const oldFindings = await structural(base, base, types);
-  const findings = [
-    ...(await structural(head, base, types)),
-    ...transitions(base, head, types),
-    ...reviews(base, head, types, config),
-    ...isolation,
-  ];
-  return classify(findings, oldFindings);
+  return safeTry(async function* () {
+    const oldFindings = yield* await structural(base, base, types);
+    const findings = [
+      ...(yield* await structural(head, base, types)),
+      ...transitions(base, head, types),
+      ...(yield* reviews(base, head, types, config)),
+      ...isolation,
+    ];
+    return ok(classify(findings, oldFindings));
+  });
 }

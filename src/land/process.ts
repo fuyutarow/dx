@@ -1,3 +1,4 @@
+import { ok } from "neverthrow";
 import { attemptAsync, undetermined } from "../errors.ts";
 
 export type ProcessResult = {
@@ -22,7 +23,7 @@ async function drain(stream: ReadableStream<Uint8Array>, signal: AbortSignal) {
     ),
   );
   if (drained.isErr() && !signal.aborted) return undetermined(drained.error);
-  return text + decoder.decode();
+  return ok(text + decoder.decode());
 }
 
 /** Drain both pipes while waiting; each external operation has its own 60s budget. */
@@ -55,8 +56,10 @@ export async function run(
       drain(child.stderr, signal),
       child.exited,
     ]);
-    return { stdout, stderr, exit, timedOut: signal.aborted };
-  });
+    if (stdout.isErr()) return undetermined(stdout.error);
+    if (stderr.isErr()) return undetermined(stderr.error);
+    return ok({ stdout: stdout.value, stderr: stderr.value, exit, timedOut: signal.aborted });
+  }).andThen((value) => value);
   clearTimeout(waiting);
   return result.isOk()
     ? result.value
@@ -69,12 +72,15 @@ export async function run(
 }
 
 /** Only positive protocol evidence permits a success receipt. */
-export function pushOutcome(result: ProcessResult, ref: string) {
+export function pushOutcome(result: ProcessResult, ref: string): string | undefined {
   if (result.timedOut) return "REMOTE_UNAVAILABLE";
   const rows = result.stdout.split("\n").map((line) => line.split("\t"));
-  const status = rows.find((row) => row[1]?.endsWith(`:${ref}`));
-  if (result.exit === 0 && status !== undefined && [" ", "=", "*"].includes(status[0] ?? ""))
-    return undefined;
+  const status = rows.find((row) => row[1]?.endsWith(`:${ref}`) === true);
+  return result.exit === 0 && status !== undefined && [" ", "=", "*"].includes(status[0] ?? "")
+    ? undefined
+    : pushFailure(result);
+}
+function pushFailure(result: ProcessResult): string {
   const detail = `${result.stdout}\n${result.stderr}`;
   if (/(stale info|fetch first|cannot lock ref .*expected|is at .*but expected)/iu.test(detail))
     return "RACE";

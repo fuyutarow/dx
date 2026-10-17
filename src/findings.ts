@@ -6,9 +6,9 @@ export function findingKey(row: FindingInput): string {
   return JSON.stringify([row.check, row.id ?? null, row.field ?? ""]);
 }
 export function classify(head: readonly FindingInput[], base: readonly FindingInput[]): Finding[] {
-  const existing = new Set(base.map(findingKey));
+  const existing = new Set(base.map((row) => findingKey(row)));
   const rows = new Map<string, FindingInput>();
-  for (const row of [...head].sort((a, b) => {
+  for (const row of [...head].toSorted((a, b) => {
     const left = stableJson(a);
     const right = stableJson(b);
     return left < right ? -1 : Number(left > right);
@@ -16,10 +16,5 @@ export function classify(head: readonly FindingInput[], base: readonly FindingIn
     rows.set(findingKey(row), row);
   return [...rows]
     .toSorted(([a], [b]) => (a < b ? -1 : Number(a > b)))
-    .map(([key, row]) => ({
-      v: 1,
-      ...row,
-      key,
-      new: !existing.has(key),
-    }));
+    .map(([key, row]) => Object.assign({ v: 1 as const }, row, { key, new: !existing.has(key) }));
 }

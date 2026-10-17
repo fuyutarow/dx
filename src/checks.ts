@@ -1,8 +1,11 @@
+import { jsonText } from "../.dx-preset/zod.ts";
+import { requireValue, attempt, undetermined } from "./errors.ts";
+import { ok, safeTry } from "neverthrow";
 import { posix } from "node:path";
 import { z } from "zod";
 import type { Config } from "./config.ts";
 import type { Snapshot } from "./collection.ts";
-import { attempt, undetermined } from "./errors.ts";
+
 import {
   findingInputSchema,
   verdictSchema,
@@ -31,11 +34,7 @@ function groups(records: readonly RecordModel[]) {
   }
   return result;
 }
-export async function structural(
-  snapshot: Snapshot,
-  base: Snapshot,
-  types: readonly LoadedType[],
-): Promise<FindingInput[]> {
+export async function structural(snapshot: Snapshot, base: Snapshot, types: readonly LoadedType[]) {
   const findings = [...snapshot.findings];
   const byId = groups(snapshot.records);
   const definitions = new Map(types.map((t) => [t.name, t]));
@@ -52,78 +51,29 @@ export async function structural(
   // Iterative DFS with an active stack bounds memory and avoids JS recursion limits.
   const graph = new Map<RecordModel, RecordModel[]>();
   for (const record of snapshot.records) {
-    const edges: RecordModel[] = [];
-    graph.set(record, edges);
-    const type = definitions.get(record.type);
-    for (const link of record.links) {
-      if (/^dx:[^/]+\/.+$/u.test(link.to)) continue; // §10 R-5: reserved external references.
-      const targets = byId.get(link.to) ?? [];
-      if (targets.length !== 1)
-        findings.push({
-          check: "I-04.target",
-          id: record.id,
-          path: record.path,
-          field: `${link.rel}:${link.to}`,
-          message: "link target is missing or ambiguous",
-        });
-      const target = targets[0];
-      if (target === undefined) continue;
-      if (target.type !== type?.links[link.rel]?.to)
-        findings.push({
-          check: "I-04.type",
-          id: record.id,
-          path: record.path,
-          field: `${link.rel}:${link.to}`,
-          message: "link target has the wrong type",
-        });
-      edges.push(target);
-    }
+    linkEdges(record, definitions.get(record.type), byId, graph, findings);
   }
   const color = new Map<RecordModel, number>();
   for (const record of snapshot.records) {
     if (color.has(record)) continue;
-    const stack = [{ record, next: 0 }];
-    color.set(record, 1);
-    while (stack.length > 0) {
-      const frame = stack[stack.length - 1];
-      if (frame === undefined) break;
-      const edges = graph.get(frame.record) ?? [];
-      const target = edges[frame.next];
-      frame.next += 1;
-      if (target === undefined) {
-        color.set(frame.record, 2);
-        stack.pop();
-      } else if (color.get(target) === 1) {
-        findings.push({
-          check: "I-04.cycle",
-          id: frame.record.id,
-          path: frame.record.path,
-          field: "links",
-          message: "link graph contains a cycle",
-        });
-      } else if (!color.has(target)) {
-        color.set(target, 1);
-        stack.push({ record: target, next: 0 });
-      }
-    }
+    cycleFindings(record, graph, color, findings);
   }
   const tree = context(snapshot, base);
-  for (const record of snapshot.records) {
-    for (const check of definitions.get(record.type)?.checks ?? []) {
-      const result = z.array(findingInputSchema).safeParse(await check(record, tree));
-      if (!result.success) return undetermined(`invalid custom findings: ${result.error.message}`);
-      findings.push(
-        ...result.data.map((row) => ({
-          check: row.check,
-          path: row.path,
-          message: row.message,
-          id: row.id ?? record.id,
-          ...(row.field === undefined ? {} : { field: row.field }),
-        })),
-      );
-    }
+  for (const [record, check] of snapshot.records.flatMap((row) =>
+    (definitions.get(row.type)?.checks ?? []).map((callback) => [row, callback] as const),
+  )) {
+    const result = z.array(findingInputSchema).safeParse(await check(record, tree));
+    if (!result.success) return undetermined(`invalid custom findings: ${result.error.message}`);
+    findings.push(
+      ...result.data.map((row) =>
+        Object.assign(
+          { check: row.check, path: row.path, message: row.message, id: row.id ?? record.id },
+          row.field === undefined ? {} : { field: row.field },
+        ),
+      ),
+    );
   }
-  return findings;
+  return ok(findings);
 }
 export function transitions(
   base: Snapshot,
@@ -177,26 +127,29 @@ export function transitions(
   }
   return findings;
 }
-export function rubricPath(type: LoadedType): string {
-  const raw = type.review?.rubric ?? undetermined(`no rubric for ${type.name}`);
-  const path = posix.normalize(raw.startsWith(".dx/") ? raw : `.dx/${raw}`);
-  if (!path.startsWith(".dx/")) return undetermined(`rubric must be in .dx/: ${raw}`);
-  return path;
+export function rubricPath(type: LoadedType) {
+  return safeTry(function* () {
+    const raw = yield* requireValue(type.review?.rubric, `no rubric for ${type.name}`);
+    const path = posix.normalize(raw.startsWith(".dx/") ? raw : `.dx/${raw}`);
+    if (!path.startsWith(".dx/")) return undetermined(`rubric must be in .dx/: ${raw}`);
+    return ok(path);
+  });
 }
 export function sidecarVerdicts(text: string, path: string): unknown[] {
   const parsed = attempt((): unknown => {
     if (path.endsWith(".toml")) return Bun.TOML.parse(text);
-    return JSON.parse(text);
+    const decoded = jsonText.safeParse(text);
+    return decoded.success ? decoded.data : undefined;
   });
-  if (parsed.isOk()) {
+  if (parsed.isOk() && parsed.value !== undefined) {
     const container = z.object({ verdicts: z.array(z.unknown()) }).safeParse(parsed.value);
     if (container.success) return container.data.verdicts;
     return Array.isArray(parsed.value) ? parsed.value : [parsed.value];
   }
   const lines = text.split("\n").filter((line) => line.trim() !== "");
-  const rows = lines.map((line) => attempt((): unknown => JSON.parse(line)));
-  if (rows.some((row) => row.isErr())) return [];
-  return rows.flatMap((row) => (row.isOk() ? [row.value] : []));
+  const rows = lines.map((line) => jsonText.safeParse(line));
+  if (rows.some((row) => !row.success)) return [];
+  return rows.flatMap((row) => (row.success ? [row.data] : []));
 }
 export function reviews(
   base: Snapshot,
@@ -204,19 +157,21 @@ export function reviews(
   types: readonly LoadedType[],
   config: Config,
 ) {
-  const findings: FindingInput[] = [];
-  const previous = groups(base.records);
-  for (const type of types) {
-    if (type.review === undefined) continue;
-    const rubric = rubricPath(type);
-    const text = head.files[rubric] ?? undetermined(`rubric missing: ${rubric}`);
-    const rubricHash = sha256(text);
-    const hasPassingVerdict = verdictChecker(head, type, config, rubricHash);
-    for (const record of head.records.filter((r) => r.type === type.name)) {
-      const old = previous.get(record.id)?.[0];
-      if (!reviewChanged(old, record, type)) continue;
-      const valid = hasPassingVerdict(record);
-      if (!valid)
+  return safeTry(function* () {
+    const findings: FindingInput[] = [];
+    const previous = groups(base.records);
+    for (const type of types) {
+      if (type.review === undefined) continue;
+      const rubric = yield* rubricPath(type);
+      const text = yield* requireValue(head.files[rubric], `rubric missing: ${rubric}`);
+      const rubricHash = sha256(text);
+      const hasPassingVerdict = yield* verdictChecker(head, type, config, rubricHash);
+      for (const record of head.records.filter(
+        (r) =>
+          r.type === type.name &&
+          reviewChanged(previous.get(r.id)?.[0], r, type) &&
+          !hasPassingVerdict(r),
+      )) {
         findings.push({
           check: "I-06.verdict",
           id: record.id,
@@ -224,9 +179,10 @@ export function reviews(
           field: "review",
           message: "missing passing verdict bound to this record, rubric and another author",
         });
+      }
     }
-  }
-  return findings;
+    return ok(findings);
+  });
 }
 
 /** Shared by I-06 and review retries: one schema, binding and storage reader. */
@@ -234,30 +190,35 @@ export function verdictChecker(
   head: Snapshot,
   type: LoadedType,
   config: Config,
-  rubricHash = sha256(head.files[rubricPath(type)] ?? undetermined("missing rubric")),
-): (record: RecordModel) => boolean {
-  const review = type.review ?? undetermined("missing review definition");
-  const raw =
-    review.place === "frontmatter"
-      ? undefined
-      : Object.entries(head.files)
-          .filter(([path]) => matches(review.place.slice(5), path))
-          .flatMap(([path, text]) => sidecarVerdicts(text, path));
-  return (record) =>
-    (raw ?? [record.fields.review]).some((value) => {
-      const result = verdictSchema.safeParse(value);
-      if (!result.success) return false;
-      const v = result.data;
-      return (
-        v.id === record.id &&
-        v.sha256 === record.sha256 &&
-        v.rubric_sha256 === rubricHash &&
-        (v.rubric === review.rubric || v.rubric === rubricPath(type)) &&
-        v.pass &&
-        reviewerAllowed(record.by, v.by) &&
-        v.p.every((p) => p >= config.review.pass)
-      );
-    });
+  rubricHash?: string,
+) {
+  return safeTry(function* () {
+    const path = yield* rubricPath(type);
+    const hash = rubricHash ?? sha256(yield* requireValue(head.files[path], "missing rubric"));
+    const review = yield* requireValue(type.review, "missing review definition");
+    const raw =
+      review.place === "frontmatter"
+        ? undefined
+        : Object.entries(head.files)
+            .filter(([filePath]) => matches(review.place.slice(5), filePath))
+            .flatMap(([filePath, text]) => sidecarVerdicts(text, filePath));
+    return ok((record: RecordModel) =>
+      (raw ?? [record.fields.review]).some((value) => {
+        const result = verdictSchema.safeParse(value);
+        if (!result.success) return false;
+        const v = result.data;
+        return (
+          v.id === record.id &&
+          v.sha256 === record.sha256 &&
+          v.rubric_sha256 === hash &&
+          (v.rubric === review.rubric || v.rubric === path) &&
+          v.pass &&
+          reviewerAllowed(record.by, v.by) &&
+          v.p.every((p) => p >= config.review.pass)
+        );
+      }),
+    );
+  });
 }
 
 /** Match the I-06 target set, including edits to frontmatter verdict metadata. */
@@ -277,4 +238,70 @@ export function reviewChanged(
 /** I-06: unknown record authors require a machine reviewer; known authors must differ. */
 export function reviewerAllowed(author: string | undefined, reviewer: string): boolean {
   return author === undefined ? reviewer.startsWith("process:") : reviewer !== author;
+}
+
+function linkEdges(
+  record: RecordModel,
+  type: LoadedType | undefined,
+  byId: Map<string, RecordModel[]>,
+  graph: Map<RecordModel, RecordModel[]>,
+  findings: FindingInput[],
+) {
+  const edges: RecordModel[] = [];
+  graph.set(record, edges);
+  for (const link of record.links) {
+    if (/^dx:[^/]+\/.+$/u.test(link.to)) continue; // §10 R-5: reserved external references.
+    const targets = byId.get(link.to) ?? [];
+    if (targets.length !== 1)
+      findings.push({
+        check: "I-04.target",
+        id: record.id,
+        path: record.path,
+        field: `${link.rel}:${link.to}`,
+        message: "link target is missing or ambiguous",
+      });
+    const target = targets[0];
+    if (target === undefined) continue;
+    if (target.type !== type?.links[link.rel]?.to)
+      findings.push({
+        check: "I-04.type",
+        id: record.id,
+        path: record.path,
+        field: `${link.rel}:${link.to}`,
+        message: "link target has the wrong type",
+      });
+    edges.push(target);
+  }
+}
+
+function cycleFindings(
+  record: RecordModel,
+  graph: Map<RecordModel, RecordModel[]>,
+  color: Map<RecordModel, number>,
+  findings: FindingInput[],
+) {
+  const stack = [{ record, next: 0 }];
+  color.set(record, 1);
+  while (stack.length > 0) {
+    const frame = stack.at(-1);
+    if (frame === undefined) break;
+    const edges = graph.get(frame.record) ?? [];
+    const target = edges[frame.next];
+    frame.next += 1;
+    if (target === undefined) {
+      color.set(frame.record, 2);
+      stack.pop();
+    } else if (color.get(target) === 1) {
+      findings.push({
+        check: "I-04.cycle",
+        id: frame.record.id,
+        path: frame.record.path,
+        field: "links",
+        message: "link graph contains a cycle",
+      });
+    } else if (!color.has(target)) {
+      color.set(target, 1);
+      stack.push({ record: target, next: 0 });
+    }
+  }
 }
