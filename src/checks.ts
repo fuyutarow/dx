@@ -19,24 +19,29 @@ import { sha256, stableJson } from "./formats.ts";
 
 export function context(snapshot: Snapshot, base: Snapshot): TreeContext {
   return Object.freeze({
+    index: Object.freeze({
+      byId: groups(snapshot.records, "id"),
+      byType: groups(snapshot.records, "type"),
+    }),
     records: Object.freeze([...snapshot.records]),
     base: Object.freeze([...base.records]),
     files: Object.freeze({ ...snapshot.files }),
     read: (path: string) => snapshot.files[path],
   });
 }
-function groups(records: readonly RecordModel[]) {
+function groups(records: readonly RecordModel[], key: "id" | "type" = "id") {
   const result = new Map<string, RecordModel[]>();
   for (const record of records) {
-    const values = result.get(record.id) ?? [];
+    const values = result.get(record[key]) ?? [];
     values.push(record);
-    result.set(record.id, values);
+    result.set(record[key], values);
   }
   return result;
 }
 export async function structural(snapshot: Snapshot, base: Snapshot, types: readonly LoadedType[]) {
   const findings = [...snapshot.findings];
-  const byId = groups(snapshot.records);
+  const tree = context(snapshot, base);
+  const byId = tree.index.byId;
   const definitions = new Map(types.map((t) => [t.name, t]));
   for (const [id, records] of byId) {
     for (const record of records.slice(1))
@@ -58,7 +63,6 @@ export async function structural(snapshot: Snapshot, base: Snapshot, types: read
     if (color.has(record)) continue;
     cycleFindings(record, graph, color, findings);
   }
-  const tree = context(snapshot, base);
   for (const [record, check] of snapshot.records.flatMap((row) =>
     (definitions.get(row.type)?.checks ?? []).map((callback) => [row, callback] as const),
   )) {
@@ -68,6 +72,19 @@ export async function structural(snapshot: Snapshot, base: Snapshot, types: read
       ...result.data.map((row) =>
         Object.assign(
           { check: row.check, path: row.path, message: row.message, id: row.id ?? record.id },
+          row.field === undefined ? {} : { field: row.field },
+        ),
+      ),
+    );
+  }
+  for (const check of types.flatMap((type) => type.treeChecks)) {
+    const result = z.array(findingInputSchema).safeParse(await check(tree));
+    if (!result.success) return undetermined(`invalid custom findings: ${result.error.message}`);
+    findings.push(
+      ...result.data.map((row) =>
+        Object.assign(
+          { check: row.check, path: row.path, message: row.message },
+          row.id === undefined ? {} : { id: row.id },
           row.field === undefined ? {} : { field: row.field },
         ),
       ),
@@ -233,7 +250,7 @@ export function reviewerAllowed(author: string | undefined, reviewer: string): b
 function linkEdges(
   record: RecordModel,
   type: LoadedType | undefined,
-  byId: Map<string, RecordModel[]>,
+  byId: ReadonlyMap<string, readonly RecordModel[]>,
   graph: Map<RecordModel, RecordModel[]>,
   findings: FindingInput[],
 ) {

@@ -34,11 +34,19 @@ export interface Finding extends FindingInput {
   readonly new: boolean;
 }
 export interface TreeContext {
+  readonly index: TreeIndex;
   readonly records: readonly RecordModel[];
   readonly base: readonly RecordModel[];
   readonly files: Readonly<Record<string, string>>;
   readonly read: (path: string) => string | undefined;
 }
+export interface TreeIndex {
+  readonly byId: ReadonlyMap<string, readonly RecordModel[]>;
+  readonly byType: ReadonlyMap<string, readonly RecordModel[]>;
+}
+export type TreeCheck = (
+  tree: TreeContext,
+) => readonly FindingInput[] | Promise<readonly FindingInput[]>;
 export type Check = (
   record: RecordModel,
   tree: TreeContext,
@@ -71,6 +79,7 @@ export interface TypeDefinition {
   readonly links?: Readonly<Record<string, { readonly to: string }>>;
   readonly immutable?: boolean;
   readonly checks?: readonly Check[];
+  readonly treeChecks?: readonly TreeCheck[];
   readonly review?: { readonly rubric: string; readonly place: string };
   readonly views?: Readonly<Record<string, View>>;
 }
@@ -97,6 +106,7 @@ export const typeSchema = z.object({
   links: z.record(z.string(), z.object({ to: z.string().min(1) })).default({}),
   immutable: z.boolean().default(false),
   checks: z.array(callback<Check>()).default([]),
+  treeChecks: z.array(callback<TreeCheck>()).default([]),
   review: z
     .object({
       rubric: z.string().min(1),

@@ -2,7 +2,7 @@ import { validate, requireValue, attempt, undetermined } from "./errors.ts";
 
 import { ok, safeTry } from "neverthrow";
 import { z } from "zod";
-import { type Config } from "./config.ts";
+import { inputPatternsSchema, type Config } from "./config.ts";
 
 import { parseRecords, formatAdapter } from "./formats.ts";
 import { loadTypes, matches } from "./policy.ts";
@@ -21,6 +21,11 @@ export interface Snapshot {
   readonly sources: ReadonlyMap<RecordModel, SourceFile>;
   readonly findings: readonly FindingInput[];
 }
+// Historical configuration contributes only its input declaration to I-09.
+// Other historical settings need not be valid under head's configuration schema.
+const inputConfigSchema = z.object({
+  files: z.object({ inputs: inputPatternsSchema }).prefault({}),
+});
 export function ignored(config: Config, path: string): boolean {
   return matches(config.files.ignore, path);
 }
@@ -74,7 +79,13 @@ export async function readSnapshot(
         (t) =>
           t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
       );
-      return !ignored(config, path) || path.startsWith(".dx/") || path === "dx.toml" || verdictPath;
+      return (
+        !ignored(config, path) ||
+        matches(config.files.inputs, path) ||
+        path.startsWith(".dx/") ||
+        path === "dx.toml" ||
+        verdictPath
+      );
     });
     const contents = yield* await cache.reader.read(entries);
     for (const { path, id: blobId } of entries) {
@@ -82,12 +93,19 @@ export async function readSnapshot(
         (t) =>
           t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
       );
-      if (ignored(config, path) && !path.startsWith(".dx/") && path !== "dx.toml" && !verdictPath)
+      const input = matches(config.files.inputs, path);
+      if (
+        ignored(config, path) &&
+        !input &&
+        !path.startsWith(".dx/") &&
+        path !== "dx.toml" &&
+        !verdictPath
+      )
         continue;
-      const selected = types.filter((t) => matches(t.match, path));
+      const selected = input ? [] : types.filter((t) => matches(t.match, path));
       if (selected.length > 1) return undetermined(`file matches multiple types: ${path}`);
       // Policy/config/verdict files are infrastructure and exempt from strict matching.
-      const auxiliary = path === "dx.toml" || path.startsWith(".dx/") || verdictPath;
+      const auxiliary = input || path === "dx.toml" || path.startsWith(".dx/") || verdictPath;
       if (selected.length === 0 && !auxiliary && config.files.strict)
         findings.push({
           check: "files.strict",
@@ -189,6 +207,23 @@ export async function isolationFindings(
   return safeTry(async function* () {
     const findings: FindingInput[] = [];
     const cache = new Map<string, readonly LoadedType[]>([[head, types]]);
+    const inputCache = new Map<string, readonly string[]>([[head, config.files.inputs]]);
+    const inputs = async (rev: string) =>
+      safeTry(async function* () {
+        const cached = inputCache.get(rev);
+        if (cached !== undefined) return ok(cached);
+        const entries = (yield* await reader.tree(rev)).filter((e) => e.path === "dx.toml");
+        const text = (yield* await reader.read(entries)).get("dx.toml");
+        const patterns =
+          text === undefined
+            ? []
+            : (yield* validate(
+                inputConfigSchema,
+                yield* attempt((): unknown => Bun.TOML.parse(text)),
+              )).files.inputs;
+        inputCache.set(rev, patterns);
+        return ok(patterns);
+      });
     const definitions = async (rev: string) =>
       safeTry(async function* () {
         const cached = cache.get(rev);
@@ -201,9 +236,18 @@ export async function isolationFindings(
         return ok(loaded);
       });
     for (const change of yield* await changeSets(cwd, base, head, ms)) {
-      if (![...change.paths].some((path) => path.startsWith(".dx/"))) continue;
+      const afterInputs = yield* await inputs(change.after);
+      const localInputs = [...afterInputs];
+      let declarationChanged = false;
+      for (const parent of change.before) {
+        const beforeInputs = yield* await inputs(parent);
+        declarationChanged ||= JSON.stringify(beforeInputs) !== JSON.stringify(afterInputs);
+        localInputs.push(...beforeInputs);
+      }
+      const policyPath = (path: string) => path.startsWith(".dx/") || matches(localInputs, path);
+      if (!declarationChanged && ![...change.paths].some((path) => policyPath(path))) continue;
       const candidates = [...change.paths].filter(
-        (path) => !path.startsWith(".dx/") && !ignored(config, path),
+        (path) => !policyPath(path) && !ignored(config, path),
       );
       if (candidates.length === 0) continue;
       // Include definitions at both sides: removing/changing a match cannot hide the record edit.

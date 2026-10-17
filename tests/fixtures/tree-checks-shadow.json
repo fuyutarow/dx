@@ -1,0 +1,36 @@
+[
+  {
+    "baselineCommit": "076a37e4b6dfca581aa40610134e42e29d31f6ec",
+    "measuredAt": "2026-10-17T14:28:53.292Z",
+    "comparison": "dx check --base @ @; exact stdout equality; one wall-clock sample per variant",
+    "name": "retrospectives",
+    "source": "/home/fuyu/Workspace/retrospectives.ws/ws_pin-dx",
+    "copy": "/home/fuyu/.cache/agx/tmp/782fc839-a24c-4c52-8fd8-e3d6a97dea04/dx-tree-shadow-pRqPcc/retrospectives",
+    "findings": 1084,
+    "equalLegacy": true,
+    "equalMigrated": true,
+    "beforeSeconds": 1.9649579199999998,
+    "compatibleSeconds": 3.288315031,
+    "afterSeconds": 1.8540864069999998,
+    "beforeExit": 0,
+    "afterExit": 0,
+    "stdoutSha256": "9a28aecef6bb4d6310c7e7044cd6238774fdd878d2a8cd731fa0e8110864266e"
+  },
+  {
+    "baselineCommit": "076a37e4b6dfca581aa40610134e42e29d31f6ec",
+    "measuredAt": "2026-10-17T14:29:47.258Z",
+    "comparison": "dx check --base @ @; exact stdout equality; one wall-clock sample per variant",
+    "name": "soks",
+    "source": "/home/fuyu/Workspace/soks.ws/ws_dx-shadow",
+    "copy": "/home/fuyu/.cache/agx/tmp/782fc839-a24c-4c52-8fd8-e3d6a97dea04/dx-tree-shadow-pRqPcc/soks",
+    "findings": 396,
+    "equalLegacy": true,
+    "equalMigrated": true,
+    "beforeSeconds": 17.002709116,
+    "compatibleSeconds": 15.371791845999997,
+    "afterSeconds": 12.571021734000002,
+    "beforeExit": 0,
+    "afterExit": 0,
+    "stdoutSha256": "4c3b0dfb4c21dcd6be473910decfad11bef0b5e419da5bbcc398e8d53aafd9c5"
+  }
+]

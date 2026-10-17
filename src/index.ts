@@ -13,6 +13,8 @@ export type {
   FindingInput,
   Finding,
   TreeContext,
+  TreeIndex,
+  TreeCheck,
   Check,
   View,
 } from "./model.ts";

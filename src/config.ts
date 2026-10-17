@@ -4,6 +4,7 @@ import { attempt, undetermined } from "./errors.ts";
 
 export const REVIEW_PASS = 0.5;
 const positive = z.number().int().positive();
+export const inputPatternsSchema = z.array(z.string().min(1)).default([]);
 export const configSchema = z.strictObject({
   repo: z.strictObject({
     name: z.string().min(1),
@@ -27,6 +28,7 @@ export const configSchema = z.strictObject({
   files: z
     .strictObject({
       ignore: z.array(z.string()).default(["records/raw/**", "tools/**", "README.md"]),
+      inputs: inputPatternsSchema,
       strict: z.boolean().default(false),
     })
     .prefault({}),
