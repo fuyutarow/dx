@@ -333,6 +333,7 @@ export default defineType({
 | D5 | blob の管理は dx の外に置く | owner「blob は管理しなくていいだろ」 |
 | D6 | review（Jev）は dx の中心に置く | owner「dx は jev を利用しないの？？そこが肝なんじゃないの？？」 |
 | D7 | status の導出（証明依存グラフ）は、dx 本体ではなく research_record の `.dx/` の view に置く | 記録のグラフだけから決まる研究の意味なので、repo が持つ（2026-10-17、coordinator の提案。反対があれば改める） |
+| D9 | Jev への要求の組み立て・呼び出し・応答の検証は、dotfiles の `agx jev judge`（副作用の無い filter。stdin `{rubric, artifacts, …}` → stdout `{bits:[{id,p,reason}], refuted?}`）に一本化する。dx review は、判定する記録の選択（I-10）、verdict の結びつけと置き場、合否（`[review] pass`）だけを持つ。`agx jev judge` が land したら、`[review] command` をそれに替え、`src/review-request.ts` を消す。それまでは今の実装を使い続ける。rubric の TOML の形は dotfiles が持つ | dotfiles ticket agx-assess（2026-10-17、dotfiles-agt_g67e と合意） |
 | D8 | 名前: `ls`、`check`、`review`、`land`、`view`、`schema`、`.dx/`、type、`checks`、`immutable`、`links`、`[repo]`、`branch`、`[review]`、`[files]`、`sha256`、`by` | 既存の 3 つの repo と OKF の語にそろえる（Unix の副原則 3）。`.dx/` は、道具が持つ設定を dot ディレクトリに置く慣習（`.claude/`、`.githooks/`、`.cocoindex_code/`）に合わせ、repo の中身（records/、knowledge/）と分ける（owner、2026-10-17） |
 
 ## 10. 残差
