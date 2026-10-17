@@ -20,8 +20,11 @@ mise run check
 ```
 
 呼び出す cwd は対象 jj repo 内です。`dx` package の `bin` は `src/main.ts`、公開 API は
-`src/index.ts` にあります。Bun と jj と Git が PATH に必要です。依存・oxlint・oxfmt・tsgo の版は
-retrospectives の `tools/package.json` と同じです。
+`src/index.ts` にあります。Bun 1.4.3 以上と jj と Git が PATH に必要です。
+mise は Bun 1.4.3 に固定し、package.json の engines にも最低版を宣言しています。
+型検査は既存の tsconfig.json を使う `bun check`（`mise run typecheck`）で行います。
+tsgo（`@typescript/native-preview`）は不要です。依存の固定版は package.json と bun.lock にあります。
+oxlint・oxfmt・oxlint-tsgolint は lint・整形用の開発依存として保持します。
 
 すべての読み取りで `--ignore-working-copy --at-operation=@` を使います。`@` は jj が保存済みの
 スナップショットを指します。未保存の編集を検査したいときは、書き手が先に `jj status` または
