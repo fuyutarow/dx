@@ -69,7 +69,8 @@ for (const format of ["markdown-frontmatter", "toml"] as const) {
     expect(initial.findings[0]).toMatchObject({ check: "format", path, new: true });
     const next = await advance(cwd);
     const unchanged = await checked(cwd, next, 0);
-    expect(unchanged.findings[0]).toMatchObject({ key: initial.findings[0]?.key, new: false });
+    expect(unchanged.findings).toEqual([]);
+    expect(unchanged.stderr).toContain("既存 1 件");
     await write(cwd, path, text + "# changed\n");
     const changed = await checked(cwd, next, 1);
     expect(changed.findings[0]).toMatchObject({ key: initial.findings[0]?.key, new: true });

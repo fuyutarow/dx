@@ -133,7 +133,7 @@
 | コマンド | 一つの仕事 | 出力（stdout） | 状態の変更 |
 |---|---|---|---|
 | `dx ls [REV]` | REV の木から記録を読み出す | 記録の JSONL | なし |
-| `dx check [--base REV] [REV]` | 構造を検査し、verdict の結びつき（I-06）を確かめる | finding の JSONL | なし |
+| `dx check [--all] [--base REV] [REV]` | 構造を検査し、verdict の結びつき（I-06）を確かめる | 新しい finding の JSONL（--all なら既存も含む） | なし |
 | `dx review [REV]` | rubric を持つ type の記録のうち、新しいものと変わったもので finding が無いものについて、Jev に問い、verdict を書く | verdict の JSONL | 作業コピーに verdict を書く。Jev への問い合わせ |
 | `dx land [REV]` | check を通った REV で、remote の正規の branch を fast-forward する | 受領の JSON 1 値 | remote の正規の branch と、手元の bookmark |
 | `dx view <name> [REV]`、`dx view --list` | `.dx/` の views が定義する計算結果を出す | view の JSONL | なし |
@@ -148,6 +148,8 @@ dx land @-
 ```
 
 `REV` の既定は `@`、`--base` の既定は `<branch>@<remote>`（例: `alpha@origin`）。
+既定の remote branch が無ければ、空の木 `root()` を使い、stderr に `base: remote branch absent; using root()` を 1 行出す。
+明示した `--base` の REV が存在しない場合は、従来どおり exit 4 とする。他の解決失敗では fallback しない。
 
 作らないもの: 検索や問い合わせの言語、ingest・admit・commit・push を別々に行うコマンド、`--force`、hook、lock、journal、recover、clean、status、leaderboard、run。
 
@@ -172,7 +174,7 @@ dx land @-
 | Synopsis / input | Ordering and repetition | stdin | Help / example |
 |---|---|---|---|
 | `dx ls [REV]` | REV は 1 個まで | 読まない | 例: `dx ls alpha \| jq -c 'select(.type=="evi")'` |
-| `dx check [--policy REV] [--base REV] [REV]` | 各 1 個まで | 読まない | 例: `dx check`（作業コピー対 `alpha@origin`）、`dx check --policy alpha --base A B` |
+| `dx check [--all] [--policy REV] [--base REV] [REV]` | 各 1 個まで | 読まない | 例: `dx check`（作業コピー対 `alpha@origin`）、`dx check --all --policy alpha --base A B` |
 | `dx review [REV]` | REV は 1 個まで | 読まない | 例: `dx review @-` |
 | `dx land [REV]` | REV は 1 個まで | 読まない | 例: `dx land @-` |
 | `dx view <name> [REV]`、`dx view --list` | name は必須。`--list` は単独で使う | 読まない | 例: `dx view status \| jq 'select(.empirical_status=="falsified")'` |
@@ -201,6 +203,10 @@ stderr に `dx: --policy: I-09 の検査を省略します` を 1 行出す。
 
 記録: `{"v":1,"id","type","path","sha256","by"?,"links":[{"rel","to"}],"fields":{…}}`
 finding: `{"v":1,"key","check","id"?,"path","field"?,"new":bool,"message"}`（`key` は「check の名前 + 記録の id + フィールド」から決まり、版をまたいで変えない）
+`check` の stdout は `new:true` の finding だけとし、stderr に「新しい finding N 件 / 既存 M 件」を出す。
+`--all` を付けると既存の finding も stdout に出す。終了コードと新規・既存の分類、stderr の要約は変えない。
+`--base 'root()'` は空の木との比較であり、全件を新規に分類する指定ではない。
+規則と inputs を base にも適用するため、空の木でも inputs に対する木全体の検査が finding を出すことがある。
 verdict: `{"v":1,"id","sha256","rubric","rubric_sha256","by","at","bits","p":[…],"pass":bool}`
 受領: `{"v":1,"commit","base","branch","remote"}`
 
@@ -210,7 +216,11 @@ verdict: `{"v":1,"id","sha256","rubric","rubric_sha256","by","at","bits","p":[�
 | Mode / TTY | stdout | stderr | Decoration / framing |
 |---|---|---|---|
 | TTY か非 TTY か | 同じ JSONL / JSON | 人向けの要約（例: 「新しい finding 3 件 / 既存 244 件」）、待ちの表示、警告 | 色や表は付けない。人は jq で整形する |
-| 失敗したとき | 判定まで終わった finding と verdict を、全件出す | 理由を 1 行。拒否コードを先頭に付ける | 同じ |
+| 失敗したとき | check は新しい finding のみ（--all なら既存も含む）、review は判定まで終わった finding と verdict を全件出す | 理由を 1 行。拒否コードを先頭に付ける | 同じ |
+
+`.dx/` の bundle・import 失敗は `UNDETERMINED:policy: <path>: <原因の 1 行>` とする。
+review が I-10 で記録を飛ばす場合は `REVIEW_BLOCKED: <id>: I-10: 既存の finding N 件を先に消す` を出す。
+N はその記録に該当する verdict 以外の finding の件数。id のない format finding には path を使う。
 
 ## C4 OUTCOMES
 
@@ -218,8 +228,8 @@ verdict: `{"v":1,"id","sha256","rubric","rubric_sha256","by","at","bits","p":[�
 
 | Outcome class | Exit / status | Output | Retry / next action |
 |---|---|---|---|
-| 新しい finding が無い。review ならすべて合格。land なら push まで済んだ | 0 | finding（すべて `new:false`）、verdict、または受領 | なし |
-| 新しい finding がある。review で不合格がある。fast-forward でない | 1 | finding か verdict を全件。fast-forward でなければ `NOT_FAST_FORWARD` | 記録を直すか、rebase してから流し直す |
+| 新しい finding が無い。review ならすべて合格。land なら push まで済んだ | 0 | check は stdout 空（--all なら既存 finding）。review は verdict、land は受領 | なし |
+| 新しい finding がある。review で不合格がある。fast-forward でない | 1 | check は新しい finding のみ（--all なら既存も含む）、review は finding と verdict を全件。fast-forward でなければ `NOT_FAST_FORWARD` | 記録を直すか、rebase してから流し直す |
 | push が pre-push / pre-receive hook に拒否された | 1 | stderr に `PUSH_REJECTED` と Git が出した拒否理由の最初の行 | hook や入力を直してから流し直す |
 | 使い方の誤り | 2 | stderr に使い方 | 引数を直す |
 | 一時的な失敗（lease の外れ・remote の ref のロック競合、remote や Jev の不達、時間切れ、照合後も結果が分からない） | 3 | stderr に `RACE`、`REMOTE_UNAVAILABLE`、`REVIEW_UNAVAILABLE`、`RESULT_UNKNOWN` | `RACE` は必要なら fetch と rebase をしてから流し直す。`RESULT_UNKNOWN` は受け入れを確認する |
@@ -237,7 +247,7 @@ dx は静的な型検査コマンドを持たない。必要な repo は `.dx/` 
 | Surface | Promise | Change / deprecation | Verification receipt |
 |---|---|---|---|
 | サブコマンド名と位置引数 | 安定 | 消すときは、1 つの版の間、警告を出してから消す | 試作の後に取る |
-| `dx.toml` の `limits.check_seconds` と `review.pass` | 0.1.x は受け付けて無視する | stderr に `dx: warning: <key> is deprecated and ignored` を 1 行出す。0.2.0 で未知の項目として拒否する | 設定の互換性試験、soks の影運用 |
+| `dx.toml` の `limits.check_seconds` と `review.pass` | 廃止済み。未知の項目として exit 4 で拒否する | 0.1.0 の 1 つの版の間、警告を出してから削除した | 設定の互換性試験、soks の影運用 |
 | JSONL のフィールド（`v`=1） | 足すだけ | 意味を変えるときは `v` を上げる | 試作の後に取る |
 | 終了コード 0〜4 | 安定 | 変えない | 試作の後に取る |
 | finding の `key` の形 | 安定（I-02 がこれに頼る） | 変えるときは、旧い key との対応表を `.dx/` に置く | 試作の後に取る |
@@ -260,12 +270,14 @@ records          = 200000
 links_per_record = 10000
 
 [files]
-ignore = ["records/raw/**", "tools/**", "README.md"]   # dx が読まないパス
+ignore = ["records/raw/**", "tools/**", "README.md", "**/node_modules/**"]   # dx が読まないパス
 inputs = []                 # 規則が読む入力の glob。ignore より優先し、記録化せず strict からも除く
 strict = false              # true なら、どの type にも当たらないファイルを finding にする
 ```
 
 - `name` 以外の値は、すべて上の値が既定になる。
+- `files.ignore` を指定すると既定全体を置き換える（足し合わせない）。`ignore = []` も指定できる。
+- 廃止済みの `limits.check_seconds` と `review.pass` は未知の項目として exit 4 にする。
 - review は、すべての問いの確率が 0.5 以上なら合格とする。
 - 判定全体の時間の上限は呼び出し側が持つ（`timeout 120 dx check`、agx の `timeout_s`、CI）。
 - `dx.toml` に規則は書かない。規則は `.dx/` に書く。
@@ -437,5 +449,5 @@ treeChecks の finding に id を自動で補わない。記録に属する find
 | R-11 | soks: 書き手の流れが変わる。今は、worker が scratchpad に bundle を作り、soks-govern が alpha に書く唯一の書き手である。dx では、worker が soks の自分の workspace に直接書く | 書き手の手順書（AGENTS.md）を書き換える。新しい evi の UUIDv7 は書き手が作る（今の `soks-govern ids` に当たるものは dx に無い） |
 | R-12 | soks: firedancer と QOED の harness 設定が、soks-govern の hook を指している | soks-govern を消す前に、それらの設定を harness の規則に置き換える。外すだけにすると、hook のコマンドが無くなって設定が壊れる |
 | R-14 | soks: soks-govern は、byte の同じ書き直しでも、既存の違反を持つ文書への書き込みを拒否する（cli.rs:931）。dx は木が変わらなければ何も受け入れないので、その書き込みは存在しない | 差は残らない。変わった記録の潔白は I-02 の強化で守る |
-| R-15 | soks: soks-govern の base なしの `check` は、既存の違反があれば落ちる（cli.rs:642）。dx の `check` は既定で base（`alpha@origin`）と比べるので、既存の違反を残す | 全体の監査には `dx check --base 'root()' REV` を使う。jj の root は空の木なので、すべての finding が新しいものになる。機能は足さない |
+| R-15 | soks: soks-govern の base なしの `check` は、既存の違反があれば落ちる（cli.rs:642）。dx の `check` は既定で base（`alpha@origin`）と比べるので、既存の違反を残す | 全件の監査には `dx check --all REV` を使う。空の木と比較するときは `--base 'root()'` も指定する。inputs に対する finding はその場合も既存のまま残りうる。--all は出力だけを変え、判定は変えない |
 | R-13 | soks: 誤った著者の事故（`ce4daad`、`dd4f23c`）と、replica からの直接 push（`231817a`）が過去にあった。dx は著者を検査せず、land を通らない push も止めない | 著者の設定は git と agx が持つ。push を止めるのは権限を持つ人（D2）。dx が提供するのは、`dx check --base A B` による後からの検出だけ |

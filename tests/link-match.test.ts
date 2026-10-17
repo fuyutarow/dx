@@ -300,8 +300,8 @@ test(
     await write(cwd, "records/a.md", markdown("a", 'next: "urn:uuid:absent"\n'));
     const base = await advance(cwd);
     const unchanged = await checked(cwd, base, 0);
-    expect(unchanged.findings).toHaveLength(1);
-    expect(unchanged.findings[0]?.new).toBe(false);
+    expect(unchanged.findings).toEqual([]);
+    expect(unchanged.stderr).toContain("既存 1 件");
     await write(cwd, "records/a.md", markdown("a", 'next: "urn:uuid:absent"\n', "Edited\n"));
     const changed = await checked(cwd, base, 1);
     expect(changed.findings[0]?.new).toBe(true);

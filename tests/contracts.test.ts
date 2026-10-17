@@ -235,7 +235,11 @@ test("configuration defaults match §6 exactly", () => {
     repo: { name: "fixture", remote: "origin", branch: "alpha" },
     review: { command: ["agx", "jev"] },
     limits: { record_bytes: 4194304, records: 200000, links_per_record: 10000 },
-    files: { ignore: ["records/raw/**", "tools/**", "README.md"], inputs: [], strict: false },
+    files: {
+      ignore: ["records/raw/**", "tools/**", "README.md", "**/node_modules/**"],
+      inputs: [],
+      strict: false,
+    },
   });
 });
 
@@ -398,22 +402,22 @@ test(
   timeout,
 );
 
-test("deprecated config keys warn, are ignored, and other unknown keys fail closed", async () => {
-  const { cwd, base } = await repo({}, "[limits]\ncheck_seconds=0.000001\n[review]\npass=0.99\n");
-  await write(cwd, "records/a.md", markdown("a"));
-  const result = await checked(cwd, base, 0);
-  expect(result.stderr).toBe(
-    "dx: warning: limits.check_seconds is deprecated and ignored\n" +
-      "dx: warning: review.pass is deprecated and ignored\n" +
-      "新しい finding 0 件 / 既存 0 件\n",
-  );
-  for (const section of ["limits", "review"]) {
-    await write(cwd, "dx.toml", `[repo]\nname="fixture"\n[${section}]\nunknown=1\n`);
+test("retired and unknown config keys fail closed", async () => {
+  const { cwd } = await repo();
+  for (const [section, key] of [
+    ["limits", "check_seconds"],
+    ["review", "pass"],
+    ["limits", "unknown"],
+    ["review", "unknown"],
+  ] as const) {
+    await write(cwd, "dx.toml", `[repo]\nname="fixture"\n[${section}]\n${key}=1\n`);
     await snapshot(cwd);
     const invalid = await dx(cwd, "ls");
     expect(invalid.exit).toBe(4);
     expect(invalid.stdout).toBe("");
     expect(invalid.stderr).toContain("UNDETERMINED:");
+    expect(invalid.stderr).toContain(key);
+    expect(invalid.stderr).not.toContain("warning");
   }
 });
 

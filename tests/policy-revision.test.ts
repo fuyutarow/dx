@@ -29,9 +29,8 @@ test("head inputs apply on both sides: adding a pattern retains findings; editin
   const base = await advance(cwd);
   await write(cwd, ".leakcheck", "old\nGB21\n");
   const retained = await checked(cwd, base, 0);
-  expect(retained.findings.filter((f) => f.check === "deny")).toMatchObject([
-    { new: false, id: "a" },
-  ]);
+  expect(retained.findings).toEqual([]);
+  expect(retained.stderr).toContain("既存 1 件");
   const next = await advance(cwd);
   await write(cwd, "records/a.md", markdown("a", "", "GB21 changed\n"));
   await write(cwd, "records/b.md", markdown("b", "", "GB21\n"));
@@ -52,8 +51,8 @@ test("input additions and deletions use the policy file set on both sides", asyn
     if (deleting) await rm(`${cwd}/.leakcheck`);
     else await write(cwd, ".leakcheck", "GB21\n");
     const result = await checked(cwd, base, 0);
-    expect(result.findings).toHaveLength(deleting ? 0 : 1);
-    expect(result.findings.every((f) => f.new === false)).toBe(true);
+    expect(result.findings).toEqual([]);
+    expect(result.stderr).toContain(deleting ? "既存 0 件" : "既存 1 件");
   }
 });
 
@@ -82,7 +81,7 @@ test("policy alpha checks history without rules, uses alpha inputs and config, a
   await jj(cwd, "git", "fetch", "--remote", "origin");
   const result = await dx(cwd, "check", "--policy", "alpha", "--base", base, head);
   expect(result.exit, result.stderr).toBe(0);
-  expect(rows(result.stdout)).toMatchObject([{ check: "deny", id: "a", new: false }]);
+  expect(rows(result.stdout)).toEqual([]);
   expect(result.stderr).toBe(
     "dx: --policy: I-09 の検査を省略します\n新しい finding 0 件 / 既存 1 件\n",
   );

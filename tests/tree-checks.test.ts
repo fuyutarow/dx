@@ -10,6 +10,7 @@ import {
   dx,
   markdown,
   repo,
+  rows,
   snapshot,
   typeSource,
   value,
@@ -97,11 +98,13 @@ test("tree findings keep I-02 keys and changed-record classification alongside l
   await write(cwd, "records/a.md", markdown("a", "bad: true\n"));
   const base = await advance(cwd);
   const unchanged = await checked(cwd, base, 0);
-  expect(unchanged.findings).toHaveLength(2);
-  expect(unchanged.findings.every((f) => f.new === false)).toBe(true);
+  expect(unchanged.findings).toHaveLength(0);
+  expect(unchanged.stderr).toContain("既存 2 件");
+  const audit = await dx(cwd, "check", "--all", "--base", base);
+  expect(audit.exit).toBe(0);
   await write(cwd, "records/a.md", markdown("a", "bad: true\n", "Changed\n"));
   const changed = await checked(cwd, base, 1);
-  expect(changed.findings.map((f) => f.key)).toEqual(unchanged.findings.map((f) => f.key));
+  expect(changed.findings.map((f) => f.key)).toEqual(rows(audit.stdout).map((f) => f.key));
   expect(changed.findings.every((f) => f.new === true)).toBe(true);
 }, 60000);
 

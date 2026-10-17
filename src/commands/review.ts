@@ -111,6 +111,7 @@ export async function review(
     const plans = [];
     const rows: unknown[] = [];
     const blocked = new Set<FindingInput>();
+    const refusals: string[] = [];
     const tree = context(head, base);
     const passing = new Map<string, (record: RecordModel) => boolean>();
     for (const type of types.filter((t) => t.review !== undefined))
@@ -122,6 +123,9 @@ export async function review(
         continue;
       const problems = findings.filter((f) => f.path === record.path || f.id === record.id);
       if (problems.length > 0) {
+        refusals.push(
+          `REVIEW_BLOCKED: ${record.id}: I-10: 既存の finding ${problems.length} 件を先に消す\n`,
+        );
         problems.forEach((finding) => {
           blocked.add(finding);
         });
@@ -182,7 +186,12 @@ export async function review(
         head.files[f.path] !== base.files[f.path] &&
         types.some((t) => t.review !== undefined && matches(t.match, f.path)),
     ))
-      if (!blocked.has(finding)) rows.push(finding);
+      if (!blocked.has(finding)) {
+        rows.push(finding);
+        refusals.push(
+          `REVIEW_BLOCKED: ${finding.id ?? finding.path}: I-10: 既存の finding 1 件を先に消す\n`,
+        );
+      }
     let exit: 0 | 1 | 3 = rows.length > 0 ? 1 : 0;
     const contents = new Map<string, string | undefined>();
     for (const plan of plans) {
@@ -241,7 +250,9 @@ export async function review(
     return ok({
       exit,
       stdout: rows.map((row) => stableJson(row)).join("\n") + (rows.length > 0 ? "\n" : ""),
-      stderr: exit === 1 ? "FINDINGS: review に不合格または構造の finding があります\n" : "",
+      stderr:
+        refusals.join("") +
+        (exit === 1 ? "FINDINGS: review に不合格または構造の finding があります\n" : ""),
     });
   });
 }

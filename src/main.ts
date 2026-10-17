@@ -4,7 +4,7 @@ import { ok, safeTry, type Result } from "neverthrow";
 import { parseInvocation, type Invocation } from "./cli.ts";
 import { readConfig } from "./config.ts";
 
-import { revision, root, show } from "./repository.ts";
+import { defaultBase, revision, root, show } from "./repository.ts";
 import { loadTypes, matches } from "./policy.ts";
 import { isolationFindings, readSnapshot, ruleFiles, snapshotCache } from "./collection.ts";
 import { review } from "./commands/review.ts";
@@ -34,13 +34,16 @@ export async function execute(
           execute({ command: "check", base, rev, list: false }, repo),
         ),
       );
-    const base =
-      invocation.command === "check" || invocation.command === "review"
-        ? yield* await revision(
-            repo,
-            invocation.base ?? `${config.repo.branch}@${config.repo.remote}`,
-          )
-        : undefined;
+    let base: string | undefined;
+    let baseNotice = "";
+    if (invocation.command === "check" || invocation.command === "review") {
+      if (invocation.base !== undefined) base = yield* await revision(repo, invocation.base);
+      else {
+        const resolved = yield* await defaultBase(repo, config.repo.branch, config.repo.remote);
+        base = resolved.rev;
+        baseNotice = resolved.fallback ? "base: remote branch absent; using root()\n" : "";
+      }
+    }
     // Repository I/O keeps its per-operation bound; callers bound total execution.
     const ms = 120000;
     const cache = snapshotCache(repo, ms);
@@ -71,7 +74,11 @@ export async function execute(
         ms,
         cache.reader,
       );
-      return review(repo, previous, current, types, config, isolation);
+      return (await review(repo, previous, current, types, config, isolation)).map((result) => ({
+        exit: result.exit,
+        stdout: result.stdout,
+        stderr: baseNotice + result.stderr,
+      }));
     }
     if (invocation.command === "check" && base !== undefined) {
       const previous = yield* await readSnapshot(repo, base, config, types, ms, cache, policyFiles);
@@ -83,13 +90,15 @@ export async function execute(
           ? yield* await isolationFindings(repo, base, head, config, types, ms, cache.reader)
           : [],
       );
-      const count = findings.filter((f) => f.new).length;
+      const fresh = findings.filter((f) => f.new);
+      const count = fresh.length;
+      const output = invocation.all === true ? findings : fresh;
       return ok({
         exit: count > 0 ? 1 : 0,
         stdout:
-          findings.map((finding) => stableJson(finding)).join("\n") +
-          (findings.length > 0 ? "\n" : ""),
+          output.map((finding) => stableJson(finding)).join("\n") + (output.length > 0 ? "\n" : ""),
         stderr:
+          baseNotice +
           (invocation.policy === undefined ? "" : "dx: --policy: I-09 の検査を省略します\n") +
           `${count > 0 ? "FINDINGS: " : ""}新しい finding ${count} 件 / 既存 ${findings.length - count} 件\n`,
       });
