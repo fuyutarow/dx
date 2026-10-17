@@ -19,11 +19,51 @@ mise run check
 ```
 
 呼び出す cwd は対象 jj repo 内です。`dx` package の `bin` は `src/main.ts`、公開 API は
-`src/index.ts` にあります。Bun 1.4.3 以上と jj と Git が PATH に必要です。
+`src/index.ts` にあります。ソース版には Bun 1.4.3 以上と jj と Git が PATH に必要です。
 mise は Bun 1.4.3 に固定し、package.json の engines にも最低版を宣言しています。
 型検査は既存の tsconfig.json を使う `bun check`（`mise run typecheck`）で行います。
 tsgo（`@typescript/native-preview`）は不要です。依存の固定版は package.json と bun.lock にあります。
 oxlint・oxfmt・oxlint-tsgolint は lint・整形用の開発依存として保持します。
+
+## 単体バイナリと mise
+
+公開済みの release は、利用する repo の `mise.toml` で版を固定して入れられます。
+以下は version 0.1.0 を公開した後の例です。
+
+```toml
+[tools]
+"github:fuyutarow/dx" = { version = "0.1.0", bin_path = "bin" }
+```
+
+```sh
+mise install
+mise exec -- dx -V
+```
+
+単体版は Bun のインストールが不要です。jj と Git は引き続き PATH に必要です。
+revision 内の `.dx/*.ts` と helper は、単体版に含まれる Bun でメモリ内に bundle し、
+動的 import します。`dx`・`zod`・`neverthrow` は単体版に含まれる固定版を共有します。
+
+配布物を作る場合は、依存をインストールしたこの repo で実行します。
+
+```sh
+mise run setup
+mise run release:build
+```
+
+`bun build --compile` で Linux x64 と macOS arm64 をビルドし、package.json の version から
+`dist/dx-<version>-linux-x64.tar.gz` と `dist/dx-<version>-darwin-arm64.tar.gz` を作ります。
+各アーカイブは実行可能な `bin/dx` だけを含みます。作成には tar と、cross compile 用の
+Bun runtime を取得するネットワーク接続が必要です。tag と GitHub release は作りません。
+version の実装上の正本は package.json で、CLI と asset 名の両方が参照します。
+
+[mise github backend の選択規則](https://mise.jdx.dev/dev-tools/backends/github.html#how-mise-picks-an-asset)
+に従い、repo 名・OS・arch を asset 名に入れています。プラットフォーム別の asset 指定は不要です。
+`bin_path` はアーカイブ内の実行ファイルの場所を明示します。
+[Bun の単体実行ファイル](https://bun.com/docs/bundler/executables)を使います。
+
+`tests/release.test.ts` はビルド元を削除し、Git と jj だけを含む PATH で `-V` と `check` を実行して、
+ソース版との出力・終了コード・stdout の SHA-256 の一致を検証します。
 
 lint は dotfiles の TypeScript 標準プリセットの写しを使います。`.oxlintrc.json` と、
 `.dx-preset/` の `house-plugin.js`・`lint-oxlint.ts`・`zod.ts` をこの repo で管理し、

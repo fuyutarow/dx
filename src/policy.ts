@@ -1,9 +1,25 @@
 import { ok, safeTry } from "neverthrow";
 import { requireValue, undetermined } from "./errors.ts";
 import { posix } from "node:path";
-import { fileURLToPath } from "node:url";
+import { plugin } from "bun";
+import * as dx from "./index.ts";
+import * as zod from "zod";
+import * as neverthrow from "neverthrow";
 import { z } from "zod";
 import { typeSchema } from "./model.ts";
+
+// Policies share the host's API and fixed dependencies, including in a standalone
+// executable where import.meta.resolve cannot find packages on the filesystem.
+const runtimeModules: Record<string, Record<string, unknown>> = { dx, zod, neverthrow };
+plugin({
+  name: "dx-policy-runtime",
+  setup(build) {
+    build.onLoad({ filter: /.*/u, namespace: "dx-runtime" }, (args) => ({
+      exports: runtimeModules[args.path] ?? {},
+      loader: "object",
+    }));
+  },
+});
 
 export function matches(patterns: string | readonly string[], path: string): boolean {
   const values = typeof patterns === "string" ? [patterns] : patterns;
@@ -35,14 +51,9 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
           name: "dx-revision",
           setup(build) {
             build.onResolve({ filter: /.*/u }, (args) => {
-              if (args.path === "dx")
+              if (args.path === "dx" || args.path === "zod" || args.path === "neverthrow")
                 return {
-                  path: fileURLToPath(import.meta.resolve("./index.ts")),
-                  external: true,
-                };
-              if (args.path === "zod" || args.path === "neverthrow")
-                return {
-                  path: fileURLToPath(import.meta.resolve(args.path)),
+                  path: `dx-runtime:${args.path}`,
                   external: true,
                 };
               if (args.path === "/dx-revision/entry.ts")
