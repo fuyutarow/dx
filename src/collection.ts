@@ -297,8 +297,10 @@ function makeRecord(file: SourceFile, type: LoadedType, config: Config, findings
     for (const rel of Object.keys(type.links).toSorted()) {
       const raw = file.fields[rel];
       if (raw === undefined) continue;
-      const targets = z.union([z.string().min(1), z.array(z.string().min(1))]).safeParse(raw);
-      if (!targets.success) {
+      const declaration = type.links[rel];
+      if (declaration === undefined) continue;
+      const candidates = yield* linkCandidates(raw, declaration, `${path}: links.${rel}`);
+      if (candidates === undefined) {
         findings.push({
           check: "I-04.links",
           id,
@@ -308,8 +310,13 @@ function makeRecord(file: SourceFile, type: LoadedType, config: Config, findings
         });
         continue;
       }
-      for (const to of typeof targets.data === "string" ? [targets.data] : targets.data)
-        links.push({ rel, to });
+      for (const candidate of candidates) {
+        links.push(
+          ...(yield* linkTarget(candidate, declaration.match, config.repo.name)
+            .map((to) => (to === undefined ? [] : [{ rel, to }]))
+            .mapErr((reason) => `${path}: links.${rel}: ${reason}`)),
+        );
+      }
     }
     if (links.length > config.limits.links_per_record)
       return undetermined(`limits.links_per_record exceeded: ${id}`);
@@ -327,6 +334,40 @@ function makeRecord(file: SourceFile, type: LoadedType, config: Config, findings
 
     return ok(record);
   });
+}
+
+function linkCandidates(raw: unknown, link: LoadedType["links"][string], locus: string) {
+  return safeTry(function* () {
+    const values = link.values;
+    if (values !== undefined) {
+      const extracted = yield* attempt(() => values(raw)).mapErr(
+        (reason) => `${locus}.values: ${reason}`,
+      );
+      const parsed = z.array(z.string()).safeParse(extracted);
+      if (!parsed.success) return undetermined(`${locus}.values must return an array of strings`);
+      return ok(parsed.data);
+    }
+    const parsed = z.union([z.string().min(1), z.array(z.string().min(1))]).safeParse(raw);
+    if (!parsed.success) return ok(undefined);
+    return ok(typeof parsed.data === "string" ? [parsed.data] : parsed.data);
+  });
+}
+
+function linkTarget(candidate: string, pattern: RegExp | undefined, repo: string) {
+  let id = candidate;
+  if (pattern !== undefined) {
+    const matched = pattern.exec(candidate);
+    if (matched === null) return ok(undefined);
+    const captured = matched[1];
+    if (captured === undefined || captured.length === 0)
+      return undetermined("links.match capture group 1 must produce a non-empty id");
+    id = captured;
+  }
+  if (id.length === 0) return undetermined("link id must be non-empty");
+  const qualified = /^dx:([^/]+)\/(.+)$/u.exec(id);
+  if (qualified === null) return ok(id);
+  if (qualified[1] !== repo) return ok(undefined);
+  return requireValue(qualified[2], "dx: reference requires an id");
 }
 
 async function parentChanges(cwd: string, parents: string[], commit: string, ms: number) {

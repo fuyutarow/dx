@@ -1,0 +1,331 @@
+{
+  "measuredAt": "2026-10-17T16:06:36.93737885Z",
+  "source": "/home/fuyu/Workspace/soks.ws/ws_dx-shadow",
+  "copy": "/home/fuyu/.cache/agx/tmp/6c02a1e0-27dc-4f4b-811b-f50902638bfc/dx-link-match-shadow-AKysA4",
+  "corpusRevision": "3f30ac2e82ba2ceb6c607a515e398fa8f968db5c",
+  "policySha256": "8f76be9a0a025706a7cf3075692541a39654d012cbbc77a373d42844e60067af",
+  "corpusManifestSha256": "7f777b78354f63f2234bf4cf8ae8d3169fb78e95c26a75c82fb819f62fcc6a25",
+  "counts": "deduplicated JSONL finding rows; source agreement compares path+target; supersedes count is missing reference edges, not unique target ids",
+  "versionChoice": "private alpha remains 0.1.0; no release or changeset",
+  "declaration": "links: {\n      sources: {\n        to: [\"evi\", \"sok\", \"pro\", \"led\"],\n        acyclic: false,\n        match: \"^(urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$\",\n        values: value => z.array(z.unknown()).safeParse(value).data?.flatMap(entry => {\n          const resource = z.object({ resource: z.string() }).safeParse(entry);\n          return resource.success ? [resource.data.resource] : [];\n        }) ?? [],\n      },\n      sok_supersedes: {\n        to: role,\n        match: \"^(urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$\",\n      },\n    },",
+  "before": {
+    "exit": 1,
+    "findings": 386
+  },
+  "after": {
+    "exit": 1,
+    "findings": 402
+  },
+  "unchanged": {
+    "exit": 0,
+    "findings": 402
+  },
+  "records": 6820,
+  "sourceFindings": [
+    {
+      "check": "I-04.target",
+      "field": "sources:urn:uuid:01a070bf-f250-7600-b6e7-b68fbd6e6acc",
+      "id": "urn:uuid:01a0709a-5c87-705f-acf6-a32a479dd394",
+      "key": "[\"I-04.target\",\"urn:uuid:01a0709a-5c87-705f-acf6-a32a479dd394\",\"sources:urn:uuid:01a070bf-f250-7600-b6e7-b68fbd6e6acc\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/sok-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sources:urn:uuid:01a070bf-f272-7292-add8-3122afa481e3",
+      "id": "urn:uuid:01a0709a-5c87-705f-acf6-a32a479dd394",
+      "key": "[\"I-04.target\",\"urn:uuid:01a0709a-5c87-705f-acf6-a32a479dd394\",\"sources:urn:uuid:01a070bf-f272-7292-add8-3122afa481e3\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/sok-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sources:urn:uuid:01a070bf-f250-7600-b6e7-b68fbd6e6acc",
+      "id": "urn:uuid:01a0709a-9cf7-72d8-9141-f44150e8e8c4",
+      "key": "[\"I-04.target\",\"urn:uuid:01a0709a-9cf7-72d8-9141-f44150e8e8c4\",\"sources:urn:uuid:01a070bf-f250-7600-b6e7-b68fbd6e6acc\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/pro-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sources:urn:uuid:01a070bf-f250-7600-b6e7-b68fbd6e6acc",
+      "id": "urn:uuid:01a0709a-9d11-708e-ba02-67e80051f216",
+      "key": "[\"I-04.target\",\"urn:uuid:01a0709a-9d11-708e-ba02-67e80051f216\",\"sources:urn:uuid:01a070bf-f250-7600-b6e7-b68fbd6e6acc\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/led-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sources:urn:uuid:01a070bf-f272-7292-add8-3122afa481e3",
+      "id": "urn:uuid:01a0709a-9d11-708e-ba02-67e80051f216",
+      "key": "[\"I-04.target\",\"urn:uuid:01a0709a-9d11-708e-ba02-67e80051f216\",\"sources:urn:uuid:01a070bf-f272-7292-add8-3122afa481e3\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/led-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sources:urn:uuid:01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+      "id": "urn:uuid:01a10846-b914-74a2-8e57-3c6c544a88ae",
+      "key": "[\"I-04.target\",\"urn:uuid:01a10846-b914-74a2-8e57-3c6c544a88ae\",\"sources:urn:uuid:01a10814-7ce7-73a1-aaab-292e75a0eaa3\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/led-count_based_compressor_component_ablations_and_ppm_escape_effects.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sources:urn:uuid:01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+      "id": "urn:uuid:01a10846-b914-74a2-8e57-3c6da4233bda",
+      "key": "[\"I-04.target\",\"urn:uuid:01a10846-b914-74a2-8e57-3c6da4233bda\",\"sources:urn:uuid:01a10814-7ce7-73a1-aaab-292e75a0eaa3\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/pro-count_based_compressor_component_ablations_and_ppm_escape_effects.md",
+      "v": 1
+    }
+  ],
+  "customSourceFindings": [
+    {
+      "check": "soks.LOCALITY",
+      "field": "sok-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f250-7600-b6e7-b68fbd6e6acc",
+      "id": "urn:uuid:01a0709a-5c87-705f-acf6-a32a479dd394",
+      "key": "[\"soks.LOCALITY\",\"urn:uuid:01a0709a-5c87-705f-acf6-a32a479dd394\",\"sok-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f250-7600-b6e7-b68fbd6e6acc\"]",
+      "message": "internal source UUID URN does not resolve uniquely: 01a070bf-f250-7600-b6e7-b68fbd6e6acc",
+      "new": true,
+      "path": "knowledge/sok-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "soks.LOCALITY",
+      "field": "sok-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f272-7292-add8-3122afa481e3",
+      "id": "urn:uuid:01a0709a-5c87-705f-acf6-a32a479dd394",
+      "key": "[\"soks.LOCALITY\",\"urn:uuid:01a0709a-5c87-705f-acf6-a32a479dd394\",\"sok-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f272-7292-add8-3122afa481e3\"]",
+      "message": "internal source UUID URN does not resolve uniquely: 01a070bf-f272-7292-add8-3122afa481e3",
+      "new": true,
+      "path": "knowledge/sok-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "soks.LOCALITY",
+      "field": "pro-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f250-7600-b6e7-b68fbd6e6acc",
+      "id": "urn:uuid:01a0709a-9cf7-72d8-9141-f44150e8e8c4",
+      "key": "[\"soks.LOCALITY\",\"urn:uuid:01a0709a-9cf7-72d8-9141-f44150e8e8c4\",\"pro-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f250-7600-b6e7-b68fbd6e6acc\"]",
+      "message": "internal source UUID URN does not resolve uniquely: 01a070bf-f250-7600-b6e7-b68fbd6e6acc",
+      "new": true,
+      "path": "knowledge/pro-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "soks.LOCALITY",
+      "field": "led-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f250-7600-b6e7-b68fbd6e6acc",
+      "id": "urn:uuid:01a0709a-9d11-708e-ba02-67e80051f216",
+      "key": "[\"soks.LOCALITY\",\"urn:uuid:01a0709a-9d11-708e-ba02-67e80051f216\",\"led-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f250-7600-b6e7-b68fbd6e6acc\"]",
+      "message": "internal source UUID URN does not resolve uniquely: 01a070bf-f250-7600-b6e7-b68fbd6e6acc",
+      "new": true,
+      "path": "knowledge/led-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "soks.LOCALITY",
+      "field": "led-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f272-7292-add8-3122afa481e3",
+      "id": "urn:uuid:01a0709a-9d11-708e-ba02-67e80051f216",
+      "key": "[\"soks.LOCALITY\",\"urn:uuid:01a0709a-9d11-708e-ba02-67e80051f216\",\"led-introducing_a_term_outside_the_current_vocabulary.md:source:01a070bf-f272-7292-add8-3122afa481e3\"]",
+      "message": "internal source UUID URN does not resolve uniquely: 01a070bf-f272-7292-add8-3122afa481e3",
+      "new": true,
+      "path": "knowledge/led-introducing_a_term_outside_the_current_vocabulary.md",
+      "v": 1
+    },
+    {
+      "check": "soks.LOCALITY",
+      "field": "led-count_based_compressor_component_ablations_and_ppm_escape_effects.md:source:01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+      "id": "urn:uuid:01a10846-b914-74a2-8e57-3c6c544a88ae",
+      "key": "[\"soks.LOCALITY\",\"urn:uuid:01a10846-b914-74a2-8e57-3c6c544a88ae\",\"led-count_based_compressor_component_ablations_and_ppm_escape_effects.md:source:01a10814-7ce7-73a1-aaab-292e75a0eaa3\"]",
+      "message": "internal source UUID URN does not resolve uniquely: 01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+      "new": true,
+      "path": "knowledge/led-count_based_compressor_component_ablations_and_ppm_escape_effects.md",
+      "v": 1
+    },
+    {
+      "check": "soks.LOCALITY",
+      "field": "pro-count_based_compressor_component_ablations_and_ppm_escape_effects.md:source:01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+      "id": "urn:uuid:01a10846-b914-74a2-8e57-3c6da4233bda",
+      "key": "[\"soks.LOCALITY\",\"urn:uuid:01a10846-b914-74a2-8e57-3c6da4233bda\",\"pro-count_based_compressor_component_ablations_and_ppm_escape_effects.md:source:01a10814-7ce7-73a1-aaab-292e75a0eaa3\"]",
+      "message": "internal source UUID URN does not resolve uniquely: 01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+      "new": true,
+      "path": "knowledge/pro-count_based_compressor_component_ablations_and_ppm_escape_effects.md",
+      "v": 1
+    }
+  ],
+  "sourceDifferences": [],
+  "missingSourceFindings": [],
+  "missingSupersedes": [
+    {
+      "check": "I-04.target",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e4a-7815-b3aa-5dafc609b293",
+      "id": "urn:uuid:01a028cf-ddc5-774c-8b57-a0326a6d9a3c",
+      "key": "[\"I-04.target\",\"urn:uuid:01a028cf-ddc5-774c-8b57-a0326a6d9a3c\",\"sok_supersedes:urn:uuid:01a0289c-0e4a-7815-b3aa-5dafc609b293\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/evi-cloudevents_v1_0_2_vendor_neutral_event_format.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e4a-7816-adb2-00d7b2d94163",
+      "id": "urn:uuid:01a028cf-ddd4-7e1b-9a75-0a679668c3e0",
+      "key": "[\"I-04.target\",\"urn:uuid:01a028cf-ddd4-7e1b-9a75-0a679668c3e0\",\"sok_supersedes:urn:uuid:01a0289c-0e4a-7816-adb2-00d7b2d94163\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/evi-kafka_consumer_position_is_next_offset.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e4a-7817-9f2e-8b5039dde27b",
+      "id": "urn:uuid:01a028cf-dde3-76c9-a7dc-67b7e85008d5",
+      "key": "[\"I-04.target\",\"urn:uuid:01a028cf-dde3-76c9-a7dc-67b7e85008d5\",\"sok_supersedes:urn:uuid:01a0289c-0e4a-7817-9f2e-8b5039dde27b\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/evi-w3c_trace_context_trace_and_parent_identifiers.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e4a-7818-9f09-e43a52d2f077",
+      "id": "urn:uuid:01a028cf-ddf2-79e0-8194-a72e93511662",
+      "key": "[\"I-04.target\",\"urn:uuid:01a028cf-ddf2-79e0-8194-a72e93511662\",\"sok_supersedes:urn:uuid:01a0289c-0e4a-7818-9f09-e43a52d2f077\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/evi-prisma2020_information_sources.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e55-762b-902b-f00f38786b91",
+      "id": "urn:uuid:01a028cf-de01-767a-b81e-dbedcfb70f80",
+      "key": "[\"I-04.target\",\"urn:uuid:01a028cf-de01-767a-b81e-dbedcfb70f80\",\"sok_supersedes:urn:uuid:01a0289c-0e55-762b-902b-f00f38786b91\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/pro-event_interoperability_and_trace_correlation.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e52-71b8-9c10-eb025e1736cf",
+      "id": "urn:uuid:01a028cf-de10-722a-ad27-22a2638764dd",
+      "key": "[\"I-04.target\",\"urn:uuid:01a028cf-de10-722a-ad27-22a2638764dd\",\"sok_supersedes:urn:uuid:01a0289c-0e52-71b8-9c10-eb025e1736cf\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/led-event_interoperability_and_trace_correlation.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e57-74b3-a257-b7265f3195f6",
+      "id": "urn:uuid:01a028cf-de20-7c28-92ba-ebd88c288988",
+      "key": "[\"I-04.target\",\"urn:uuid:01a028cf-de20-7c28-92ba-ebd88c288988\",\"sok_supersedes:urn:uuid:01a0289c-0e57-74b3-a257-b7265f3195f6\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/sok-event_interoperability_and_trace_correlation.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sok_supersedes:urn:uuid:01997a1c-0000-7000-8000-000000000002",
+      "id": "urn:uuid:01a07b1c-7731-770e-a604-939452132ee1",
+      "key": "[\"I-04.target\",\"urn:uuid:01a07b1c-7731-770e-a604-939452132ee1\",\"sok_supersedes:urn:uuid:01997a1c-0000-7000-8000-000000000002\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/evi-dai2019_transformer_xl_segment_recurrence_relative_position_v2.md",
+      "v": 1
+    },
+    {
+      "check": "I-04.target",
+      "field": "sok_supersedes:urn:uuid:01a07efb-8cdb-7000-9700-60b0fdd4077a",
+      "id": "urn:uuid:01a0894c-e89b-7613-a6f4-7ae9a37c0766",
+      "key": "[\"I-04.target\",\"urn:uuid:01a0894c-e89b-7613-a6f4-7ae9a37c0766\",\"sok_supersedes:urn:uuid:01a07efb-8cdb-7000-9700-60b0fdd4077a\"]",
+      "message": "link target is missing or ambiguous",
+      "new": true,
+      "path": "knowledge/evi-hayashi_ouyang2023_makerandomds_traceless_wishart_generators.md",
+      "v": 1
+    }
+  ],
+  "supersedesCycles": [],
+  "supersedesProvenance": [
+    {
+      "path": "knowledge/evi-cloudevents_v1_0_2_vendor_neutral_event_format.md",
+      "id": "urn:uuid:01a028cf-ddc5-774c-8b57-a0326a6d9a3c",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e4a-7815-b3aa-5dafc609b293",
+      "targetExists": false,
+      "newAgainstUnchangedCorpus": false
+    },
+    {
+      "path": "knowledge/evi-kafka_consumer_position_is_next_offset.md",
+      "id": "urn:uuid:01a028cf-ddd4-7e1b-9a75-0a679668c3e0",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e4a-7816-adb2-00d7b2d94163",
+      "targetExists": false,
+      "newAgainstUnchangedCorpus": false
+    },
+    {
+      "path": "knowledge/evi-w3c_trace_context_trace_and_parent_identifiers.md",
+      "id": "urn:uuid:01a028cf-dde3-76c9-a7dc-67b7e85008d5",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e4a-7817-9f2e-8b5039dde27b",
+      "targetExists": false,
+      "newAgainstUnchangedCorpus": false
+    },
+    {
+      "path": "knowledge/evi-prisma2020_information_sources.md",
+      "id": "urn:uuid:01a028cf-ddf2-79e0-8194-a72e93511662",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e4a-7818-9f09-e43a52d2f077",
+      "targetExists": false,
+      "newAgainstUnchangedCorpus": false
+    },
+    {
+      "path": "knowledge/pro-event_interoperability_and_trace_correlation.md",
+      "id": "urn:uuid:01a028cf-de01-767a-b81e-dbedcfb70f80",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e55-762b-902b-f00f38786b91",
+      "targetExists": false,
+      "newAgainstUnchangedCorpus": false
+    },
+    {
+      "path": "knowledge/led-event_interoperability_and_trace_correlation.md",
+      "id": "urn:uuid:01a028cf-de10-722a-ad27-22a2638764dd",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e52-71b8-9c10-eb025e1736cf",
+      "targetExists": false,
+      "newAgainstUnchangedCorpus": false
+    },
+    {
+      "path": "knowledge/sok-event_interoperability_and_trace_correlation.md",
+      "id": "urn:uuid:01a028cf-de20-7c28-92ba-ebd88c288988",
+      "field": "sok_supersedes:urn:uuid:01a0289c-0e57-74b3-a257-b7265f3195f6",
+      "targetExists": false,
+      "newAgainstUnchangedCorpus": false
+    },
+    {
+      "path": "knowledge/evi-dai2019_transformer_xl_segment_recurrence_relative_position_v2.md",
+      "id": "urn:uuid:01a07b1c-7731-770e-a604-939452132ee1",
+      "field": "sok_supersedes:urn:uuid:01997a1c-0000-7000-8000-000000000002",
+      "targetExists": false,
+      "newAgainstUnchangedCorpus": false
+    },
+    {
+      "path": "knowledge/evi-hayashi_ouyang2023_makerandomds_traceless_wishart_generators.md",
+      "id": "urn:uuid:01a0894c-e89b-7613-a6f4-7ae9a37c0766",
+      "field": "sok_supersedes:urn:uuid:01a07efb-8cdb-7000-9700-60b0fdd4077a",
+      "targetExists": false,
+      "newAgainstUnchangedCorpus": false
+    }
+  ],
+  "unexpectedLinks": [],
+  "customChanged": [],
+  "customRemoved": []
+}

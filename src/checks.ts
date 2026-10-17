@@ -257,7 +257,6 @@ function linkEdges(
   const edges: RecordModel[] = [];
   graph.set(record, edges);
   for (const link of record.links) {
-    if (/^dx:[^/]+\/.+$/u.test(link.to)) continue; // §10 R-5: reserved external references.
     const targets = byId.get(link.to) ?? [];
     if (targets.length !== 1)
       findings.push({
@@ -269,7 +268,9 @@ function linkEdges(
       });
     const target = targets[0];
     if (target === undefined) continue;
-    if (target.type !== type?.links[link.rel]?.to)
+    const allowed = type?.links[link.rel]?.to;
+    const allowedTypes = typeof allowed === "string" ? [allowed] : (allowed ?? []);
+    if (!allowedTypes.includes(target.type))
       findings.push({
         check: "I-04.type",
         id: record.id,
@@ -277,7 +278,7 @@ function linkEdges(
         field: `${link.rel}:${link.to}`,
         message: "link target has the wrong type",
       });
-    edges.push(target);
+    if (type?.links[link.rel]?.acyclic !== false) edges.push(target);
   }
 }
 
