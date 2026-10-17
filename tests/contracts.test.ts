@@ -235,7 +235,7 @@ test("configuration defaults match §6 exactly", () => {
     repo: { name: "fixture", remote: "origin", branch: "alpha" },
     review: { command: ["agx", "jev"] },
     limits: { record_bytes: 4194304, records: 200000, links_per_record: 10000 },
-    files: { ignore: ["records/raw/**", "tools/**", "README.md"], strict: false },
+    files: { ignore: ["records/raw/**", "tools/**", "README.md"], inputs: [], strict: false },
   });
 });
 

@@ -134,12 +134,41 @@ TOML はトップレベルの table を 1 記録として読み、`[[records]]` 
 `index` は 0 から始まる位置です。複数記録の id の付け替えは、同じ type・path・index の間で検査するため、
 既存の配列の順序は保存してください。
 
-`checks` は `(record, tree) => FindingInput[]`、`views` は `(tree) => object[]` で、どちらも
-Promise を返せます。`tree` は `records`、`base`、`files`、`read(path)` を持ちます。
+`checks` は `(record, tree) => FindingInput[]`、`treeChecks` は `(tree) => FindingInput[]`、
+`views` は `(tree) => object[]` で、いずれも Promise を返せます。
+`treeChecks` の各関数は、その type の記録が無くても、base/head の評価ごとに 1 回呼ばれます。
+同じ全体検査を複数 type に登録すると登録ごとに実行されるので、1 つの type にだけ置きます。
+旧い `checks` はそのまま使えます。
+
+`tree` は `records`、`base`、`files`、`read(path)`、`index` を持ちます。
+`tree.index.byId.get(id)` と `tree.index.byType.get(type)` は、記録順の読み取り専用配列を返します。
+該当なしは `undefined`、重複 id は複数要素です。索引は評価ごとに 1 度作り、checks と treeChecks で共有します。
+view も同じ索引を使えます。索引の対象は `tree.records` です。
 `check` の base 側評価では `records` と `base` の両方が base の記録です。head 側では
 `records` が head、`base` が base です。view では両方とも指定 REV です。
 `files` と `read` は ignore 対象以外の木の内容を返します。`.dx/`、`dx.toml`、宣言された verdict ファイルは配線のため常に読みます。
-独自 finding の `check` 名は repo が安定させてください。
+`[files] inputs = [".leakcheck"]` のように指定した glob に当たるファイルも、ignore より優先して読みます。
+inputs は type の match に当たっても記録として読み出さず、strict の指摘からも外します（既定は `[]`）。
+独自 finding の `check` 名は repo が安定させてください。treeChecks は `id` を補わないため、
+記録に属する finding は `id` を明示し、記録に属さない finding は `field` に安定した識別子を入れます。
+
+```ts
+treeChecks: [tree => (tree.index.byType.get("note") ?? []).flatMap(record =>
+  record.fields.title === "" ? [{
+    check: "title.empty", id: record.id, path: record.path,
+    field: "title", message: "title is empty",
+  }] : [])],
+```
+
+追加の dx コマンドはありません。`dx check --base A B` で両方の check を実行します。
+`.dx/` の読み込み・実行・戻り値の検証が失敗すれば exit 4 です。
+静的な型検査が必要な repo は、`.dx/` 側の設定で `bun check` を実行します。
+
+移行の[検証受領](tests/fixtures/tree-checks-shadow.json)では、retrospectives（1,084 findings）と
+soks（396 findings）の写しで、旧 dx・新 dx の旧 API・treeChecks への移行後の JSONL が完全一致しました。
+`dx check --base @ @` の所要時間は、旧 dx → 移行後でそれぞれ 1.965 → 1.854 秒、
+17.003 → 12.571 秒でした。各版 1 回の実測で、速度の保証ではありません。
+比較試験は `DX_TREE_SHADOW=1 DX_TREE_BASELINE=<旧 dx の写し> bun test tests/tree-shadow.test.ts` で実行できます。
 
 型定義・checks・views は信頼する純粋な repo policy です。外部 I/O、時刻、乱数、global state を使わず、
 入力を書き換えないでください。revision の `.dx/` はメモリ内で bundle して動的 import します。
@@ -164,7 +193,9 @@ links は宣言したフィールドの id 文字列またはその配列から�
 循環を検査します。`dx:<repo>/<id>` は spec §10 R-5 に従い、repo 外の参照先を検証しません。
 
 I-09 は比較範囲内の change ごとに確かめます。規則だけの change の後に記録だけの change が来る
-範囲は許可します。1 つの change が `.dx/` と記録の両方を変える場合は拒否します。
+範囲は許可します。1 つの change が `.dx/` または inputs のファイルと、記録の両方を変える場合は拒否します。
+inputs は規則の入力なので、その内容・追加・削除と `inputs` 宣言の変更も規則の変更として扱います。
+宣言を除去して記録の変更を隠せないよう、各 change の前後両方の inputs を参照します。
 規則の match の変更や type の削除で記録の変更を隠せないよう、この検査だけは各 change の前後の
 type の match を参照します。構造検査には head の規則だけを使います。非祖先の REV 同士は比較差分を
 1 change として扱います。

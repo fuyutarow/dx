@@ -81,7 +81,7 @@
 | I-06 | rubric を持つ type の記録で、新しいものと変わったものはすべて、今の記録の sha256 と今の rubric の sha256 に結びついた合格の verdict を持つ。verdict の `by` は、記録の `by` と違う。記録に `by` が無いときは、作り手と判定者の違いを確かめられないので、`by` が `process:` で始まる（機械の判定者の）verdict だけを認める | check |
 | I-07 | `ls`、`check`、`view` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない | 各コマンド |
 | I-08 | 正規の branch は、check を通った commit への fast-forward でだけ動く | land |
-| I-09 | `.dx/` を変える change は、ほかの記録を一緒に変えない | check |
+| I-09 | `.dx/`、`[files] inputs` に当たるファイル、または inputs 宣言を変える change は、ほかの記録を一緒に変えない | check |
 | I-10 | review は、check の finding が無い記録にだけ Jev を呼ぶ。そのため、既存の finding を持つ旧い記録を変えるときは、先にその記録の finding をすべて消す必要がある（rubric を持つ type の場合。retrospectives で 2026-10-17 に実際に起きた） | review |
 
 | Story | 関わる禁止 | 守る invariant |
@@ -220,6 +220,10 @@ verdict: `{"v":1,"id","sha256","rubric","rubric_sha256","by","at","bits","p":[�
 
 ## C5 EVOLUTION
 
+`treeChecks` と共有索引を使う追加コマンドは作らない。`dx check --base A B` が従来の checks と
+treeChecks の両方を実行する。`.dx/` の読み込み・実行・戻り値の検証の失敗は終了コード 4 とする。
+dx は静的な型検査コマンドを持たない。必要な repo は `.dx/` 側の設定で `bun check` を実行する。
+
 - Positive receipt: 未取得（試作 1 で、`dx check` が exit 0 で出力する finding を取る）
 - Negative receipt: 未取得（試作 1 で、immutable な記録を変えた差分に対して exit 1 になる出力を取る）
 
@@ -250,6 +254,7 @@ links_per_record = 10000
 
 [files]
 ignore = ["records/raw/**", "tools/**", "README.md"]   # dx が読まないパス
+inputs = []                 # 規則が読む入力の glob。ignore より優先し、記録化せず strict からも除く
 strict = false              # true なら、どの type にも当たらないファイルを finding にする
 ```
 
@@ -257,6 +262,11 @@ strict = false              # true なら、どの type にも当たらないフ
 - review は、すべての問いの確率が 0.5 以上なら合格とする。
 - 判定全体の時間の上限は呼び出し側が持つ（`timeout 120 dx check`、agx の `timeout_s`、CI）。
 - `dx.toml` に規則は書かない。規則は `.dx/` に書く。
+- inputs に当たるファイルは snapshot に残り、`tree.files` と `tree.read` で読める。
+  type の match にも当たる場合は inputs を優先し、記録にはしない。
+- inputs の内容は判定する規則を左右するため、その追加・変更・削除を `.dx/` と同じ規則の変更として I-09 に含める。
+  `inputs` 宣言自体の変更も同じ扱いとする。規則を緩める変更と、その緩みを使う記録の変更を分けるためである。
+  各 change の前後両方の inputs と type の match で確かめ、宣言の削除で記録の変更を隠せないようにする。
 
 ## 7. .dx/ の type 定義
 
@@ -282,6 +292,7 @@ export default defineType({
   links: { superseded_by: { to: "retro" } },          // link の名前と、指してよい type
   immutable: false,                    // 一度入れたら変えてはいけないか
   checks: [undefinedCodes, timelineProblems, checkLink], // この type だけの検査（記録 → finding の関数）
+  treeChecks: [checkLayout],             // 木全体の検査（木 → finding の関数、任意）
   review: { rubric: "rubrics/retro-review-v4.toml", place: "frontmatter" },
   views: {},                           // dx view で出す計算（木 → JSONL の関数）
 });
@@ -289,6 +300,24 @@ export default defineType({
 
 - `review.place` は、`"frontmatter"`（記録の frontmatter の `review:` に書く）か、`"file:<glob>"`（別のファイルに verdict として置く）のどちらか。immutable な type は `"file:<glob>"` を使う。
 - すべての type に dx が必ずかける検査は、I-02〜I-06 と I-09。`.dx/` に書く必要はない。
+
+`Check` は `(record, tree) => readonly FindingInput[]`、`TreeCheck` は
+`(tree) => readonly FindingInput[]` とし、どちらも Promise を返せる。旧い checks は残す。
+head の定義で、base と head のそれぞれについて、各 treeChecks の関数を 1 回ずつ呼ぶ。
+記録が 0 件でも呼ぶ。複数 type に同じ関数を登録した場合は、登録ごとに呼ぶ。
+
+`TreeContext` は `records`、`base`、`files`、`read(path)`、`index` を持つ。
+base 側の評価では records/base はともに base、head 側では records が head、base が base である。
+`TreeIndex` は `byId: ReadonlyMap<string, readonly RecordModel[]>` と
+`byType: ReadonlyMap<string, readonly RecordModel[]>` を持ち、records を記録順にまとめる。
+該当なしは undefined、重複 id は複数要素とし、上書きして隠さない。
+評価ごとに 1 度だけ作り、すべての checks と treeChecks に同じ索引を渡す。view の tree もこの索引を持つ。
+base の記録は `tree.base` で読めるが、この索引の対象は `tree.records` だけである。
+
+treeChecks の finding に id を自動で補わない。記録に属する finding は id を明示する。
+記録に属さない finding は field に安定した識別子を入れる。finding の key と I-02 の数え方は変えない。
+旧い checks は、id を省略した finding に対象の record.id を補う動作を保つ。
+両方とも信頼する純粋な policy とし、tree や索引を書き換えない。例外や不正な戻り値は終了コード 4 で、stdout は空にする。
 
 ## 8. 移行
 
