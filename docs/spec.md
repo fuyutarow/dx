@@ -78,7 +78,7 @@
 | I-03 | `immutable` の type の記録は、変わらず、消えない | check |
 | I-04 | links は宣言された type を指し、参照先があり、循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
-| I-06 | rubric を持つ type の記録で、新しいものと変わったものはすべて、今の記録の sha256 と今の rubric の sha256 に結びついた合格の verdict を持つ。verdict の `by` は、記録の `by` と違う | check |
+| I-06 | rubric を持つ type の記録で、新しいものと変わったものはすべて、今の記録の sha256 と今の rubric の sha256 に結びついた合格の verdict を持つ。verdict の `by` は、記録の `by` と違う。記録に `by` が無いときは、作り手と判定者の違いを確かめられないので、`by` が `process:` で始まる（機械の判定者の）verdict だけを認める | check |
 | I-07 | `ls`、`check`、`view`、`schema` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない | 各コマンド |
 | I-08 | 正規の branch は、check を通った commit への fast-forward でだけ動く | land |
 | I-09 | `.dx/` を変える change は、ほかの記録を一緒に変えない | check |
