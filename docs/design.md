@@ -162,4 +162,4 @@ dx schema  <kind>                 # → JSON Schema
 - D2: 関門を remote で強制するか（R-B）。**未決**
 - D3: run は dx の外に置く。**決定済み**
 - D4: leaderboard と研究の再現性は、dx の責務の外に置く。**決定済み**
-- D5: 109 MB の blob の保存先（R-I）。**未決**
+- D5: blob の保存は dx の責務の外（持ち場 1。dx は blob を管理しない）。109 MB の blob の扱いは store の持ち主の判断で、dx の設計の対象ではない。**決定済み**
