@@ -3,7 +3,7 @@ import { requireValue, attempt, undetermined } from "./errors.ts";
 import { ok, safeTry } from "neverthrow";
 import { posix } from "node:path";
 import { z } from "zod";
-import type { Config } from "./config.ts";
+import { REVIEW_PASS } from "./config.ts";
 import type { Snapshot } from "./collection.ts";
 
 import {
@@ -151,12 +151,7 @@ export function sidecarVerdicts(text: string, path: string): unknown[] {
   if (rows.some((row) => !row.success)) return [];
   return rows.flatMap((row) => (row.success ? [row.data] : []));
 }
-export function reviews(
-  base: Snapshot,
-  head: Snapshot,
-  types: readonly LoadedType[],
-  config: Config,
-) {
+export function reviews(base: Snapshot, head: Snapshot, types: readonly LoadedType[]) {
   return safeTry(function* () {
     const findings: FindingInput[] = [];
     const previous = groups(base.records);
@@ -165,7 +160,7 @@ export function reviews(
       const rubric = yield* rubricPath(type);
       const text = yield* requireValue(head.files[rubric], `rubric missing: ${rubric}`);
       const rubricHash = sha256(text);
-      const hasPassingVerdict = yield* verdictChecker(head, type, config, rubricHash);
+      const hasPassingVerdict = yield* verdictChecker(head, type, rubricHash);
       for (const record of head.records.filter(
         (r) =>
           r.type === type.name &&
@@ -186,12 +181,7 @@ export function reviews(
 }
 
 /** Shared by I-06 and review retries: one schema, binding and storage reader. */
-export function verdictChecker(
-  head: Snapshot,
-  type: LoadedType,
-  config: Config,
-  rubricHash?: string,
-) {
+export function verdictChecker(head: Snapshot, type: LoadedType, rubricHash?: string) {
   return safeTry(function* () {
     const path = yield* rubricPath(type);
     const hash = rubricHash ?? sha256(yield* requireValue(head.files[path], "missing rubric"));
@@ -214,7 +204,7 @@ export function verdictChecker(
           (v.rubric === review.rubric || v.rubric === path) &&
           v.pass &&
           reviewerAllowed(record.by, v.by) &&
-          v.p.every((p) => p >= config.review.pass)
+          v.p.every((p) => p >= REVIEW_PASS)
         );
       }),
     );

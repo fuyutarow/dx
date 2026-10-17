@@ -239,18 +239,8 @@ test("review transport bounds a hanging fake command and rejects nonzero exits",
   const nonzero = await runReviewCommand(cwd, [process.execPath, "-e", "process.exit(7)"], {});
   expect(nonzero.error).toContain("exited 7");
 }, 60000);
-test("threshold controls probabilities, bits and pass together", async () => {
-  const { cwd } = await fixture({ extra: "pass = 0.9\n" });
-  await write(cwd, "records/one.md", markdown("one"));
-  const result = await review(cwd);
-  expect(result.exit, result.stderr).toBe(1);
-  expect(rows(result.stdout)[0]?.bits).toBe(0);
-  expect(rows(result.stdout)[0]?.p).toEqual([0.8]);
-}, 60000);
-test("external review waits have 120 seconds independently of the structural check deadline", async () => {
+test("external review waits report liveness and complete", async () => {
   const { cwd } = await fixture();
-  const config = await Bun.file(`${cwd}/dx.toml`).text();
-  await write(cwd, "dx.toml", config + "\n[limits]\ncheck_seconds = 3\n");
   const fake = await Bun.file(`${cwd}/fake.ts`).text();
   await write(cwd, "fake.ts", "await Bun.sleep(3500);\n" + fake);
   const base = await advance(cwd);
@@ -260,26 +250,6 @@ test("external review waits have 120 seconds independently of the structural che
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(0);
   expect(result.stderr).toContain("dx: waiting for jev…");
-  expect(result.stderr).not.toContain("DX_INTERNAL");
-}, 60000);
-test("review bounds a synchronous infinite policy check before invoking the command", async () => {
-  const { cwd } = await fixture();
-  const config = await Bun.file(`${cwd}/dx.toml`).text();
-  await write(cwd, "dx.toml", config + "\n[limits]\ncheck_seconds = 2.5\n");
-  const type = await Bun.file(`${cwd}/.dx/note.ts`).text();
-  await write(
-    cwd,
-    ".dx/note.ts",
-    type.replace("checks: [(record) =>", "checks: [() => { while (true) {} }, (record) =>"),
-  );
-  const base = await advance(cwd);
-  await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
-  await jj(cwd, "git", "import");
-  await write(cwd, "records/one.md", markdown("one"));
-  const result = await review(cwd);
-  expect(result.exit, result.stderr).toBe(4);
-  expect(result.stderr).toContain("limits.check_seconds");
-  expect(await Bun.file(`${cwd}/calls`).exists()).toBe(false);
 }, 60000);
 test("partial verdicts survive a later unavailable response and retry skips them", async () => {
   const { cwd } = await fixture();
@@ -389,3 +359,13 @@ test("the model field is included in the complete 30000-byte UTF-8 request budge
   expect(oversized.isErr()).toBe(true);
   if (oversized.isErr()) expect(oversized.error).toContain("exceeds 30000");
 }, 60000);
+
+test("deprecated review.pass warns and cannot change the fixed 0.5 threshold", async () => {
+  const { cwd } = await fixture({ extra: "pass = 0.9\n" });
+  await write(cwd, "records/one.md", markdown("one"));
+  const result = await review(cwd);
+  expect(result.exit, result.stderr).toBe(0);
+  expect(rows(result.stdout)[0]?.bits).toBe(1);
+  expect(rows(result.stdout)[0]?.p).toEqual([0.8]);
+  expect(result.stderr).toContain("dx: warning: review.pass is deprecated and ignored\n");
+});

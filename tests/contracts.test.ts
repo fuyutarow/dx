@@ -94,7 +94,6 @@ test(
       ["ls", "--help"],
       ["check", "--help"],
       ["view", "--help"],
-      ["schema", "--help"],
     ]) {
       const expected = await helpOutput(args, baseEnv);
       expect(expected).toContain("USAGE:");
@@ -151,13 +150,7 @@ test(
     await snapshot(cwd);
     await write(cwd, "records/unsnapshotted.md", markdown("not-in-revision"));
     const before = await inventory(cwd);
-    for (const args of [
-      ["ls"],
-      ["check", "--base", base],
-      ["view", "index"],
-      ["view", "--list"],
-      ["schema"],
-    ]) {
+    for (const args of [["ls"], ["check", "--base", base], ["view", "index"], ["view", "--list"]]) {
       const first = await dx(cwd, ...args);
       const second = await dx(cwd, ...args);
       expect(first.exit, first.stderr).toBe(0);
@@ -170,7 +163,7 @@ test(
 );
 
 test(
-  "I-07: missing REV / type / view fail closed with empty stdout",
+  "I-07: missing REV / view fail closed with empty stdout",
   async () => {
     const { cwd } = await repo();
     for (const args of [
@@ -178,7 +171,6 @@ test(
       ["check", "--base", "does-not-exist"],
       ["view", "index", "does-not-exist"],
       ["view", "absent"],
-      ["schema", "absent"],
     ]) {
       const result = await dx(cwd, ...args);
       expect(result.exit, `${args.join(",")}: ${result.stderr}`).toBe(4);
@@ -238,27 +230,11 @@ test(
   timeout,
 );
 
-test(
-  "limits.check_seconds stops a synchronous infinite policy loop",
-  async () => {
-    const { cwd, base } = await repo({}, "[limits]\ncheck_seconds=2.5\n");
-    await write(cwd, ".dx/note.ts", `${typeSource()}\nwhile (true) {}\n`);
-    await snapshot(cwd);
-    const start = performance.now();
-    const result = await dx(cwd, "check", "--base", base);
-    expect(result.exit, result.stderr).toBe(4);
-    expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("limits.check_seconds");
-    expect(performance.now() - start).toBeLessThan(10000);
-  },
-  timeout,
-);
-
 test("configuration defaults match §6 exactly", () => {
   expect(value(readConfig('[repo]\nname="fixture"\n'))).toEqual({
     repo: { name: "fixture", remote: "origin", branch: "alpha" },
-    review: { command: ["agx", "jev"], pass: 0.5 },
-    limits: { record_bytes: 4194304, records: 200000, links_per_record: 10000, check_seconds: 120 },
+    review: { command: ["agx", "jev"] },
+    limits: { record_bytes: 4194304, records: 200000, links_per_record: 10000 },
     files: { ignore: ["records/raw/**", "tools/**", "README.md"], strict: false },
   });
 });
@@ -284,6 +260,7 @@ test(
     for (const args of [
       [],
       ["bogus"],
+      ["schema"],
       ["ls", "--bogus"],
       ["ls", "a", "b"],
       ["ls", "-v"],
@@ -296,7 +273,6 @@ test(
       ["view", "--list", "index"],
       ["view", "--list", "--list"],
       ["view", "a", "b", "c"],
-      ["schema", "a", "b"],
       ["view", "--list=false"],
     ]) {
       const result = await dx(cwd, ...args);
@@ -389,7 +365,7 @@ test(
     const { cwd } = await repo();
     await write(cwd, "dx.toml", '[repo]\nname="fixture"\n[limits]\nrecords=0\n');
     await snapshot(cwd);
-    const config = await dx(cwd, "schema");
+    const config = await dx(cwd, "ls");
     expect(config.exit).toBe(4);
     expect(config.stdout).toBe("");
     await write(cwd, "dx.toml", '[repo]\nname="fixture"\n');
@@ -402,7 +378,7 @@ test(
       ),
     );
     await snapshot(cwd);
-    const invalidType = await dx(cwd, "schema");
+    const invalidType = await dx(cwd, "ls");
     expect(invalidType.exit).toBe(4);
     expect(invalidType.stdout).toBe("");
   },
@@ -421,3 +397,41 @@ test(
   },
   timeout,
 );
+
+test("deprecated config keys warn, are ignored, and other unknown keys fail closed", async () => {
+  const { cwd, base } = await repo({}, "[limits]\ncheck_seconds=0.000001\n[review]\npass=0.99\n");
+  await write(cwd, "records/a.md", markdown("a"));
+  const result = await checked(cwd, base, 0);
+  expect(result.stderr).toBe(
+    "dx: warning: limits.check_seconds is deprecated and ignored\n" +
+      "dx: warning: review.pass is deprecated and ignored\n" +
+      "新しい finding 0 件 / 既存 0 件\n",
+  );
+  for (const section of ["limits", "review"]) {
+    await write(cwd, "dx.toml", `[repo]\nname="fixture"\n[${section}]\nunknown=1\n`);
+    await snapshot(cwd);
+    const invalid = await dx(cwd, "ls");
+    expect(invalid.exit).toBe(4);
+    expect(invalid.stdout).toBe("");
+    expect(invalid.stderr).toContain("UNDETERMINED:");
+  }
+});
+
+test("C4: a later policy failure discards findings already computed for earlier records", async () => {
+  const { cwd, base } = await repo();
+  await write(cwd, "records/a.md", markdown("a", "bad: true\n"));
+  await write(cwd, "records/b.md", markdown("b"));
+  await write(
+    cwd,
+    ".dx/note.ts",
+    typeSource().replace(
+      "record.fields.bad === true",
+      '(() => { if (record.id === "b") throw Error("later policy failure"); return record.fields.bad === true; })()',
+    ),
+  );
+  await snapshot(cwd);
+  const result = await dx(cwd, "check", "--base", base);
+  expect(result.exit).toBe(4);
+  expect(result.stdout).toBe("");
+  expect(result.stderr).toContain("later policy failure");
+});
