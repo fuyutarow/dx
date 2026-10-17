@@ -103,9 +103,10 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
         return undetermined(`type name must match file: ${entries[index]}`);
       if (type.immutable && type.review?.place === "frontmatter")
         return undetermined(`${type.name}: immutable types require file:<glob> review storage`);
-      const missingLink = Object.values(type.links).find((link) => !names.has(link.to));
-      if (missingLink !== undefined)
-        return undetermined(`undeclared target type: ${missingLink.to}`);
+      const missingLink = Object.values(type.links)
+        .flatMap((link) => (typeof link.to === "string" ? [link.to] : link.to))
+        .find((name) => !names.has(name));
+      if (missingLink !== undefined) return undetermined(`undeclared target type: ${missingLink}`);
       const duplicate = Object.keys(type.views).find((name) => views.has(name));
       if (duplicate !== undefined) return undetermined(`ambiguous view: ${duplicate}`);
       for (const name of Object.keys(type.views)) views.add(name);

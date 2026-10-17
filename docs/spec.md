@@ -76,7 +76,7 @@
 | I-01 | 受け入れた ⇔ remote の正規の branch から到達できる | land |
 | I-02 | head の規則で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分の finding を（既存のものも含めて）1 つも持たない。変わっていない記録の既存の finding だけを残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため） | check |
 | I-03 | `immutable` の type の記録は、変わらず、消えない | check |
-| I-04 | links は宣言された type を指し、参照先があり、循環しない | check |
+| I-04 | links は宣言された type を指し、参照先がある。acyclic（既定 true）が true の辺だけで作るグラフは循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
 | I-06 | rubric を持つ type の記録で、新しいものと変わったものはすべて、今の記録の sha256 と今の rubric の sha256 に結びついた合格の verdict を持つ。verdict の `by` は、記録の `by` と違う。記録に `by` が無いときは、作り手と判定者の違いを確かめられないので、`by` が `process:` で始まる（機械の判定者の）verdict だけを認める | check |
 | I-07 | `ls`、`check`、`view` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない | 各コマンド |
@@ -302,6 +302,38 @@ export default defineType({
 - `review.place` は、`"frontmatter"`（記録の frontmatter の `review:` に書く）か、`"file:<glob>"`（別のファイルに verdict として置く）のどちらか。immutable な type は `"file:<glob>"` を使う。
 - すべての type に dx が必ずかける検査は、I-02〜I-06 と I-09。`.dx/` に書く必要はない。
 
+`links` の各宣言は `{ to, match?, values?, acyclic? }` とする。
+`to` は宣言済みの型名の文字列、または宣言済みの型名の空でない配列。
+参照先はそのいずれかの型でなければならない。
+`acyclic` は boolean で、既定は `true` とする。
+すべての内部 link に参照先の実在・一意性・型を検査する。
+循環検査のグラフには `acyclic: true` の宣言から得た辺だけを入れる。
+`acyclic: false` の辺は循環検査から除くが、記録の `links` には残す。
+引用のように相互参照が正しい関係には `acyclic: false` を指定する。
+フィールドが存在しなければ link はなく、`values` も呼ばない。
+フィールドが存在する場合は、次の順序で処理する。
+
+1. `values` を指定した場合、純粋な同期関数 `(fieldValue: unknown) => string[]` で候補を取り出す。
+   例外または文字列配列以外の返り値は、理由を出して exit 4 にする。
+   省略時は従来どおり、空でない文字列またはその配列を候補とし、異なる形は `I-04.links` の finding にする。
+2. `match` を指定した場合、候補ごとに正規表現を適用し、最初の一致の capture group 1 を id とする。
+   一致しない候補は link にしない。省略時は候補全体を id とする。
+   正規表現は JavaScript の Unicode モードで flags 指定なしとする。
+   構文エラーと capture group 1 のない宣言は、記録がなくても型定義の読み込みで exit 4 にする。
+   一致した候補の group 1 が未定義または空文字の場合も exit 4 にする。抽出する id は空にできない。
+3. id が `dx:<name>/<id>`（name、id ともに空でなく、name は `/` を含まない）の形なら、
+   name を `[repo] name` と比較する。異なる repo の参照は形だけを認識して link から除き、
+   I-04 の実在・型・循環の検査をしない。同じ repo の参照は `<id>` を内部 id として検査する。
+   この形に当たらない値は通常の内部 id として扱う。
+
+例: `sources: { to: ["evi", "sok"], match: "^urn:uuid:(.+)$", acyclic: false }` は、
+URL や引用を無視して裸の UUID を id とする。参照先の id が接頭辞を含むなら
+`match: "^(urn:uuid:.+)$"` を使う。オブジェクトの配列からの抽出は `values` が担う。
+`match` と `values` のない既存宣言は従来の候補と id の扱いを保ち、`dx:` の repo 判定は上記に従う。
+記録の `links` には抽出・正規化後の内部参照だけを入れ、元の値は `fields` に残す。
+`limits.links_per_record` は、この処理後の link 件数を数える（同じ参照の複数回の出現も数える）。
+head の同じ宣言で base も評価し、参照先のない既存の supersedes も I-02 に従って既存扱いにする。
+
 `markdown-frontmatter` は、単一の YAML mapping を frontmatter として受け付ける。
 キーはすべての深さで文字列に限り、同じ mapping 内の重複を拒否する（flow mapping と
 引用方法だけが違うキーも含む）。anchor、alias、merge の `<<` キー、明示的な tag、
@@ -388,7 +420,7 @@ treeChecks の finding に id を自動で補わない。記録に属する find
 | R-2 | 時刻と `by` は自己申告で、偽造できる | 今と同じ水準。必要になったら、署名つきの commit を land の条件に加える |
 | R-3 | finding の key が版をまたいで同じでないと、I-02 が誤る | key の形を契約にする（§5 C5） |
 | R-4 | run の、親プロセスを失ったときの復旧 | dx の外（D3） |
-| R-5 | repo をまたぐ参照 | `dx:<name>/<id>` の形だけを予約し、検査は repo の中に限る |
+| R-5 | repo をまたぐ参照 | §7 の抽出・match 後の `dx:<name>/<id>` を扱う。name が `[repo] name` と異なれば形だけを認識し I-04 から除く。同じなら id を内部参照として実在・型と、acyclic の宣言に従う循環を検査する。repo 外の参照先は解決しない |
 | R-6 | 移行が正しいか | §8 の影運用で確かめる |
 | R-7 | 全記録を毎回検査する費用（soks 6,748 文書、research_record 3,132 fragment） | 試作 2、3 で測る。遅ければ base 側の読み出し結果を cache する |
 | R-8 | soks: review の要求の上限（30,000 バイト）を超える文書が 266 件（全 6,789 件の 3.9%）、100 KB を超えるものが 5 件ある（2026-10-17 に `wc -c knowledge/*.md` で計測） | 上限を超えた記録の review は、終了コード 4（判定できない）で止める。黙って切り詰めない。分割して review するか、その type には別の rubric を当てるかは、soks の `.dx/` で決める（未決） |

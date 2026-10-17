@@ -5,6 +5,7 @@ export function defineType<const T extends TypeDefinition>(definition: T): T {
 }
 export type {
   TypeDefinition,
+  LinkDefinition,
   FormatAdapter,
   Evidence,
   Verdict,

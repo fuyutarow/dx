@@ -1,5 +1,6 @@
 import type { Result } from "neverthrow";
 import { z } from "zod";
+import { attempt } from "./errors.ts";
 
 export const fieldsSchema = z.record(z.string(), z.unknown());
 export type Fields = z.infer<typeof fieldsSchema>;
@@ -76,7 +77,7 @@ export interface TypeDefinition {
   readonly id: (file: SourceFile) => string;
   readonly filename?: RegExp;
   readonly schema: z.ZodType;
-  readonly links?: Readonly<Record<string, { readonly to: string }>>;
+  readonly links?: Readonly<Record<string, LinkDefinition>>;
   readonly immutable?: boolean;
   readonly checks?: readonly Check[];
   readonly treeChecks?: readonly TreeCheck[];
@@ -84,9 +85,30 @@ export interface TypeDefinition {
   readonly views?: Readonly<Record<string, View>>;
 }
 
+export interface LinkDefinition {
+  readonly to: string | readonly string[];
+  readonly match?: string;
+  readonly values?: (fieldValue: unknown) => readonly string[];
+  readonly acyclic?: boolean;
+}
+
 // Callbacks are executable project policy. Their return values are checked separately.
 const callback = <T extends (...args: never[]) => unknown>() =>
   z.custom<T>((value) => typeof value === "function", "expected a function");
+const linkMatch = z.string().transform((source, ctx) => {
+  const compiled = attempt(() => new RegExp(source, "u"));
+  if (compiled.isErr()) {
+    ctx.addIssue({ code: "custom", message: `invalid links.match: ${compiled.error}` });
+    return z.NEVER;
+  }
+  // The empty alternative exposes every capture slot without needing a matching value.
+  const captures = new RegExp(`(?:${source})|`, "u").exec("");
+  if (captures === null || captures.length < 2) {
+    ctx.addIssue({ code: "custom", message: "links.match requires capture group 1" });
+    return z.NEVER;
+  }
+  return compiled.value;
+});
 export const typeSchema = z.object({
   name: z.string().regex(/^[a-z][a-z0-9_-]*$/u),
   match: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
@@ -103,7 +125,17 @@ export const typeSchema = z.object({
   id: callback<TypeDefinition["id"]>(),
   filename: z.instanceof(RegExp).optional(),
   schema: z.instanceof(z.ZodType),
-  links: z.record(z.string(), z.object({ to: z.string().min(1) })).default({}),
+  links: z
+    .record(
+      z.string(),
+      z.object({
+        to: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
+        match: linkMatch.optional(),
+        values: callback<NonNullable<LinkDefinition["values"]>>().optional(),
+        acyclic: z.boolean().default(true),
+      }),
+    )
+    .default({}),
   immutable: z.boolean().default(false),
   checks: z.array(callback<Check>()).default([]),
   treeChecks: z.array(callback<TreeCheck>()).default([]),
