@@ -5,6 +5,9 @@ export function defineType<const T extends TypeDefinition>(definition: T): T {
 }
 export type {
   TypeDefinition,
+  FormatAdapter,
+  Evidence,
+  Verdict,
   SourceFile,
   RecordModel,
   FindingInput,
@@ -13,4 +16,4 @@ export type {
   Check,
   View,
 } from "./model.ts";
-export { recordSha256, sha256 } from "./formats.ts";
+export { recordSha256, sha256, markdownFrontmatter, tomlFormat } from "./formats.ts";

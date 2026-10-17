@@ -2,7 +2,7 @@ import { cli, command } from "cleye";
 import { z } from "zod";
 
 export const invocationSchema = z.object({
-  command: z.enum(["ls", "check", "view", "schema"]),
+  command: z.enum(["ls", "check", "review", "view", "schema"]),
   rev: z.string().default("@"),
   base: z.string().optional(),
   name: z.string().optional(),
@@ -15,7 +15,7 @@ function usage(reason: string): never {
 }
 /** Cleye owns parsing/help. This extra gate rejects repeat flags and extra positionals. */
 export function parseInvocation(args: string[]): Invocation | undefined {
-  const commands = ["ls", "check", "view", "schema"];
+  const commands = ["ls", "check", "review", "view", "schema"];
   const name = args[0];
   if (name === undefined) usage("a command is required");
   if (name !== "--help" && name !== "-h" && !commands.includes(name))
@@ -80,6 +80,11 @@ export function parseInvocation(args: string[]): Invocation | undefined {
           parameters: ["[REV]"],
           flags: { base: String },
           help: { description: "Report all findings; reject newly introduced findings" },
+        }),
+        command({
+          name: "review",
+          parameters: ["[REV]"],
+          help: { description: "Review changed records and write bound verdicts" },
         }),
         command({
           name: "view",
