@@ -8,7 +8,8 @@
 |---|---|---|---|---|
 | `dx records [REV]` | 木を正規化した記録の列にする | REV の木と、その木にある `dx.toml`、`kinds/` | 記録の JSONL | なし |
 | `dx check [--base REV] [REV]` | 差分が規則を満たすか判定する | base と head の 2 つの木 | 指摘（finding）の JSONL | なし |
-| `dx land [REV]` | 判定を通った変更で、remote の alpha を fast-forward する | REV、remote の alpha | 受領記録の JSON 1 行 | **remote の alpha と、手元の alpha bookmark だけ** |
+| `dx judge [REV]` | rubric を持つ kind の記録のうち、新しいものと変わったもので、構造の検査を通ったものについて、`agx jev` に意味の判定を求める | REV の木、`kinds/` の rubric | 判定の JSONL | **作業コピーに判定を書く**（本文に埋め込むか、別の判定の記録として置くかは kinds が決める）。Jev への問い合わせ（ネットワーク、費用） |
+| `dx land [REV]` | 構造の検査と判定の結びつき（I-06）を通った変更で、remote の alpha を fast-forward する | REV、remote の alpha | 受領記録の JSON 1 行 | **remote の alpha と、手元の alpha bookmark だけ** |
 | `dx derive <view> [REV]` | store の kinds が定義する読み取りビューを計算する | REV の木 | ビューの JSONL | なし |
 | `dx schema [<kind>]` | kind の schema を書き出す | 手元の木の `kinds/` | JSON Schema | なし |
 
@@ -57,6 +58,7 @@
 |---|---|---|---|
 | remote の alpha の更新（push） | preview は `dx check`。force は無い | 無い。push は 1 つの ref の原子的な更新で、通るか通らないかのどちらかしかない | lease が外れた（ほかの誰かが先に land した）ら終了コード 3。`jj rebase -d alpha@origin` してから land をやり直す。中断しても remote は変わらないので、そのまま流し直してよい |
 | 手元の alpha bookmark の移動 | — | push が通った後で bookmark の移動に失敗したら、終了コード 0 で返し、stderr に警告を出す。正本は remote なので、次の `jj git fetch` で直る | 何もしなくてよい |
+| judge が作業コピーに判定を書くこと | preview は無い。構造の検査を通らない記録には Jev を呼ばない（I-10） | 記録ごとに判定を 1 つ書く。途中で止まったら、それまでの記録の判定だけが書かれている | 流し直すと、すでに今の digest に結びついた合格の判定がある記録は飛ばす（Jev を二重に呼ばない）。Jev に届かなければ終了コード 3 |
 | 読むだけのコマンド | — | — | いつでも中断してよい |
 
 ## C3 CHANNELS
