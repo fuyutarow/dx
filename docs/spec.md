@@ -82,7 +82,7 @@
 | I-07 | `ls`、`check`、`view`、`schema` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない | 各コマンド |
 | I-08 | 正規の branch は、check を通った commit への fast-forward でだけ動く | land |
 | I-09 | `.dx/` を変える change は、ほかの記録を一緒に変えない | check |
-| I-10 | review は、check の finding が無い記録にだけ Jev を呼ぶ | review |
+| I-10 | review は、check の finding が無い記録にだけ Jev を呼ぶ。そのため、既存の finding を持つ旧い記録を変えるときは、先にその記録の finding をすべて消す必要がある（rubric を持つ type の場合。retrospectives で 2026-10-17 に実際に起きた） | review |
 
 | Story | 関わる禁止 | 守る invariant |
 |---|---|---|
