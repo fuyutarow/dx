@@ -7,10 +7,10 @@ run = "bun install --frozen-lockfile"
 
 [tasks.fmt]
 alias = "f"
-run = "bun run node_modules/oxfmt/bin/oxfmt src tests .dx-preset package.json tsconfig.json .oxlintrc.json .oxfmtrc.json"
+run = "bun run node_modules/oxfmt/bin/oxfmt src scripts tests .dx-preset package.json tsconfig.json .oxlintrc.json .oxfmtrc.json"
 
 [tasks."fmt:check"]
-run = "bun run node_modules/oxfmt/bin/oxfmt --check src tests .dx-preset package.json tsconfig.json .oxlintrc.json .oxfmtrc.json"
+run = "bun run node_modules/oxfmt/bin/oxfmt --check src scripts tests .dx-preset package.json tsconfig.json .oxlintrc.json .oxfmtrc.json"
 
 [tasks."fmt:staged"]
 run = "fmt-staged --tool 'ts=bun {{config_root}}/node_modules/oxfmt/bin/oxfmt'"
@@ -21,13 +21,17 @@ depends = ["lint:ts:all"]
 
 [tasks."lint:ts"]
 description = "Check every local TypeScript file with the copied type-aware preset"
-run = "bun .dx-preset/lint-oxlint.ts --type-aware src tests .dx-preset"
+run = "bun .dx-preset/lint-oxlint.ts --type-aware src scripts tests .dx-preset"
 
 [tasks."lint:ts:all"]
 depends = ["lint:ts"]
 
 [tasks.typecheck]
-run = "bun check"
+run = "bun check && bun check scripts"
+
+[tasks."release:build"]
+description = "Build standalone Linux x64 and macOS arm64 release archives"
+run = "bun scripts/release-build.ts"
 
 [tasks.test]
 alias = "t"
