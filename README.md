@@ -112,6 +112,7 @@ import は `.dx/` 内の相対パス、`dx`、同じ固定版の `zod`・`nevert
 `check` は head の設定・型定義で base と head を評価します。schema・filename・独自 checks と、
 id・links の指摘を安定した key で比較します。既存 finding は `new:false`、新規 finding は
 `new:true` です。新規があれば exit 1、なければ exit 0 です。
+新しい記録と sha256 が変わった記録は、同じ id の既存 finding も `new:true` として拒否します。変わっていない記録の既存 finding は残せます。
 
 key は JSON 配列 `[check, id または null, field または空文字]` の文字列です。
 記録を特定できない format/strict finding と、重複 id の個別発生には `field` に path/位置を含めます。
