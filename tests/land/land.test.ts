@@ -328,3 +328,204 @@ test(
   },
   timeout,
 );
+
+for (const hookName of ["pre-push", "pre-receive"])
+  test(
+    `failing ${hookName} returns PUSH_REJECTED and the reason`,
+    async () => {
+      const { cwd, remote, base } = await fixture();
+      await write(cwd, "records/rejected.md", markdown("rejected"));
+      const head = await snapshot(cwd);
+      const hook = join(hookName === "pre-push" ? join(cwd, ".git") : remote, "hooks", hookName);
+      await Bun.write(
+        hook,
+        `#!${process.execPath}\nconsole.error("Git LFS upload failed: (missing) fixture.pointer"); process.exit(1);\n`,
+      );
+      await chmod(hook, 0o755);
+      const result = await dx(cwd, "land", head);
+      expect(result.exit, result.stderr).toBe(1);
+      expect(result.stderr).toContain("PUSH_REJECTED\n");
+      expect(result.stderr).toContain("Git LFS upload failed: (missing) fixture.pointer");
+      expect(result.stdout).toBe("");
+      expect(await tip(remote)).toBe(base);
+    },
+    timeout,
+  );
+
+// A real Git subprocess performs the push; the shim loses only its response.
+async function ambiguousGit(cwd: string, remote: string, mode: string) {
+  const binary = Bun.which("git");
+  expect(binary).not.toBeNull();
+  const directory = join(cwd, ".git", "transport");
+  await mkdir(directory);
+  const path = join(directory, "git");
+  await Bun.write(
+    path,
+    `#!${process.execPath}
+import { renameSync } from "node:fs";
+const args = process.argv.slice(2);
+${mode === "ancestry-error" ? 'if (args.includes("merge-base")) process.exit(2);' : ""}
+const pushing = args.includes("push");
+const child = Bun.spawn([${JSON.stringify(binary)}, ...args], {stdin:"inherit", stdout: pushing ? "ignore" : "inherit", stderr: pushing ? "ignore" : "inherit"});
+const exit = await child.exited;
+if (pushing) {
+  ${mode === "unavailable" ? `renameSync(${JSON.stringify(remote)}, ${JSON.stringify(`${remote}.offline`)});` : ""}
+  ${
+    mode === "descendant"
+      ? `
+  const git = (...args) => {
+    const result = Bun.spawnSync([${JSON.stringify(binary)}, "--git-dir=" + ${JSON.stringify(remote)}, ...args], {env: {...process.env, GIT_AUTHOR_NAME:"DX", GIT_AUTHOR_EMAIL:"dx@example.test", GIT_COMMITTER_NAME:"DX", GIT_COMMITTER_EMAIL:"dx@example.test"}});
+    if (result.exitCode !== 0) throw new Error(result.stderr.toString());
+    return result.stdout.toString().trim();
+  };
+  const parent = git("rev-parse", "refs/heads/alpha");
+  const next = git("commit-tree", git("rev-parse", parent + "^{tree}"), "-p", parent, "-m", "later writer");
+  git("update-ref", "refs/heads/alpha", next, parent);
+  `
+      : ""
+  }
+  console.error("connection lost after sending");
+  process.exit(1);
+}
+process.exit(exit);
+`,
+  );
+  await chmod(path, 0o755);
+  return `${directory}:${process.env.PATH}`;
+}
+
+for (const mode of ["accepted", "descendant", "race", "unavailable", "ancestry-error"])
+  test(
+    `ambiguous push is resolved by fetch (${mode})`,
+    async () => {
+      const { cwd, remote, base } = await fixture();
+      await write(cwd, "records/ambiguous.md", markdown("ambiguous"));
+      const head = await snapshot(cwd);
+      if (mode === "race") {
+        // Reject without a recognizable porcelain/diagnostic response at the client.
+        const hook = join(remote, "hooks", "pre-receive");
+        await Bun.write(hook, `#!${process.execPath}\nprocess.exit(1);\n`);
+        await chmod(hook, 0o755);
+      }
+      const path = await ambiguousGit(cwd, remote, mode);
+      const result = await processRun(cwd, [
+        "env",
+        `PATH=${path}`,
+        process.execPath,
+        join(import.meta.dir, "../../src/main.ts"),
+        "land",
+        head,
+      ]);
+      const accepted = ["accepted", "descendant"].includes(mode);
+      expect(result.exit, result.stderr).toBe(accepted ? 0 : 3);
+      if (accepted) {
+        expect(decode(fieldsSchema, result.stdout).commit).toBe(head);
+        await git(remote, "merge-base", "--is-ancestor", head, await tip(remote));
+        expect((await tip(remote)) === head).toBe(mode === "accepted");
+      } else {
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toContain(mode === "race" ? "RACE\n" : "RESULT_UNKNOWN\n");
+        if (mode === "race") expect(await tip(remote)).toBe(base);
+      }
+    },
+    timeout,
+  );
+
+test("remote ref locks and lease failures are RACE", () => {
+  for (const stderr of [
+    "remote: error: failed to lock refs/heads/alpha",
+    "remote: error: cannot lock ref 'refs/heads/alpha'",
+    "[rejected] (stale info)",
+  ])
+    expect(pushOutcome({ stdout: "", stderr, exit: 1, timedOut: false }, "refs/heads/alpha")).toBe(
+      "RACE",
+    );
+});
+
+test("unreachable HTTPS and SSH remotes are REMOTE_UNAVAILABLE", () => {
+  for (const stderr of [
+    "fatal: unable to access 'https://example.test/repo': Failed to connect to example.test port 443",
+    "fatal: Could not read from remote repository.",
+    "git@example.test: Permission denied (publickey).",
+  ])
+    expect(
+      pushOutcome({ stdout: "", stderr, exit: 128, timedOut: false }, "refs/heads/alpha"),
+    ).toBe("REMOTE_UNAVAILABLE");
+});
+
+test("eight concurrent writers: every attempt agrees with remote ancestry", async () => {
+  const { cwd, remote } = await fixture();
+  const writers = await Promise.all(
+    Array.from({ length: 8 }, async (_, i) => {
+      const writer = join(cwd, ".git", `writer-${i}`);
+      await cloneRepo(cwd, remote, writer);
+      await jj(writer, "new", "alpha@origin");
+      // Exercise ambiguous responses as well as normal Git porcelain in the same race.
+      const path = i % 2 === 0 ? await ambiguousGit(writer, remote, "accepted") : process.env.PATH;
+      return { writer, i, path };
+    }),
+  );
+  const attempts = [];
+  for (let round = 0; round < 3; round++) {
+    const results = await Promise.all(
+      writers.map(async ({ writer, i, path }) => {
+        await jj(writer, "git", "fetch", "--remote", "origin");
+        await jj(writer, "new", "alpha@origin");
+        await write(writer, `records/writer-${i}-${round}.md`, markdown(`writer-${i}-${round}`));
+        const head = await snapshot(writer);
+        const result = await processRun(writer, [
+          "env",
+          `PATH=${path}`,
+          process.execPath,
+          join(import.meta.dir, "../../src/main.ts"),
+          "land",
+          head,
+        ]);
+        return Object.assign({ head }, result);
+      }),
+    );
+    const remoteHead = await tip(remote);
+    for (const result of results) {
+      attempts.push(await reconcile(remote, remoteHead, result));
+    }
+  }
+  console.error(
+    `concurrent land reconciliation: ${JSON.stringify({
+      writers: 8,
+      attempts: attempts.length,
+      accepted: attempts.filter((a) => a.accepted).length,
+      exits: attempts.reduce<Record<string, number>>((counts, a) => {
+        const key = `${a.exit}:${a.code}`;
+        counts[key] = (counts[key] ?? 0) + 1;
+        return counts;
+      }, {}),
+      resolvableUnknown: 0,
+      mismatches: 0,
+    })}`,
+  );
+}, 120000);
+
+async function reconcile(
+  remote: string,
+  remoteHead: string,
+  result: { head: string; exit: number; stdout: string; stderr: string },
+) {
+  const ancestry = await processRun(remote, [
+    "git",
+    "merge-base",
+    "--is-ancestor",
+    result.head,
+    remoteHead,
+  ]);
+  // A rejected commit may never have reached the bare object store (exit 128).
+  const accepted = ancestry.exit === 0;
+  expect(result.exit === 0, JSON.stringify(result)).toBe(accepted);
+  if (accepted) expect(decode(fieldsSchema, result.stdout).commit).toBe(result.head);
+  else expect(result.stderr).toMatch(/RACE|NOT_FAST_FORWARD/u);
+  expect(result.stderr).not.toContain("RESULT_UNKNOWN");
+  return {
+    exit: result.exit,
+    accepted,
+    code: accepted ? "accepted" : result.stderr.split("\n")[0],
+  };
+}

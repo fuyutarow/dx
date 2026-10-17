@@ -65,31 +65,40 @@ export async function land(
       ],
       { remote, phase: "push" },
     );
-    const failure = pushOutcome(push, ref);
+    let failure = pushOutcome(push, ref);
+    // An ambiguous transport result is not evidence of rejection. Refresh the authority
+    // and test reachability of the exact attempted commit, including a later descendant.
+    let resolved = false;
+    if (failure === "RESULT_UNKNOWN") {
+      failure = await resolveUnknown(cwd, head, branch, remote, git);
+      resolved = failure === undefined;
+    }
     if (failure !== undefined)
       return ok({
-        ...refused(3, failure),
+        ...refused(failure === "PUSH_REJECTED" ? 1 : 3, failure),
         stdout: checked.stdout,
-        stderr: `${failure}\n${checked.stderr}`,
+        stderr: `${failure}\n${failure === "PUSH_REJECTED" ? `${push.stderr.split("\n").find((line) => line.trim() !== "") ?? "push hook rejected"}\n` : ""}${checked.stderr}`,
       });
     // The remote has accepted head. Local bookkeeping cannot revoke that acceptance (I-01).
     // Push uses a URL, so Git does not update the named remote's tracking ref for import.
-    const sync = await run(
-      cwd,
-      [
-        "jj",
-        "--ignore-working-copy",
-        "--no-pager",
-        "--color=never",
-        "git",
-        "fetch",
-        "--remote",
-        `exact:${remote}`,
-        "--branch",
-        `exact:${branch}`,
-      ],
-      { remote, phase: "fetch" },
-    );
+    const sync = resolved
+      ? { exit: 0, timedOut: false }
+      : await run(
+          cwd,
+          [
+            "jj",
+            "--ignore-working-copy",
+            "--no-pager",
+            "--color=never",
+            "git",
+            "fetch",
+            "--remote",
+            `exact:${remote}`,
+            "--branch",
+            `exact:${branch}`,
+          ],
+          { remote, phase: "fetch" },
+        );
     const bookmark = await attemptAsync(() =>
       jj(cwd, ["bookmark", "set", "--allow-backwards", "--revision", head, "--", branch]),
     ).andThen((value) => value);
@@ -104,4 +113,36 @@ export async function land(
         (bookmark.isErr() ? "WARNING: push succeeded; local bookmark could not be updated\n" : ""),
     });
   });
+}
+
+async function resolveUnknown(
+  cwd: string,
+  head: string,
+  branch: string,
+  remote: string,
+  git: string[],
+): Promise<string | undefined> {
+  const refreshed = await run(
+    cwd,
+    [
+      "jj",
+      "--ignore-working-copy",
+      "--no-pager",
+      "--color=never",
+      "git",
+      "fetch",
+      "--remote",
+      `exact:${remote}`,
+      "--branch",
+      `exact:${branch}`,
+    ],
+    { remote, phase: "fetch" },
+  );
+  if (refreshed.exit !== 0 || refreshed.timedOut) return "RESULT_UNKNOWN";
+  const remoteHead = await revision(cwd, `${JSON.stringify(branch)}@${JSON.stringify(remote)}`);
+  if (remoteHead.isErr()) return "RESULT_UNKNOWN";
+  const ancestry = await run(cwd, [...git, "merge-base", "--is-ancestor", head, remoteHead.value]);
+  if (ancestry.timedOut) return "RESULT_UNKNOWN";
+  if (ancestry.exit === 0) return undefined;
+  return ancestry.exit === 1 ? "RACE" : "RESULT_UNKNOWN";
 }

@@ -289,10 +289,23 @@ base の子孫だけを、`check` と同じ判定関数に通します。新し�
 1 ref を push します。fetch 先を正本とするため、pushurl は使いません。hosting API は不要です。
 成功後に手元の bookmark を合わせ、`{"v":1,"commit","base","branch","remote"}` の受領を返します。
 push した branch だけを jj で fetch して `<branch>@<remote>` を合わせます。失敗しても stderr に警告を出し、exit 0 で受領を返します。
-push 後の bookmark 更新失敗は警告と exit 0 です。lease 競合は `RACE`、接続不能・60 秒の打ち切りは
-`REMOTE_UNAVAILABLE`、push の成否不明は `RESULT_UNKNOWN` で、いずれも exit 3 です。
+push 後の bookmark 更新失敗は警告と exit 0 です。lease の外れ・remote の ref のロック競合は
+`RACE`、接続不能・60 秒の打ち切りは `REMOTE_UNAVAILABLE`（exit 3）です。
+push の成否が不明なら、対象 branch を remote から fetch して、試した REV が
+`<branch>@<remote>` の祖先か確かめます。祖先なら exit 0 で受領を返し、祖先でなければ
+exit 3 の `RACE` を返します。fetch や祖先の照合ができない場合だけ `RESULT_UNKNOWN`（exit 3）を残します。
+pre-push / pre-receive hook による拒否は `PUSH_REJECTED`（exit 1）です。
+stderr に Git が出した拒否理由の最初の行を添えます。hook や入力を直してから流し直してください。
 fetch / push は個別に 60 秒まで待ち、2 秒を超えると stderr に待機を 1 行表示します。
 `--force` はありません。
+`dx` は rebase や push の再試行をしません。書き手が `RACE` を受けたら、次を繰り返せます。
+
+```sh
+jj git fetch && jj rebase -r @- -d <branch>@<remote> && dx land @-
+```
+
+`<branch>` と `<remote>` は設定値に置き換えます。再試行の上限は呼び出し側で決め、
+rebase の競合は書き手が解決します。`RESULT_UNKNOWN` では、まず fetch と祖先の照合で受け入れを確認します。
 Jev の不達・非0終了・120秒の時間切れ・応答不正も exit 3 です。
 
 上限は base/head それぞれに適用します。`records` は展開した記録数、`links_per_record` は展開後の
