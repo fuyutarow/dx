@@ -183,8 +183,14 @@ import は `.dx/` 内の相対パス、`dx`、同じ固定版の `zod`・`nevert
 
 ## 検査と verdict
 
-`check` は head の設定・型定義で base と head を評価します。schema・filename・独自 checks と、
-id・links の指摘を安定した key で比較します。既存 finding は `new:false`、新規 finding は
+`check` は既定で head の設定・型定義・`[files] inputs` の内容を一度読み、base と head の両方に使います。
+`dx check --policy alpha --base A B` は、判定する木を A と B のままにして、
+`dx.toml`、`.dx/`、inputs を alpha から読みます。規則を持たない過去の履歴の監査や、
+今の規則での移行の再生に使えます。`--base` を省くと、選んだ規則の設定にある branch と remote を使います。
+`--policy` を明示した場合は I-09 を検査せず、そのことを stderr に 1 行出します。
+省略した場合は head の規則を使い、I-09 も検査します。
+
+schema・filename・独自 checks と、id・links の指摘を安定した key で比較します。既存 finding は `new:false`、新規 finding は
 `new:true` です。新規があれば exit 1、なければ exit 0 です。
 新しい記録と sha256 が変わった記録は、同じ id の既存 finding も `new:true` として拒否します。変わっていない記録の既存 finding は残せます。
 

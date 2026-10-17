@@ -58,6 +58,7 @@ export async function readSnapshot(
   types: readonly LoadedType[],
   ms: number,
   cache = snapshotCache(cwd, ms),
+  policyFiles?: ReadonlyMap<string, string>,
 ) {
   return safeTry(async function* () {
     const files: Record<string, string> = {};
@@ -75,6 +76,11 @@ export async function readSnapshot(
       });
     const recordPaths = new Set<string>();
     const entries = (yield* await cache.reader.tree(rev)).filter(({ path }) => {
+      if (
+        policyFiles !== undefined &&
+        (matches(config.files.inputs, path) || path === "dx.toml" || path.startsWith(".dx/"))
+      )
+        return false;
       const verdictPath = types.some(
         (t) =>
           t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
@@ -142,6 +148,9 @@ export async function readSnapshot(
         yield* appendRecord(file, type);
       }
     }
+    // Rules and inputs share one revision, including additions and deletions.
+    // They remain auxiliary even when a type also matches their paths.
+    for (const [path, text] of policyFiles ?? []) files[path] = text;
     // Keep raw bytes for immutable and I-09, including files rejected by the parser.
     for (const path of recordPaths) yield* requireValue(files[path], `unread record: ${path}`);
     return ok({ files, records, sources, findings });
