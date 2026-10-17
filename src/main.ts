@@ -4,12 +4,20 @@ import { readConfig } from "./config.ts";
 import { attemptAsync, undetermined } from "./errors.ts";
 import { revision, root, show } from "./repository.ts";
 import { responseSchema } from "./worker.ts";
+import { land } from "./commands/land.ts";
 
-export async function execute(invocation: Invocation, cwd = process.cwd()) {
+export async function execute(
+  invocation: Invocation,
+  cwd = process.cwd(),
+): Promise<{ exit: number; stdout: string; stderr: string }> {
   const started = performance.now();
   const repo = await root(cwd);
   const head = await revision(repo, invocation.command === "schema" ? "@" : invocation.rev);
   const config = readConfig(await show(repo, head, "dx.toml", 120000));
+  if (invocation.command === "land")
+    return land(repo, head, config, (base, rev) =>
+      execute({ command: "check", base, rev, list: false }, repo),
+    );
   const base =
     invocation.command === "check"
       ? await revision(repo, invocation.base ?? `${config.repo.branch}@${config.repo.remote}`)

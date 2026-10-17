@@ -1,14 +1,15 @@
 # dx
 
 Bun TypeScript で実装した、jj の revision から記録を読む CLI です。仕様の正本は
-[docs/spec.md](docs/spec.md) 版 1 です。この 0.1.0 は `ls`、`check`、`view`、`schema` を実装します。
-`review` と `land`、既存 3 repo の型定義と移行は別 issue です。
+[docs/spec.md](docs/spec.md) 版 1 です。この 0.1.0 は `ls`、`check`、`land`、`view`、`schema` を実装します。
+`review`、既存 3 repo の型定義と移行は別 issue です。
 
 ```sh
 mise run setup
 bun src/main.ts --help
 bun src/main.ts ls @
 bun src/main.ts check --base alpha@origin @
+bun src/main.ts land @-
 bun src/main.ts view --list
 bun src/main.ts view index @
 bun src/main.ts schema note
@@ -16,12 +17,12 @@ mise run check
 ```
 
 呼び出す cwd は対象 jj repo 内です。`dx` package の `bin` は `src/main.ts`、公開 API は
-`src/index.ts` にあります。Bun と jj が PATH に必要です。依存・oxlint・oxfmt・tsgo の版は
+`src/index.ts` にあります。Bun と jj と Git が PATH に必要です。依存・oxlint・oxfmt・tsgo の版は
 retrospectives の `tools/package.json` と同じです。
 
 すべての読み取りで `--ignore-working-copy --at-operation=@` を使います。`@` は jj が保存済みの
 スナップショットを指します。未保存の編集を検査したいときは、書き手が先に `jj status` または
-`jj commit <paths>` でスナップショットを作ってください。dx はスナップショット、fetch、cache、
+`jj commit <paths>` でスナップショットを作ってください。読み取りコマンドはスナップショット、fetch、cache、
 一時 checkout を作りません。読み始めに REV を commit ID に固定します。
 
 ## repo と type
@@ -121,8 +122,18 @@ verdict 自身を含めたハッシュの自己参照を避け、本文は空白
 `ls`・`check`・`view` は `v:1` 付き JSONL、`schema` は `v:1` 付き JSON Schema 1 値を返します。
 `schema` の type 省略時は全 type を `$defs` に置きます。view 名は全 type 間で一意にします。
 stdout は結果全体を計算してから書きます。判定不能時は空 stdout と
-`UNDETERMINED:<理由>`、exit 4 を返します。使い方の誤りは exit 2 です。この範囲では exit 3 に
-該当する remote/Jev の操作はありません。
+`UNDETERMINED:<理由>`、exit 4 を返します。使い方の誤りは exit 2 です。
+
+`land [REV]`（既定 `@`）は `[repo].remote` を fetch し、remote の branch を base に固定します。
+base の子孫だけを、`check` と同じ判定関数に通します。新しい finding は全件を出して exit 1、
+非 fast-forward は `NOT_FAST_FORWARD` / exit 1 です。通れば Git の
+[`--force-with-lease=<ref>:<base>`](https://git-scm.com/docs/git-push) で検査した base を期待値として
+1 ref を push します。fetch 先を正本とするため、pushurl は使いません。hosting API は不要です。
+成功後に手元の bookmark を合わせ、`{"v":1,"commit","base","branch","remote"}` の受領を返します。
+push 後の bookmark 更新失敗は警告と exit 0 です。lease 競合は `RACE`、接続不能・60 秒の打ち切りは
+`REMOTE_UNAVAILABLE`、push の成否不明は `RESULT_UNKNOWN` で、いずれも exit 3 です。
+fetch / push は個別に 60 秒まで待ち、2 秒を超えると stderr に待機を 1 行表示します。
+`--force` はありません。
 
 上限は base/head それぞれに適用します。`records` は展開した記録数、`links_per_record` は展開後の
 link 数です。`record_bytes` はアダプタが読む 1 ファイルの UTF-8 バイト数で、複数記録を含む場合も
@@ -131,3 +142,5 @@ link 数です。`record_bytes` はアダプタが読む 1 ファイルの UTF-8
 `tests/acceptance.test.ts` に正・負の受領試験、`tests/contracts.test.ts` に出力・引数・上限・
 副作用の試験があります。すべての試験は `/tmp` の `jj git init --colocate` で作った repo 内で行い、
 終了時に消します。実在の記録 repo には書き込みません。
+`tests/land/land.test.ts` は一時 bare remote を使い、正常系・拒否・別 clone との競合・受領・待機と
+タイムアウト・push 後の bookmark 失敗を検証します。colocated / non-colocated の両方を対象にします。
