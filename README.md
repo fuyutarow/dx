@@ -130,6 +130,11 @@ export default defineType({
 `fields` は形式アダプタが読んだメタデータで、schema による変換や unknown key の除去は行いません。
 
 Markdown は YAML frontmatter を 1 記録として読みます。BOM、LF/CRLF、終端の改行なしに対応します。
+重複キー（入れ子・flow を含む）、anchor/alias、merge `<<`、tag、複合キー、文字列でないキー、
+文字列値の U+0085/U+FEFF は、既定で `format` finding にします。設定項目はありません。
+受け付ける YAML の範囲と I-02 による既存扱いは [spec §7](docs/spec.md#7-dx-の-type-定義) に記載しています。
+この変更の[影運用の結果](tests/fixtures/strict-yaml-shadow.json)では、新たな format finding は両 repo とも 0 件、
+受け入れ済み履歴の標本 10 組でも新たな拒否は 0 件でした。全履歴の保証ではありません。
 TOML はトップレベルの table を 1 記録として読み、`[[records]]` があれば各 table を別の記録にします。
 `index` は 0 から始まる位置です。複数記録の id の付け替えは、同じ type・path・index の間で検査するため、
 既存の配列の順序は保存してください。

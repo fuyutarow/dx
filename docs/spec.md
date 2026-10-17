@@ -301,6 +301,20 @@ export default defineType({
 - `review.place` は、`"frontmatter"`（記録の frontmatter の `review:` に書く）か、`"file:<glob>"`（別のファイルに verdict として置く）のどちらか。immutable な type は `"file:<glob>"` を使う。
 - すべての type に dx が必ずかける検査は、I-02〜I-06 と I-09。`.dx/` に書く必要はない。
 
+`markdown-frontmatter` は、単一の YAML mapping を frontmatter として受け付ける。
+キーはすべての深さで文字列に限り、同じ mapping 内の重複を拒否する（flow mapping と
+引用方法だけが違うキーも含む）。anchor、alias、merge の `<<` キー、明示的な tag、
+`?` による複合キー、文字列でないキーは受け付けない。
+文字列の値に U+0085 または U+FEFF が含まれる場合も拒否する。escape を復号した値、
+sequence 内、入れ子、block scalar にも適用する。コメントや引用文字列内の `&`、`*`、`!`、`?` は
+構文として扱わない。文書先頭の BOM と LF/CRLF は従来どおり受け付ける。
+
+これらは設定で緩和せず、`check: "format"`、`field: path` の finding にする。
+head の parser を base にも適用するため、同じバイト列の記録の format finding は I-02 の既存扱いになる。
+parse できず id を持たないファイルでも、バイト列が変われば format finding を既存扱いにしない。
+構文の検査には版を固定した `yaml` の AST と `strict` / `uniqueKeys` を使い、通った値は
+Bun で復号して従来の値とハッシュを保つ。[parser の API](https://eemeli.org/yaml/) を参照。
+
 `Check` は `(record, tree) => readonly FindingInput[]`、`TreeCheck` は
 `(tree) => readonly FindingInput[]` とし、どちらも Promise を返せる。旧い checks は残す。
 head の定義で、base と head のそれぞれについて、各 treeChecks の関数を 1 回ずつ呼ぶ。

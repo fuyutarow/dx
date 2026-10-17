@@ -1,0 +1,636 @@
+{
+  "measuredAt": "2026-10-17T14:58:03.608Z",
+  "baseline": "d420d891 (land-sync integrated alpha)",
+  "scope": "root checks use original policies; history uses frozen head policies, disables I-06 for pre-migration verdicts, and compares identical parent/head pairs without pushing",
+  "rootChecks": [
+    {
+      "repo": "retrospectives",
+      "variant": "before",
+      "cmd": "dx check --base 'root()'",
+      "exit": 1,
+      "findings": 1193,
+      "format": [],
+      "stdoutSha256": "8b1456eabdac72cebfade6b86e8e27df381f942bc52f90e7e6eb9d316c39c9ca",
+      "stderr": "FINDINGS: 新しい finding 1193 件 / 既存 0 件\n"
+    },
+    {
+      "repo": "retrospectives",
+      "variant": "after",
+      "cmd": "dx check --base 'root()'",
+      "exit": 1,
+      "findings": 1193,
+      "format": [],
+      "stdoutSha256": "8b1456eabdac72cebfade6b86e8e27df381f942bc52f90e7e6eb9d316c39c9ca",
+      "stderr": "FINDINGS: 新しい finding 1193 件 / 既存 0 件\n"
+    },
+    {
+      "repo": "soks",
+      "variant": "before",
+      "cmd": "dx check --base 'root()'",
+      "exit": 1,
+      "findings": 426,
+      "format": [
+        {
+          "check": "format",
+          "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+          "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+          "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+          "new": true,
+          "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+          "v": 1
+        },
+        {
+          "check": "format",
+          "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+          "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+          "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+          "new": true,
+          "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+          "v": 1
+        },
+        {
+          "check": "format",
+          "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+          "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+          "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+          "new": true,
+          "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+          "v": 1
+        }
+      ],
+      "stdoutSha256": "d21fb59d8402e694226b9c9af5abab1236ed0fc20bb223c6c874c58d382c0577",
+      "stderr": "FINDINGS: 新しい finding 426 件 / 既存 0 件\n"
+    },
+    {
+      "repo": "soks",
+      "variant": "after",
+      "cmd": "dx check --base 'root()'",
+      "exit": 1,
+      "findings": 426,
+      "format": [
+        {
+          "check": "format",
+          "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+          "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+          "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+          "new": true,
+          "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+          "v": 1
+        },
+        {
+          "check": "format",
+          "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+          "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+          "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+          "new": true,
+          "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+          "v": 1
+        },
+        {
+          "check": "format",
+          "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+          "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+          "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+          "new": true,
+          "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+          "v": 1
+        }
+      ],
+      "stdoutSha256": "d21fb59d8402e694226b9c9af5abab1236ed0fc20bb223c6c874c58d382c0577",
+      "stderr": "FINDINGS: 新しい finding 426 件 / 既存 0 件\n"
+    }
+  ],
+  "history": [
+    {
+      "repo": "retrospectives",
+      "commit": "48449b71f463833210295e9e14d77369a5066b86",
+      "base": "e115eba6beede8122496d718ce59ec5ce6c78f47",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        }
+      ]
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1478ce50104efd2f77483762742f9eddc53ae488",
+      "base": "48449b71f463833210295e9e14d77369a5066b86",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        }
+      ]
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "3988ccbc74de8eed7ff1510594b989afbe068f92",
+      "base": "1478ce50104efd2f77483762742f9eddc53ae488",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        }
+      ]
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "6eb8d608647bc1eff2e4fa170d67363cce81f94a",
+      "base": "3988ccbc74de8eed7ff1510594b989afbe068f92",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        }
+      ]
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "277d04253a28789fa1ca3f6ef53dc2290ff65302",
+      "base": "6eb8d608647bc1eff2e4fa170d67363cce81f94a",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": []
+        }
+      ]
+    },
+    {
+      "repo": "soks",
+      "commit": "283fed563208b544c50103ed15fb2eddd9b0b597",
+      "base": "99f3ccc74d22c0e81b2c7899b267da2af534dd4c",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repo": "soks",
+      "commit": "54fe9f5a62967aef4275e082a52287da73121685",
+      "base": "141eafbefa744550f4717056979d078a83fb3d1d",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repo": "soks",
+      "commit": "5d063aa2c312fb1242e52279008183316d0e4d28",
+      "base": "c9377871589509b75a4aa0980a91f2558479da94",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repo": "soks",
+      "commit": "b3fbc9f38ae13ef94b0fb264c0bdad687622f296",
+      "base": "889fbef02db2712a7b8797be92e1841c1e22c229",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "repo": "soks",
+      "commit": "885b1e2894161cf39ccd62b7e43ce324df5d1a56",
+      "base": "c40cf24cbc16c30c3bffca052cfa78bf045fa116",
+      "results": [
+        {
+          "variant": "before",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        },
+        {
+          "variant": "after",
+          "exit": 0,
+          "newFindings": [],
+          "formats": [
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "field": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "field": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+              "message": "duplicate YAML key; unsupported YAML: duplicate-key",
+              "key": "[\"format\",null,\"knowledge/evi-hada2026_bpi_ck_comparison_abstract.md\"]",
+              "new": false
+            },
+            {
+              "v": 1,
+              "check": "format",
+              "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+              "message": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md: document character U+000C is outside the accepted input domain",
+              "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+              "new": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "adapterAudit": [
+    {
+      "repo": "retrospectives",
+      "files": 116,
+      "rejected": []
+    },
+    {
+      "repo": "soks",
+      "files": 6823,
+      "rejected": [
+        {
+          "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+          "reason": "Map keys must be unique at line 14, column 5:\n\n    last_modified: 2026-09-04\n    last_modified: 2026-09-04\n    ^\n"
+        },
+        {
+          "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+          "reason": "Map keys must be unique at line 14, column 5:\n\n    last_modified: 2026-09-04\n    last_modified: 2026-09-04\n    ^\n"
+        }
+      ]
+    }
+  ],
+  "newFormatFindings": [],
+  "newlyRejected": [],
+  "counts": "root findings are deduplicated finding keys; adapter files are matched Markdown source files; history samples are five prior accepted nonempty parent/commit comparisons per repository, frozen current policies, I-06 and I-09 excluded",
+  "sources": [
+    {
+      "repo": "retrospectives",
+      "copy": "/tmp/dx-yaml-shadow/retrospectives",
+      "head": "2cae34f0b96dd952159b119d2f7546a3c771c88a",
+      "gitHead": "cc48debf5f01edbe16b724a5c7fe0ac3e3cf618d",
+      "policy": "original origin/alpha policy"
+    },
+    {
+      "repo": "soks",
+      "copy": "/tmp/dx-yaml-shadow/soks",
+      "head": "c6310f681c185cf7b0a33d06e4340e64fd398f6a",
+      "gitHead": "5450e31b22719a6ed7552d5a5099c737a7d1247f",
+      "policy": "original .dx and dx.toml copied from /home/fuyu/Workspace/soks.ws/ws_dx-shadow"
+    }
+  ],
+  "method": {
+    "historyRunner": "/tmp/dx-yaml-shadow/history.ts",
+    "rootRunner": "/tmp/dx-yaml-shadow/run.ts",
+    "runnerSha256": {
+      "/tmp/dx-yaml-shadow/history.ts": "4bd7e31ad30a67b83e5ce54967c114d9025d53493fab9e85e53270ea7e5755d2",
+      "/tmp/dx-yaml-shadow/run.ts": "5401136f743eeccd915cbabfa7b008a28b6330d3dec91e95a1efbdec44635d1a"
+    },
+    "baselineCommit": "d420d891",
+    "versionChoice": "private alpha keeps 0.1.0; no standalone tool release or changeset",
+    "landSafety": "history comparisons call the same check function as land; I-06 disabled for pre-migration history, I-09 not injected; no push or bookmark movement"
+  },
+  "proposition": {
+    "refuted": false,
+    "newFormatFindings": 0,
+    "newlyRejectedAcceptedSamples": 0,
+    "historySamples": 10,
+    "limitations": [
+      "Ten sampled accepted parent/commit pairs, not all accepted history",
+      "soks uses a custom YAML policy; all 6823 current records were also inspected directly with the new built-in adapter; two duplicate-key records were already rejected by the custom policy"
+    ]
+  }
+}
