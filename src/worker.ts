@@ -3,7 +3,7 @@ import { invocationSchema } from "./cli.ts";
 import { configSchema } from "./config.ts";
 import { attemptAsync, undetermined } from "./errors.ts";
 import { loadTypes } from "./policy.ts";
-import { isolationFindings, readSnapshot, ruleFiles } from "./collection.ts";
+import { isolationFindings, readSnapshot, ruleFiles, snapshotCache } from "./collection.ts";
 import { review } from "./commands/review.ts";
 import { check } from "./commands/check.ts";
 import { listRecords } from "./commands/ls.ts";
@@ -32,14 +32,15 @@ async function run() {
     process.exit(4);
   }, ms);
   deadline.unref();
-  const types = await loadTypes(await ruleFiles(cwd, head, ms));
+  const cache = snapshotCache(cwd, ms);
+  const types = await loadTypes(await ruleFiles(cwd, head, ms, cache.reader));
   if (invocation.command === "schema")
     return {
       exit: 0,
       stdout: `${stableJson(schema(types, invocation.name))}\n`,
       stderr: "",
     };
-  const current = await readSnapshot(cwd, head, config, types, ms);
+  const current = await readSnapshot(cwd, head, config, types, ms, cache);
   if (
     invocation.command !== "check" &&
     invocation.command !== "review" &&
@@ -47,8 +48,8 @@ async function run() {
   )
     return undetermined("record format could not be read; run dx check for findings");
   if (invocation.command === "review" && base !== undefined) {
-    const previous = await readSnapshot(cwd, base, config, types, ms);
-    const isolation = await isolationFindings(cwd, base, head, config, types, ms);
+    const previous = await readSnapshot(cwd, base, config, types, ms, cache);
+    const isolation = await isolationFindings(cwd, base, head, config, types, ms, cache.reader);
     // Review commands have their own 120-second deadline per record.
     clearTimeout(deadline);
     return review(cwd, previous, current, types, config, isolation, (waiting) =>
@@ -56,13 +57,13 @@ async function run() {
     );
   }
   if (invocation.command === "check" && base !== undefined) {
-    const previous = await readSnapshot(cwd, base, config, types, ms);
+    const previous = await readSnapshot(cwd, base, config, types, ms, cache);
     const findings = await check(
       previous,
       current,
       types,
       config,
-      await isolationFindings(cwd, base, head, config, types, ms),
+      await isolationFindings(cwd, base, head, config, types, ms, cache.reader),
     );
     const count = findings.filter((f) => f.new).length;
     return {

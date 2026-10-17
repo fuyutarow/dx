@@ -3,8 +3,14 @@ import { type Config } from "./config.ts";
 import { attempt, requireValue, undetermined } from "./errors.ts";
 import { parseRecords, formatAdapter } from "./formats.ts";
 import { loadTypes, matches } from "./policy.ts";
-import { jj, paths, show } from "./repository.ts";
-import { type FindingInput, type LoadedType, type RecordModel, type SourceFile } from "./model.ts";
+import { jj, RevisionReader } from "./repository.ts";
+import {
+  type FindingInput,
+  type LoadedType,
+  type RecordModel,
+  type SourceFile,
+  type TypeDefinition,
+} from "./model.ts";
 
 export interface Snapshot {
   readonly files: Readonly<Record<string, string>>;
@@ -15,11 +21,23 @@ export interface Snapshot {
 export function ignored(config: Config, path: string): boolean {
   return matches(config.files.ignore, path);
 }
-export async function ruleFiles(cwd: string, rev: string, ms: number) {
+const parseFile = (path: string, text: string, format: TypeDefinition["format"]) =>
+  attempt(() => parseRecords(path, text, format));
+export function snapshotCache(cwd: string, ms: number) {
+  return {
+    reader: new RevisionReader(cwd, ms),
+    parsed: new Map<TypeDefinition["format"], Map<string, ReturnType<typeof parseFile>>>(),
+  };
+}
+export async function ruleFiles(
+  cwd: string,
+  rev: string,
+  ms: number,
+  reader = new RevisionReader(cwd, ms),
+) {
   const files: Record<string, string> = Object.create(null);
-  for (const path of await paths(cwd, rev, ms)) {
-    if (path.startsWith(".dx/")) files[path] = await show(cwd, rev, path, ms);
-  }
+  const entries = (await reader.tree(rev)).filter((e) => e.path.startsWith(".dx/"));
+  for (const [path, text] of await reader.read(entries)) files[path] = text;
   return files;
 }
 export async function readSnapshot(
@@ -28,13 +46,21 @@ export async function readSnapshot(
   config: Config,
   types: readonly LoadedType[],
   ms: number,
+  cache = snapshotCache(cwd, ms),
 ): Promise<Snapshot> {
   const files: Record<string, string> = Object.create(null);
   const records: RecordModel[] = [];
   const sources = new Map<RecordModel, SourceFile>();
   const findings: FindingInput[] = [];
   const recordPaths = new Set<string>();
-  for (const path of await paths(cwd, rev, ms)) {
+  const entries = (await cache.reader.tree(rev)).filter(({ path }) => {
+    const verdictPath = types.some(
+      (t) => t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
+    );
+    return !ignored(config, path) || path.startsWith(".dx/") || path === "dx.toml" || verdictPath;
+  });
+  const contents = await cache.reader.read(entries);
+  for (const { path, id: blobId } of entries) {
     const verdictPath = types.some(
       (t) => t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
     );
@@ -53,14 +79,25 @@ export async function readSnapshot(
           message: "file matches no type",
         });
     }
-    const text = await show(cwd, rev, path, ms);
+    const text = requireValue(contents.get(path), "unread file: " + path);
     files[path] = text;
     const type = selected[0];
     if (type === undefined) continue;
     recordPaths.add(path);
     if (Buffer.byteLength(text) > config.limits.record_bytes)
       return undetermined(`limits.record_bytes exceeded: ${path}`);
-    const parsed = attempt(() => parseRecords(path, text, type.format));
+    // Adapters can depend on the path; formats can differ for identical blobs.
+    const key = JSON.stringify([path, blobId]);
+    let byFormat = cache.parsed.get(type.format);
+    if (byFormat === undefined) {
+      byFormat = new Map();
+      cache.parsed.set(type.format, byFormat);
+    }
+    let parsed = byFormat.get(key);
+    if (parsed === undefined) {
+      parsed = parseFile(path, text, type.format);
+      byFormat.set(key, parsed);
+    }
     if (parsed.isErr()) {
       findings.push({ check: "format", path, field: path, message: parsed.error });
       continue;
@@ -178,13 +215,14 @@ export async function isolationFindings(
   config: Config,
   types: readonly LoadedType[],
   ms: number,
+  reader = new RevisionReader(cwd, ms),
 ): Promise<FindingInput[]> {
   const findings: FindingInput[] = [];
   const cache = new Map<string, readonly LoadedType[]>([[head, types]]);
   const definitions = async (rev: string) => {
     const cached = cache.get(rev);
     if (cached !== undefined) return cached;
-    const files = await ruleFiles(cwd, rev, ms);
+    const files = await ruleFiles(cwd, rev, ms, reader);
     const loaded = Object.keys(files).some((p) => /^\.dx\/[^/]+\.ts$/u.test(p))
       ? await loadTypes(files)
       : [];

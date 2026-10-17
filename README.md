@@ -31,6 +31,18 @@ oxlint・oxfmt・oxlint-tsgolint は lint・整形用の開発依存として保
 `jj commit <paths>` でスナップショットを作ってください。読み取りコマンドはスナップショット、fetch、cache、
 一時 checkout を作りません。読み始めに REV を commit ID に固定します。
 
+記録の読み込みには Git をバックエンドとする jj repo が必要です。
+通常は `jj git init --colocate` で同じ作業ディレクトリに Git を置きます。
+Git の保存先は `jj git root` で取得するため、jj が内部に Git を持つ non-colocated repo も読めます。
+jj から指定 REV のパス・種別・blob ID を取得し、Git の object を
+`git cat-file --batch` でまとめて直接読みます。ファイルごとの `jj file show` は行いません
+（起動時の `dx.toml` 取得を除く）。Git の置換 object と不足 object の自動 fetch は使いません。
+symlink、未解決の conflict、欠落した object、読み込み失敗は exit 4 にします。
+
+blob の内容は1コマンド内のメモリで共有します。base と head でパス・形式・blob ID が
+同じ記録は1回だけ parse します。パスを使う独自アダプタのため、異なるパスの parse 結果は共有しません。
+repo に永続 cache は書きません。
+
 ## repo と type
 
 対象 repo に `dx.toml` と `.dx/<type>.ts` を置きます。`dx.toml` は `[repo].name` が必須で、
