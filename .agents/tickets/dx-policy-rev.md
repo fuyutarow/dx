@@ -21,6 +21,14 @@ refuted_by = "`--policy` を省いたときの判定が、変える前と違う�
 - 1 回は、その準備を誤って `UNDETERMINED:jj: Error: No such path: dx.toml` になった（p2b-c3 の初回）。
 - 再生や影運用のたびに起きる。US-06（監査する者が、正規の branch の範囲を後から判定する）の、ふつうの使い方でもある。
 
+## 追加の欠陥（soks から。2026-10-18。この issue の中心として直す）
+
+- 今の dx は、base を評価するときに `[files] inputs` を **base の木から**読む。head の規則（.dx/）は base にも使っているのに、inputs だけは各 revision のものを使っていて、食い違っている。
+- 起きたこと: soks の commit 9d51d38c と 2557f0b2 は、`.leakcheck` にパターンを 1 つ足しただけで、記録は変えていない。既存の evi の本文はそのパターンに当たる（`GB21`、`発注者`）。base は古い `.leakcheck` で評価されて finding が出ず、head は新しいパターンで評価されて finding が出る。そのため、その finding が新しいものと判定されて拒否される。soks-govern（store.rs:190-212）は、base と head の両方を今の denylist で評価するので、受け入れる。
+- spec の I-02 は「head の規則で base と head の両方を数える」と言っており、inputs は規則の入力（I-09 の対象）なので、base も head の inputs で評価するのが正しい。
+- **直し方:** 規則（dx.toml、.dx/、[files] inputs の中身）は、1 つの revision（既定は head。`--policy REV` を指定したときはその REV）から 1 度だけ読み、base と head の両方の評価に使う。base を評価するときの `tree.read(<inputs のパス>)` は、規則の revision の中身を返す。
+- 試験: inputs のパターンを足すだけの change が、既存の記録の当たりを新しい finding にしないこと（受け入れられること）。記録を変えて、新しいパターンに当たるようにした change は拒否されること。
+
 ## やること
 
 1. `dx check --policy REV [--base REV] [REV]` を足す。dx.toml、.dx/、[files] inputs を REV から読む。判定する木（base と head）はそのまま。
