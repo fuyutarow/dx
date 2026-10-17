@@ -12,6 +12,17 @@ export async function check(
   isolation: readonly FindingInput[],
 ) {
   return safeTry(async function* () {
+    const previous = new Map<string, Set<string>>();
+    for (const record of base.records) {
+      const hashes = previous.get(record.id) ?? new Set<string>();
+      hashes.add(record.sha256);
+      previous.set(record.id, hashes);
+    }
+    const changedIds = new Set(
+      head.records
+        .filter((record) => previous.get(record.id)?.has(record.sha256) !== true)
+        .map((record) => record.id),
+    );
     const oldFindings = yield* await structural(base, base, types);
     const findings = [
       ...(yield* await structural(head, base, types)),
@@ -19,6 +30,6 @@ export async function check(
       ...(yield* reviews(base, head, types)),
       ...isolation,
     ];
-    return ok(classify(findings, oldFindings));
+    return ok(classify(findings, oldFindings, changedIds));
   });
 }

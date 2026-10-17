@@ -18,6 +18,8 @@ import { sha256, parseRecords, recordSha256 } from "../src/formats.ts";
 import { requireValue } from "../src/errors.ts";
 
 const timeout = 60000;
+const mutableTomlPair = (title: string, badTitle = "Old") =>
+  `[[records]]\nid = "old"\ntitle = "${badTitle}"\nbad = true\n[[records]]\nid = "sibling"\ntitle = "${title}"\n`;
 
 test(
   "positive receipt: valid immutable addition exits 0",
@@ -80,6 +82,63 @@ test(
     expect(result.findings.find((r) => r.id === "old")?.new).toBe(false);
     expect(result.findings.find((r) => r.id === "new")?.new).toBe(true);
     expect(result.findings.find((r) => r.id === "old")?.key).toBe(existing.findings[0]?.key);
+  },
+  timeout,
+);
+
+test(
+  "I-02: changed records must clear existing findings; unchanged records retain them",
+  async () => {
+    const { cwd } = await repo();
+    await write(cwd, "records/edited.md", markdown("edited", "bad: true\n"));
+    await write(cwd, "records/untouched.md", markdown("untouched", "bad: true\n"));
+    const base = await advance(cwd);
+    const before = await checked(cwd, base, 0);
+    await write(cwd, "records/edited.md", markdown("edited", "bad: true\n", "Changed\n"));
+    const rejected = await checked(cwd, base, 1);
+    expect(rejected.findings).toHaveLength(2);
+    expect(rejected.findings.find((row) => row.id === "edited")).toEqual({
+      ...before.findings.find((row) => row.id === "edited"),
+      new: true,
+    });
+    expect(rejected.findings.find((row) => row.id === "untouched")?.new).toBe(false);
+    await write(cwd, "records/edited.md", markdown("edited", "", "Changed\n"));
+    const repaired = await checked(cwd, base, 0);
+    expect(repaired.findings).toHaveLength(1);
+    expect(repaired.findings[0]?.id).toBe("untouched");
+    expect(repaired.findings[0]?.new).toBe(false);
+  },
+  timeout,
+);
+
+test(
+  "I-02: a sibling TOML edit does not change an untouched record's hash",
+  async () => {
+    const { cwd } = await repo({ format: "toml" });
+    await write(cwd, "records/pair.toml", mutableTomlPair("Before"));
+    const base = await advance(cwd);
+    await write(cwd, "records/pair.toml", mutableTomlPair("After"));
+    const unchanged = await checked(cwd, base, 0);
+    expect(unchanged.findings).toHaveLength(1);
+    expect(unchanged.findings[0]?.new).toBe(false);
+    await write(cwd, "records/pair.toml", mutableTomlPair("After", "Edited"));
+    const changed = await checked(cwd, base, 1);
+    expect(changed.findings[0]?.key).toBe(unchanged.findings[0]?.key);
+    expect(changed.findings[0]?.new).toBe(true);
+  },
+  timeout,
+);
+
+test(
+  "I-02: frontmatter review metadata alone does not change the record hash",
+  async () => {
+    const { cwd } = await repo();
+    await write(cwd, "records/old.md", markdown("old", "bad: true\n"));
+    const base = await advance(cwd);
+    await write(cwd, "records/old.md", markdown("old", "bad: true\nreview: {}\n"));
+    const result = await checked(cwd, base, 0);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.new).toBe(false);
   },
   timeout,
 );
