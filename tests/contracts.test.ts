@@ -7,6 +7,7 @@ import {
   advance,
   checked,
   dx,
+  main,
   markdown,
   repo,
   rows,
@@ -16,6 +17,92 @@ import {
 } from "./helpers.ts";
 
 const timeout = 60000;
+
+async function helpOutput(
+  args: string[],
+  env: NodeJS.ProcessEnv,
+  columns?: number,
+  expectedBytes = 0,
+) {
+  const cmd = [process.execPath, main, ...args];
+  const signal = AbortSignal.timeout(10000);
+  if (columns === undefined) {
+    const child = Bun.spawn({
+      cmd,
+      env,
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+      signal,
+      killSignal: "SIGKILL",
+    });
+    const [stdout, stderr, exit] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    expect(signal.aborted).toBe(false);
+    expect(exit, stderr).toBe(0);
+    expect(stderr).toBe("");
+    return stdout;
+  }
+  const chunks: Buffer[] = [];
+  const drained = Promise.withResolvers<void>();
+  let bytes = 0;
+  signal.addEventListener("abort", () => drained.resolve(), { once: true });
+  await using terminal = new Bun.Terminal({
+    cols: columns,
+    rows: 24,
+    data: (_terminal, data) => {
+      chunks.push(Buffer.from(data));
+      bytes += data.byteLength;
+      if (bytes >= expectedBytes) drained.resolve();
+    },
+  });
+  // Disable PTY newline translation so the test compares the actual emitted bytes.
+  terminal.outputFlags = 0;
+  const child = Bun.spawn({ cmd, env, terminal, signal, killSignal: "SIGKILL" });
+  // Process exit may arrive before the final PTY data callback.
+  const [exit] = await Promise.all([child.exited, drained.promise]);
+  expect(exit).toBe(0);
+  expect(signal.aborted).toBe(false);
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+test(
+  "C1: help is identical plain text across color settings, pipes and TTY widths",
+  async () => {
+    const { FORCE_COLOR: _force, NO_COLOR: _noColor, TERM: _term, ...baseEnv } = process.env;
+    const environments: NodeJS.ProcessEnv[] = [
+      baseEnv,
+      { ...baseEnv, TERM: "dumb" },
+      { ...baseEnv, FORCE_COLOR: "1", TERM: "xterm-256color" },
+      { ...baseEnv, FORCE_COLOR: "0", NO_COLOR: "1", TERM: "xterm-256color" },
+      { ...baseEnv, FORCE_COLOR: "1", NO_COLOR: "1", TERM: "dumb" },
+    ];
+    for (const args of [
+      ["--help"],
+      ["-h"],
+      ["ls", "--help"],
+      ["check", "--help"],
+      ["view", "--help"],
+      ["schema", "--help"],
+    ]) {
+      const expected = await helpOutput(args, baseEnv);
+      expect(expected).toContain("USAGE:");
+      expect(expected).toContain("FLAGS:");
+      expect(expected).not.toContain("\u001b");
+      for (const env of environments) {
+        for (const columns of [undefined, 20, 120]) {
+          const actual = await helpOutput(args, env, columns, Buffer.byteLength(expected));
+          expect(actual).not.toContain("\u001b");
+          expect(actual).toBe(expected);
+        }
+      }
+    }
+  },
+  timeout,
+);
 async function inventory(root: string, path = ""): Promise<Record<string, string>> {
   const entries: Record<string, string> = {};
   for (const name of (await readdir(join(root, path))).toSorted()) {

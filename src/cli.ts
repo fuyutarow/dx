@@ -1,5 +1,23 @@
-import { cli, command } from "cleye";
+import { cli, command, type Renderers } from "cleye";
 import { z } from "zod";
+
+/** Keep cleye's help content while fixing decoration and layout across environments. */
+function renderPlainHelp(nodes: Parameters<Renderers["render"]>[0], renderers: Renderers): string {
+  renderers.bold = (text) => text.toUpperCase();
+  const table = renderers.table.bind(renderers);
+  renderers.table = ({ tableData }) =>
+    table({
+      tableData,
+      tableOptions: {
+        stdoutColumns: 1000,
+        columns: [
+          { width: "content-width", paddingLeft: 2, paddingRight: 8 },
+          { width: "content-width" },
+        ],
+      },
+    });
+  return renderers.render(nodes);
+}
 
 export const invocationSchema = z.object({
   command: z.enum(["ls", "check", "view", "schema"]),
@@ -68,29 +86,36 @@ export function parseInvocation(args: string[]): Invocation | undefined {
     {
       name: "dx",
       strictFlags: true,
-      help: { version: "0.1.0", description: "Read and check records in a jj revision" },
+      help: {
+        version: "0.1.0",
+        description: "Read and check records in a jj revision",
+        render: renderPlainHelp,
+      },
       commands: [
         command({
           name: "ls",
           parameters: ["[REV]"],
-          help: { description: "List records as JSONL" },
+          help: { description: "List records as JSONL", render: renderPlainHelp },
         }),
         command({
           name: "check",
           parameters: ["[REV]"],
           flags: { base: String },
-          help: { description: "Report all findings; reject newly introduced findings" },
+          help: {
+            description: "Report all findings; reject newly introduced findings",
+            render: renderPlainHelp,
+          },
         }),
         command({
           name: "view",
           parameters: ["[name]", "[REV]"],
           flags: { list: Boolean },
-          help: { description: "Compute a view, or list available views" },
+          help: { description: "Compute a view, or list available views", render: renderPlainHelp },
         }),
         command({
           name: "schema",
           parameters: ["[type]"],
-          help: { description: "Print JSON Schema for one or all types" },
+          help: { description: "Print JSON Schema for one or all types", render: renderPlainHelp },
         }),
       ],
     },
