@@ -1,3 +1,4 @@
+import { jsonOf } from "../../.dx-preset/zod.ts";
 // Offline consumer contract pinned to notes/jev-contract.md's successful request.
 import { z } from "zod";
 import reference from "./jev-request.json";
@@ -28,7 +29,7 @@ const requestSchema = z.strictObject({
     .refine((questions) => Object.keys(questions).length > 0),
 });
 const text = await Bun.stdin.text();
-const request = requestSchema.safeParse(JSON.parse(text));
+const request = jsonOf(requestSchema).safeParse(text);
 if (!request.success || Buffer.byteLength(text) > 30000) {
   process.stderr.write("HTTP 422: invalid Jev request\n");
   process.exitCode = 1;

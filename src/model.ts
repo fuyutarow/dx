@@ -1,3 +1,4 @@
+import type { Result } from "neverthrow";
 import { z } from "zod";
 
 export const fieldsSchema = z.record(z.string(), z.unknown());
@@ -52,10 +53,12 @@ export interface Evidence {
 }
 export type Verdict = z.infer<typeof verdictSchema>;
 export interface FormatAdapter {
-  readonly parse: (path: string, text: string) => SourceFile[];
+  readonly parse: (path: string, text: string) => SourceFile[] | Result<SourceFile[], string>;
   readonly hash: (file: SourceFile) => string;
-  readonly reviewText: (file: SourceFile) => string;
-  readonly writeReview?: ((file: SourceFile, verdict: Verdict) => string) | undefined;
+  readonly reviewText: (file: SourceFile) => string | Result<string, string>;
+  readonly writeReview?:
+    | ((file: SourceFile, verdict: Verdict) => string | Result<string, string>)
+    | undefined;
   readonly evidence?: ((file: SourceFile, tree: TreeContext) => readonly Evidence[]) | undefined;
 }
 export interface TypeDefinition {

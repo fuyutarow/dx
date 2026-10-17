@@ -1,5 +1,20 @@
+import {
+  decode,
+  spawn,
+  value,
+  dx,
+  repo,
+  write,
+  snapshot,
+  jj,
+  markdown,
+  rows,
+  advance,
+} from "./helpers.ts";
+import { z } from "zod";
+
 import { expect, test } from "bun:test";
-import { dx, repo, write, snapshot, jj, markdown, rows, advance } from "./helpers.ts";
+
 import { parseRecords, recordSha256 } from "../src/formats.ts";
 import { assembleRequest, capEvidence, parseRubric } from "../src/review-request.ts";
 
@@ -46,7 +61,7 @@ process.stdout.write(${JSON.stringify(options.response ?? '{"model":"fake","answ
   const cleanBase = await advance(cwd);
   // Import a local git ref as a tracked remote bookmark without networking.
   await jj(cwd, "git", "remote", "add", "origin", cwd);
-  const git = Bun.spawnSync(["git", "update-ref", "refs/remotes/origin/alpha", cleanBase], { cwd });
+  const git = await spawn(["git", "update-ref", "refs/remotes/origin/alpha", cleanBase], { cwd });
   expect(git.exitCode).toBe(0);
   await jj(cwd, "git", "import");
   return { cwd, base: cleanBase };
@@ -66,14 +81,17 @@ test("passing frontmatter verdict preserves hash, satisfies I-06 and is skipped 
   expect(verdict?.pass).toBe(true);
   expect(verdict?.by).toBe("process:jev/fake");
   const output = await Bun.file(`${cwd}/records/one.md`).text();
-  const parsed = parseRecords("records/one.md", output, "markdown-frontmatter")[0];
+  const parsed = value(parseRecords("records/one.md", output, "markdown-frontmatter"))[0];
   expect(parsed).toBeDefined();
   if (parsed !== undefined) expect(recordSha256(parsed)).toBe(String(before));
   await snapshot(cwd);
   expect((await dx(cwd, "check")).exit).toBe(0);
   expect((await review(cwd)).stdout).toBe("");
   expect(await Bun.file(`${cwd}/calls`).text()).toBe("1");
-  const request = JSON.parse(await Bun.file(`${cwd}/request.json`).text());
+  const request = decode(
+    z.object({ state: z.object({ record: z.string() }) }),
+    await Bun.file(`${cwd}/request.json`).text(),
+  );
   expect(request.state.record).toBe(text);
 }, 60000);
 test("failed verdict is written with exit 1 and fails I-06", async () => {
@@ -108,7 +126,7 @@ test("oversized record or questions refuse with exit 4, no command and empty std
         rubric.replace("Is the account clear?", "問".repeat(11000)),
       );
       const newBase = await advance(cwd);
-      Bun.spawnSync(["git", "update-ref", "refs/remotes/origin/alpha", newBase], { cwd });
+      await spawn(["git", "update-ref", "refs/remotes/origin/alpha", newBase], { cwd });
       await jj(cwd, "git", "import");
     }
     await write(
@@ -171,8 +189,8 @@ test("REV with a different working-copy record refuses before calling Jev", asyn
 test("UTF-8 evidence and escaped JSON fit 30000 bytes without truncating record/questions", () => {
   const text = '😀日本語\\"\n'.repeat(3000);
   const evidence = [{ locator: "linked", status: "supplied", content: text }];
-  const r = parseRubric(rubric);
-  const request = assembleRequest("Record", r, evidence);
+  const r = value(parseRubric(rubric));
+  const request = value(assembleRequest("Record", r, evidence));
   const serialized = JSON.stringify(request);
   expect(Buffer.byteLength(serialized)).toBeLessThanOrEqual(30000);
   expect(serialized).not.toContain("�");
@@ -198,7 +216,7 @@ test("custom format evidence policy supplies linked files through the revision t
   await write(cwd, ".dx/note.ts", type);
   await write(cwd, "evidence.txt", "漢😀".repeat(10000));
   const base = await advance(cwd);
-  Bun.spawnSync(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
+  await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
@@ -236,7 +254,7 @@ test("external review waits have 120 seconds independently of the structural che
   const fake = await Bun.file(`${cwd}/fake.ts`).text();
   await write(cwd, "fake.ts", "await Bun.sleep(3500);\n" + fake);
   const base = await advance(cwd);
-  Bun.spawnSync(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
+  await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
@@ -255,7 +273,7 @@ test("review bounds a synchronous infinite policy check before invoking the comm
     type.replace("checks: [(record) =>", "checks: [() => { while (true) {} }, (record) =>"),
   );
   const base = await advance(cwd);
-  Bun.spawnSync(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
+  await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
@@ -275,7 +293,7 @@ test("partial verdicts survive a later unavailable response and retry skips them
     ),
   );
   const base = await advance(cwd);
-  Bun.spawnSync(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
+  await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
   await write(cwd, "records/a.md", markdown("a"));
   await write(cwd, "records/b.md", markdown("b"));
@@ -294,7 +312,7 @@ test("immutable TOML fragments use sidecars even under a default ignored directo
   const type = await Bun.file(`${cwd}/.dx/note.ts`).text();
   await write(cwd, ".dx/note.ts", type.replace("immutable: false", "immutable: true"));
   const base = await advance(cwd);
-  Bun.spawnSync(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
+  await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
   const text =
     '[[records]]\nid="one"\ntitle="One"\nby="author"\n[[records]]\nid="two"\ntitle="Two"\nby="author"\n';
@@ -314,7 +332,7 @@ test("new malformed review records block I-10; unchanged malformed records are o
   expect(rows(result.stdout)[0]?.check).toBe("format");
   expect(await Bun.file(`${cwd}/calls`).exists()).toBe(false);
   const base = await advance(cwd);
-  Bun.spawnSync(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
+  await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
   const unchanged = await review(cwd);
   expect(unchanged.exit, unchanged.stderr).toBe(0);
@@ -325,7 +343,7 @@ test("frontmatter verdict edits use the same target selection as I-06", async ()
   await write(cwd, "records/one.md", markdown("one"));
   expect((await review(cwd)).exit).toBe(0);
   const base = await advance(cwd);
-  Bun.spawnSync(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
+  await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
   const text = await Bun.file(`${cwd}/records/one.md`).text();
   await write(cwd, "records/one.md", text.replace('"pass":true', '"pass":false'));
@@ -360,14 +378,14 @@ test("dx review sends a request matching the successful Jev contract and then sa
   expect((await dx(cwd, "check")).exit).toBe(0);
 }, 60000);
 test("the model field is included in the complete 30000-byte UTF-8 request budget", () => {
-  const parsed = parseRubric(rubric);
+  const parsed = value(parseRubric(rubric));
   const record = "😀".repeat(7000);
   const evidence = [{ locator: "linked", status: "supplied", content: "資料".repeat(10000) }];
-  const request = assembleRequest(record, parsed, evidence);
+  const request = value(assembleRequest(record, parsed, evidence));
   expect(request.model).toBe("jev-latest");
   expect(request.state.record).toBe(record);
   expect(Buffer.byteLength(JSON.stringify(request))).toBeLessThanOrEqual(30000);
-  expect(() => assembleRequest(record + "😀".repeat(500), parsed, evidence)).toThrow(
-    "exceeds 30000",
-  );
+  const oversized = assembleRequest(record + "😀".repeat(500), parsed, evidence);
+  expect(oversized.isErr()).toBe(true);
+  if (oversized.isErr()) expect(oversized.error).toContain("exceeds 30000");
 }, 60000);

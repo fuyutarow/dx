@@ -1,5 +1,6 @@
+import { ok, safeTry } from "neverthrow";
 import { z } from "zod";
-import { undetermined } from "./errors.ts";
+import { attempt, undetermined } from "./errors.ts";
 
 const positive = z.number().int().positive();
 export const configSchema = z.strictObject({
@@ -19,7 +20,7 @@ export const configSchema = z.strictObject({
       record_bytes: positive.default(4194304),
       records: positive.default(200000),
       links_per_record: positive.default(10000),
-      check_seconds: z.number().positive().finite().default(120),
+      check_seconds: z.number().positive().default(120),
     })
     .prefault({}),
   files: z
@@ -30,7 +31,9 @@ export const configSchema = z.strictObject({
     .prefault({}),
 });
 export type Config = z.infer<typeof configSchema>;
-export function readConfig(text: string): Config {
-  const result = configSchema.safeParse(Bun.TOML.parse(text));
-  return result.success ? result.data : undetermined(`dx.toml: ${result.error.message}`);
+export function readConfig(text: string) {
+  return safeTry(function* () {
+    const result = configSchema.safeParse(yield* attempt((): unknown => Bun.TOML.parse(text)));
+    return result.success ? ok(result.data) : undetermined(`dx.toml: ${result.error.message}`);
+  });
 }

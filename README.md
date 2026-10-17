@@ -26,6 +26,15 @@ mise は Bun 1.4.3 に固定し、package.json の engines にも最低版を宣
 tsgo（`@typescript/native-preview`）は不要です。依存の固定版は package.json と bun.lock にあります。
 oxlint・oxfmt・oxlint-tsgolint は lint・整形用の開発依存として保持します。
 
+lint は dotfiles の TypeScript 標準プリセットの写しを使います。`.oxlintrc.json` と、
+`.dx-preset/` の `house-plugin.js`・`lint-oxlint.ts`・`zod.ts` をこの repo で管理し、
+実行時に dotfiles は参照しません。依存の固定版と compilerOptions はプリセットに合わせています。
+プリセットとの差分は、補助ファイルの配置、`node/no-sync` の有効化（試験も対象）、
+型検査に `bun check` を使うことです。プリセットの tsgo は導入しません。
+`mise run lint`・`lint:ts`・`lint:ts:all` はいずれも全 TypeScript ファイルを型情報付きで検査します。
+プリセットの変更候補だけを検査する外部コマンドは使わず、保存前の編集も検査します。
+lint runner の件数は診断数ではなく検査したファイル数で、0 ファイルや壊れた応答は失敗です。
+
 すべての読み取りで `--ignore-working-copy --at-operation=@` を使います。`@` は jj が保存済みの
 スナップショットを指します。未保存の編集を検査したいときは、書き手が先に `jj status` または
 `jj commit <paths>` でスナップショットを作ってください。読み取りコマンドはスナップショット、fetch、cache、
@@ -165,6 +174,8 @@ verdict の `by` は `process:jev/<応答の model>` です。記録に `by` が
 `markdownFrontmatter` と `tomlFormat` を dx から import して拡張できます。
 アダプタは `parse(path,text)`、`hash(file)`、`reviewText(file)` を持ち、
 任意で `writeReview(file,verdict)` と `evidence(file,tree)` を持ちます。
+`parse`・`reviewText`・`writeReview` は通常の成功値に加えて neverthrow の `Result<成功値, string>`
+を返せます。組込みの Markdown アダプタは失敗を Result で返し、CLI の境界で終了コードに変換します。
 `evidence` は `{locator,status,content?}` の配列を返し、リンクの解釈・解決・除外は
 repo の type が決めます。組込み形式は証拠を自動収集しません。たとえば以下のように、
 type が宣言する資料だけを指定 REV の木から渡せます。

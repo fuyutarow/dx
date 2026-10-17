@@ -1,10 +1,5 @@
-import { test, expect } from "bun:test";
-import { readdir, readFile, lstat, symlink } from "node:fs/promises";
-import { join } from "node:path";
-import { readConfig } from "../src/config.ts";
-import { sha256 } from "../src/formats.ts";
-import { version } from "../package.json" with { type: "json" };
 import {
+  value,
   advance,
   checked,
   dx,
@@ -16,6 +11,12 @@ import {
   typeSource,
   write,
 } from "./helpers.ts";
+import { test, expect } from "bun:test";
+import { readdir, readFile, lstat, symlink } from "node:fs/promises";
+import { join } from "node:path";
+import { readConfig } from "../src/config.ts";
+import { sha256 } from "../src/formats.ts";
+import { version } from "../package.json" with { type: "json" };
 
 const timeout = 60000;
 
@@ -50,7 +51,13 @@ async function helpOutput(
   const chunks: Buffer[] = [];
   const drained = Promise.withResolvers<void>();
   let bytes = 0;
-  signal.addEventListener("abort", () => drained.resolve(), { once: true });
+  signal.addEventListener(
+    "abort",
+    () => {
+      drained.resolve();
+    },
+    { once: true },
+  );
   await using terminal = new Bun.Terminal({
     cols: columns,
     rows: 24,
@@ -92,13 +99,13 @@ test(
       const expected = await helpOutput(args, baseEnv);
       expect(expected).toContain("USAGE:");
       expect(expected).toContain("FLAGS:");
-      expect(expected).not.toContain("\u001b");
-      for (const env of environments) {
-        for (const columns of [undefined, 20, 120]) {
-          const actual = await helpOutput(args, env, columns, Buffer.byteLength(expected));
-          expect(actual).not.toContain("\u001b");
-          expect(actual).toBe(expected);
-        }
+      expect(expected).not.toContain("\u001B");
+      for (const [env, columns] of environments.flatMap((environment) =>
+        [undefined, 20, 120].map((width) => [environment, width] as const),
+      )) {
+        const actual = await helpOutput(args, env, columns, Buffer.byteLength(expected));
+        expect(actual).not.toContain("\u001B");
+        expect(actual).toBe(expected);
       }
     }
     expect(await helpOutput(["--help"], baseEnv)).toContain("--version");
@@ -174,7 +181,7 @@ test(
       ["schema", "absent"],
     ]) {
       const result = await dx(cwd, ...args);
-      expect(result.exit, `${args}: ${result.stderr}`).toBe(4);
+      expect(result.exit, `${args.join(",")}: ${result.stderr}`).toBe(4);
       expect(result.stdout).toBe("");
       expect(result.stderr).toStartWith("UNDETERMINED:");
     }
@@ -248,7 +255,7 @@ test(
 );
 
 test("configuration defaults match §6 exactly", () => {
-  expect(readConfig('[repo]\nname="fixture"\n')).toEqual({
+  expect(value(readConfig('[repo]\nname="fixture"\n'))).toEqual({
     repo: { name: "fixture", remote: "origin", branch: "alpha" },
     review: { command: ["agx", "jev"], pass: 0.5 },
     limits: { record_bytes: 4194304, records: 200000, links_per_record: 10000, check_seconds: 120 },
@@ -293,7 +300,7 @@ test(
       ["view", "--list=false"],
     ]) {
       const result = await dx(cwd, ...args);
-      expect(result.exit, `${args}: ${result.stderr}`).toBe(2);
+      expect(result.exit, `${args.join(",")}: ${result.stderr}`).toBe(2);
       expect(result.stdout).toBe("");
       expect(result.stderr).toContain("USAGE:");
     }
