@@ -2,7 +2,14 @@ import { lstat, mkdir, realpath } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { z } from "zod";
 import { check } from "./check.ts";
-import { context, verdictChecker, rubricPath, sidecarVerdicts, reviewChanged } from "../checks.ts";
+import {
+  context,
+  verdictChecker,
+  rubricPath,
+  sidecarVerdicts,
+  reviewChanged,
+  reviewerAllowed,
+} from "../checks.ts";
 import type { Snapshot } from "../collection.ts";
 import type { Config } from "../config.ts";
 import { attempt, attemptAsync, undetermined } from "../errors.ts";
@@ -115,10 +122,6 @@ export async function review(
       for (const finding of problems) blocked.add(finding);
       continue;
     }
-    if (record.by === undefined) {
-      rows.push(...checked.filter((f) => f.check === "I-06.verdict" && f.id === record.id));
-      continue;
-    }
     if (passing.get(type.name)?.(record) === true) continue;
     const source = head.sources.get(record) ?? undetermined("missing review source");
     const adapter = formatAdapter(type.format);
@@ -204,7 +207,7 @@ export async function review(
       p: probabilities.data,
       pass: passed.every(Boolean),
     });
-    if (record.by === undefined || verdict.by === record.by)
+    if (!reviewerAllowed(record.by, verdict.by))
       return undetermined(`review author must differ from record author: ${record.id}`);
     const expected = contents.has(path) ? contents.get(path) : head.files[path];
     const actual = await attemptAsync(() => Bun.file(target).text());
