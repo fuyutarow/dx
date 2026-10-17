@@ -31,7 +31,14 @@ refuted_by = "fetch した後も、試した REV が受け入れられたかど�
 - この repo は `git lfs install --local` 済みで、pre-push の hook がある。file:// の bare の remote では、land が成功する。
 - retrospectives（https、LFS の hook なし）では、dx land が成功している。
 
-**やることに足す:** 原因を特定する。候補は、LFS の pre-push の hook（stdin、環境変数、出力）、https の認証の扱い（credential helper、環境変数）、push の出力の解析の 3 つ。そのうえで、この条件でも push が通るように直す。一時の repo に `git lfs install --local` を入れ、hook のある状態で、file:// と、できれば https の両方で試験する（GitHub に試験用の repo を作らない。https は、手元の https のサーバか、hook の振る舞いを再現する試験で代わりにする）。直せない場合でも、`RESULT_UNKNOWN` ではなく、原因が分かる拒否コードと stderr を出す。
+**訂正（research-record-v2 から、2026-10-18。最新）:** 原因は dx ではなかった。v2 の fixture が、中身の無い LFS の pointer を commit していたため、ローカルの LFS の pre-push の hook が push を止めていた（`Git LFS upload failed: (missing) fixtures/accept/rows.pointer`）。dx に求めるのは分類だけになる。
+- push が hook（ローカルの pre-push、または remote の pre-receive）に拒否されたときは、`RESULT_UNKNOWN` ではなく exit 1 の `PUSH_REJECTED` を返す。stderr には、git が出した拒否の理由の最初の行（例: 「Git LFS upload failed: …」）を含める。push そのものが行われていないことは明らかなので、一時的な失敗（3）ではなく、拒否（1）として扱う。
+- 試験: 一時の repo に、必ず失敗する pre-push の hook を置き、`PUSH_REJECTED` と理由の行が出ることを確かめる。LFS そのものは要らない。
+- spec §5 の C4 の表に `PUSH_REJECTED` を足す。
+
+以下の「原因を特定する」は、上の訂正で置き換える（https のサーバでの試験は要らない）。
+
+**（旧）やることに足す:** 原因を特定する。候補は、LFS の pre-push の hook（stdin、環境変数、出力）、https の認証の扱い（credential helper、環境変数）、push の出力の解析の 3 つ。そのうえで、この条件でも push が通るように直す。一時の repo に `git lfs install --local` を入れ、hook のある状態で、file:// と、できれば https の両方で試験する（GitHub に試験用の repo を作らない。https は、手元の https のサーバか、hook の振る舞いを再現する試験で代わりにする）。直せない場合でも、`RESULT_UNKNOWN` ではなく、原因が分かる拒否コードと stderr を出す。
 
 ## やること
 
