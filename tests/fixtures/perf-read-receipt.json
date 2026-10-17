@@ -1,0 +1,62 @@
+{
+  "measuredAt": "2026-10-17",
+  "soksCheckSeconds": 1800,
+  "method": "Fixed revision IDs; soks reads a temporary shared Git clone with a jj workspace. Both soks source copies read /tmp/dx-perf-soks-copy/dx.toml with check_seconds=1800 as a measurement-only config override, because fixed revisions ignore working files. No corpus revision IDs change. Before uses the previous per-file reader, after uses a current-source copy without timing instrumentation. Finding sets compare complete canonical JSON objects, including new and message. No release/version change for the private 0.1.0 prototype.",
+  "runs": [
+    {
+      "corpus": "soks",
+      "records": 6823,
+      "base": "5450e31b22719a6ed7552d5a5099c737a7d1247f",
+      "head": "af36d0c3dda58ce18fdf9dcba569207c5e339a7c",
+      "before": {
+        "seconds": 585.504792593,
+        "exit": 0,
+        "findingRows": 392,
+        "sha256": "03f959152ab8e271cc0df595bf15271fc4b16d411077cbd60ef5864321d67f54"
+      },
+      "after": {
+        "seconds": 37.775985798,
+        "exit": 0,
+        "findingRows": 392,
+        "sha256": "03f959152ab8e271cc0df595bf15271fc4b16d411077cbd60ef5864321d67f54"
+      },
+      "findingSetSize": 392,
+      "findingSetSha256": "8a6f1516a57324991f4971f1308449caf24de7065cc5de67a2159d89c1e78bee",
+      "sameFindingSet": true,
+      "sameExit": true,
+      "sameOutputBytes": true
+    },
+    {
+      "corpus": "retrospectives",
+      "records": 116,
+      "base": "b2adfadd",
+      "head": "b2adfadd",
+      "before": {
+        "seconds": 18.10331953,
+        "exit": 0,
+        "findingRows": 1102,
+        "sha256": "660a1a23ac73287de8462141159be501806a18f3aa609f5b0cfda81a70879c0a"
+      },
+      "after": {
+        "seconds": 2.162018604,
+        "exit": 0,
+        "findingRows": 1102,
+        "sha256": "660a1a23ac73287de8462141159be501806a18f3aa609f5b0cfda81a70879c0a"
+      },
+      "findingSetSize": 1102,
+      "findingSetSha256": "e048028e8acca1bcdc30109ebba6ead693ade0e57e790a4366187eafb46ac8f9",
+      "sameFindingSet": true,
+      "sameExit": true,
+      "sameOutputBytes": true
+    }
+  ],
+  "soksInstrumentedCheckMilliseconds": {
+    "structuralBase": 7941.809308,
+    "structuralHead": 7513.634005,
+    "transitions": 138.76499999999942,
+    "reviews": 7.485100000001694,
+    "eviCustomChecks": 15183.379613000032,
+    "eviCustomCheckCalls": 10544
+  },
+  "timingNote": "Single runs under concurrent host load; custom timings are included in structural timings. Instrumented soks elapsed 25.854s; earlier elapsed 22.625s. No further speed optimization."
+}
