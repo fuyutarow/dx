@@ -3,6 +3,7 @@ import { ok, safeTry } from "neverthrow";
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
 import { z } from "zod";
+import { isAlias, isNode, isPair, isScalar, parseDocument, visit } from "yaml";
 
 import {
   fieldsSchema,
@@ -30,6 +31,40 @@ export function splitMarkdown(
 function object(value: unknown) {
   return validate(fieldsSchema, value);
 }
+/** Inspect syntax before Bun can overwrite keys or resolve references. */
+function parseFrontmatter(header: string) {
+  return safeTry(function* () {
+    const document = yield* attempt(() =>
+      parseDocument(header, { strict: true, uniqueKeys: true, merge: false }),
+    );
+    const error = document.errors[0];
+    if (error !== undefined) return undetermined(error.message);
+    let failure: string | undefined;
+    visit(document, (key, node) => {
+      if (isAlias(node)) failure = "YAML aliases are unsupported";
+      if (isNode(node)) {
+        if (node.anchor !== undefined) failure = "YAML anchors are unsupported";
+        if (node.tag !== undefined) failure = "YAML tags are unsupported";
+      }
+      if (isPair(node)) {
+        if (!isScalar(node.key) || typeof node.key.value !== "string")
+          failure = "YAML keys must be strings; complex keys are unsupported";
+        else if (node.key.value === "<<") failure = "YAML merge keys are unsupported";
+      }
+      if (
+        key !== "key" &&
+        isScalar(node) &&
+        typeof node.value === "string" &&
+        /[\u0085\uFEFF]/u.test(node.value)
+      )
+        failure = "YAML string values must not contain U+0085 or U+FEFF";
+      return failure === undefined ? undefined : visit.BREAK;
+    });
+    if (failure !== undefined) return undetermined(failure);
+    // Preserve the existing scalar decoding and semantic hashes for ordinary YAML.
+    return attempt((): unknown => Bun.YAML.parse(header));
+  });
+}
 export function parseRecords(path: string, text: string, format: TypeDefinition["format"]) {
   return safeTry(function* () {
     if (typeof format !== "string") {
@@ -46,7 +81,7 @@ export function parseRecords(path: string, text: string, format: TypeDefinition[
           name: basename(path),
           text,
           body: parts.body,
-          fields: yield* object(yield* attempt((): unknown => Bun.YAML.parse(parts.header))),
+          fields: yield* object(yield* parseFrontmatter(parts.header)),
           index: 0,
         },
       ]);

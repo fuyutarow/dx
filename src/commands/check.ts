@@ -30,6 +30,11 @@ export async function check(
       ...(yield* reviews(base, head, types)),
       ...isolation,
     ];
-    return ok(classify(findings, oldFindings, changedIds));
+    // A rejected file has no record id/hash. Grandfather its format finding only
+    // while its bytes stay identical, so editing malformed YAML cannot bypass I-02.
+    const retained = oldFindings.filter(
+      (row) => row.check !== "format" || base.files[row.path] === head.files[row.path],
+    );
+    return ok(classify(findings, retained, changedIds));
   });
 }
