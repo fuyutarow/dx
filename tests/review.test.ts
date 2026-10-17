@@ -113,6 +113,7 @@ test("I-10 blocks a record with a finding while reviewing clean records", async 
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(1);
   expect(rows(result.stdout).some((r) => r.check === "quality" && r.id === "bad")).toBe(true);
+  expect(result.stderr).toContain("REVIEW_BLOCKED: bad: I-10: 既存の finding 1 件を先に消す\n");
   expect(rows(result.stdout).some((r) => r.pass === true && r.id === "good")).toBe(true);
   expect(await Bun.file(`${cwd}/calls`).text()).toBe("1");
 }, 60000);
@@ -360,12 +361,12 @@ test("the model field is included in the complete 30000-byte UTF-8 request budge
   if (oversized.isErr()) expect(oversized.error).toContain("exceeds 30000");
 }, 60000);
 
-test("deprecated review.pass warns and cannot change the fixed 0.5 threshold", async () => {
+test("retired review.pass is an unknown key", async () => {
   const { cwd } = await fixture({ extra: "pass = 0.9\n" });
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
-  expect(result.exit, result.stderr).toBe(0);
-  expect(rows(result.stdout)[0]?.bits).toBe(1);
-  expect(rows(result.stdout)[0]?.p).toEqual([0.8]);
-  expect(result.stderr).toContain("dx: warning: review.pass is deprecated and ignored\n");
+  expect(result.exit, result.stderr).toBe(4);
+  expect(result.stdout).toBe("");
+  expect(result.stderr).toContain("pass");
+  expect(await Bun.file(`${cwd}/calls`).exists()).toBe(false);
 });

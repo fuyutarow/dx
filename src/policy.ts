@@ -1,4 +1,4 @@
-import { ok, safeTry } from "neverthrow";
+import { ok, safeTry, ResultAsync } from "neverthrow";
 import { requireValue, undetermined } from "./errors.ts";
 import { posix } from "node:path";
 import { plugin } from "bun";
@@ -38,11 +38,12 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
         .map((path, index) => `import type${index} from ${JSON.stringify(`./${path}`)};`)
         .join("\n") + `\nexport default [${entries.map((_, index) => `type${index}`).join(",")}];`;
     const failures: string[] = [];
-    const rejected = (text: string) => {
-      failures.push(text);
+    const rejected = (text: string, importer: string) => {
+      failures.push(`${importer.replace(/^.*\/dx-revision\//u, "")}: ${text}`);
       return { path: "/dx-revision/rejected.ts", namespace: "dx-revision" };
     };
     const result = await Bun.build({
+      throw: false,
       entrypoints: ["/dx-revision/entry.ts"],
       root: "/",
       target: "bun",
@@ -61,17 +62,18 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
               if (!args.path.startsWith("."))
                 return rejected(
                   `policy import must be relative, dx, zod or neverthrow: ${args.path}`,
+                  args.importer,
                 );
               let path = posix.normalize(posix.join(posix.dirname(args.importer), args.path));
               if (!path.startsWith("/dx-revision/.dx/"))
-                return rejected(`policy import escapes .dx/: ${path}`);
+                return rejected(`policy import escapes .dx/: ${path}`, args.importer);
               if (
                 files[path.slice(13)] === undefined &&
                 files[`${path.slice(13)}.ts`] !== undefined
               )
                 path += ".ts";
               if (files[path.slice(13)] === undefined)
-                return rejected(`missing revision module: ${path}`);
+                return rejected(`missing revision module: ${path}`, args.importer);
               return { path, namespace: "dx-revision" };
             });
             build.onLoad({ filter: /.*/u, namespace: "dx-revision" }, (args) => {
@@ -85,11 +87,30 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
         },
       ],
     });
-    if (failures.length > 0) return undetermined(failures.join("; "));
-    if (!result.success) return undetermined(`.dx/: ${result.logs.map(String).join("; ")}`);
+    if (failures.length > 0) return undetermined(`policy: ${failures.join("; ")}`);
+    if (!result.success) {
+      const log = result.logs.find((item) => item.level === "error") ?? result.logs[0];
+      const path = log?.position?.file?.replace(/^.*\/dx-revision\//u, "") ?? entries[0];
+      return undetermined(
+        `policy: ${path}: ${log?.message.replaceAll(/\s*\n\s*/gu, " ") ?? "bundle failed"}`,
+      );
+    }
     const output = yield* requireValue(result.outputs[0], ".dx/: empty module build");
-    const module: unknown = await import(
-      `data:text/javascript;base64,${Buffer.from(await output.text()).toString("base64")}`
+    const code = await output.text();
+    const module = yield* await ResultAsync.fromPromise<unknown, string>(
+      import(
+        `data:text/javascript;base64,${Buffer.from(code + "\n//# sourceURL=dx-policy.js").toString("base64")}`
+      ),
+      (error) => {
+        const line =
+          error instanceof Error ? /dx-policy\.js:(\d+):/u.exec(error.stack ?? "")?.[1] : undefined;
+        const preceding = code.split("\n").slice(0, line === undefined ? 0 : Number(line));
+        const path =
+          preceding
+            .flatMap((text) => /^\/\/ .*\/dx-revision\/(\.dx\/.*)$/u.exec(text)?.[1] ?? [])
+            .at(-1) ?? entries[0];
+        return `policy: ${path}: ${error instanceof Error ? error.message : String(error)}`;
+      },
     );
     const parsed = z.object({ default: z.array(typeSchema) }).safeParse(module);
     if (!parsed.success) return undetermined(`.dx/: ${parsed.error.message}`);

@@ -44,6 +44,22 @@ export async function revision(cwd: string, rev: string) {
     return ok(yield* requireValue(ids[0], `missing REV: ${rev}`));
   });
 }
+/** Only an absent default remote bookmark falls back; explicit revsets stay strict. */
+export async function defaultBase(cwd: string, branch: string, remote: string) {
+  return safeTry(async function* () {
+    const symbol = `${JSON.stringify(branch)}@${JSON.stringify(remote)}`;
+    const present = yield* await jj(cwd, [
+      "log",
+      "--no-graph",
+      "-r",
+      `present(${symbol})`,
+      "-T",
+      "commit_id",
+    ]);
+    const fallback = present.trim() === "";
+    return ok({ rev: yield* await revision(cwd, fallback ? "root()" : symbol), fallback });
+  });
+}
 export async function paths(cwd: string, rev: string, ms: number) {
   return safeTry(async function* () {
     const text = yield* await jj(cwd, ["file", "list", "-r", rev, "-T", 'path ++ "\\0"'], ms);

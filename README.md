@@ -191,7 +191,11 @@ import は `.dx/` 内の相対パス、`dx`、同じ固定版の `zod`・`nevert
 省略した場合は head の規則を使い、I-09 も検査します。
 
 schema・filename・独自 checks と、id・links の指摘を安定した key で比較します。既存 finding は `new:false`、新規 finding は
-`new:true` です。新規があれば exit 1、なければ exit 0 です。
+`new:true` です。stdout には新しい finding だけを出し、stderr に「新しい finding N 件 / 既存 M 件」を出します。新規があれば exit 1、なければ exit 0 です。
+既存を含むすべての finding を見るには `dx check --all` を使います。出力だけが変わり、終了コードと新規・既存の分類は変わりません。
+`--base 'root()'` は空の木との比較に使えますが、規則の inputs に対する finding は既存のまま残ることがあります。
+既定の `<branch>@<remote>` が無い場合は `root()` を使い、stderr に `base: remote branch absent; using root()` を出します。
+明示した `--base` の REV が存在しない場合は exit 4 です。
 新しい記録と sha256 が変わった記録は、同じ id の既存 finding も `new:true` として拒否します。変わっていない記録の既存 finding は残せます。
 
 key は JSON 配列 `[check, id または null, field または空文字]` の文字列です。
@@ -259,7 +263,7 @@ spec C3 の verdict が必要です。rubric のパスは `.dx/` 相対（また
 immutable な type では `file:<glob>` が必須です。verdict には次の全条件を求めます。
 
 - `v:1`、id・記録 sha256・rubric パス・現在の rubric の全バイトの sha256 が一致する。
-- `pass:true` で、すべての `p` が `[review].pass` 以上。
+- `pass:true` で、すべての `p` が 0.5 以上。
 - 記録に `by` があるときは verdict の `by` と異なる。記録に `by` が無いときは、verdict の `by` が `process:` で始まる機械の判定者だけを認める。
 - C3 の `at`・`bits`・`p` などのフィールドが正しい型である。
 
@@ -291,7 +295,7 @@ question = "Does the record explain the conditions and outcome clearly?"
 
 要求全体を UTF-8 の 30,000 バイト以内に収めます。記録・問いは切らず、証拠だけを
 UTF-8 の文字境界で切り詰め、省略を明記します。最小要求が上限を超えると、問い合わせ前に exit 4 です。
-各 `answers[id].noul` と `[review].pass`（既定0.5）を比較して bits と pass を作ります。
+各 `answers[id].noul` と固定の閾値 0.5 を比較して bits と pass を作ります。
 verdict の `by` は `process:jev/<応答の model>` です。記録に `by` が無くても Jev を呼び、機械の判定者として verdict を保存します。記録に著者を補ったり、本文を変更したりはしません。
 
 `format` は組込み形式名のほか、`FormatAdapter` を受け取ります。
@@ -362,8 +366,12 @@ link 数です。`record_bytes` はアダプタが読む 1 ファイルの UTF-8
 `timeout_s`、CI などで設けます。判定不能なら stdout は空で、終了コード 4 です。
 
 review の合格条件は、すべての問いで確率が 0.5 以上であることです。
-`limits.check_seconds` と `review.pass` は 0.1.x の間だけ受け付けて無視し、
-stderr に `dx: warning: <key> is deprecated and ignored` を出します。0.2.0 からは未知の項目として拒否します。
+`limits.check_seconds` と `review.pass` は廃止済みで、未知の項目として exit 4 で拒否します。
+`[files] ignore` の既定は `["records/raw/**", "tools/**", "README.md", "**/node_modules/**"]` です。
+値を指定すると既定全体を置き換えます。`ignore = []` なら依存のパスも検査対象になります。
+`.dx/` の bundle・import に失敗した場合は `UNDETERMINED:policy: <path>: <原因の 1 行>` を stderr に出します。
+review が I-10 で記録を飛ばす場合は `REVIEW_BLOCKED: <id>: I-10: 既存の finding N 件を先に消す` を出します。
+N はその記録に該当する、verdict 以外の finding の件数です。id を読めない format finding は path を使います。
 
 `tests/acceptance.test.ts` に正・負の受領試験、`tests/review.test.ts` に偽コマンドによる I-06/I-10 と review の試験、
 `tests/contracts.test.ts` に出力・引数・上限・

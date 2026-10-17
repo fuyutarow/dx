@@ -25,6 +25,7 @@ export const invocationSchema = z.object({
   rev: z.string().default("@"),
   base: z.string().optional(),
   policy: z.string().optional(),
+  all: z.boolean().optional(),
   name: z.string().optional(),
   list: z.boolean().default(false),
 });
@@ -71,7 +72,7 @@ export function parseInvocation(args: string[]): CliAction | undefined {
     const allowed =
       flag === "--help" ||
       flag === "-h" ||
-      (name === "check" && (flag === "--base" || flag === "--policy")) ||
+      (name === "check" && (flag === "--base" || flag === "--policy" || flag === "--all")) ||
       (name === "view" && flag === "--list");
     if (!allowed) usage(`unknown option: ${token}`);
     const key = flag === "-h" ? "--help" : flag;
@@ -108,9 +109,9 @@ export function parseInvocation(args: string[]): CliAction | undefined {
         command({
           name: "check",
           parameters: ["[REV]"],
-          flags: { base: String, policy: String },
+          flags: { base: String, policy: String, all: Boolean },
           help: {
-            description: "Report all findings; reject newly introduced findings",
+            description: "Report new findings (--all includes existing); reject new findings",
             render: renderPlainHelp,
           },
         }),
@@ -138,6 +139,7 @@ export function parseInvocation(args: string[]): CliAction | undefined {
     rev: positional[parsed.command === "view" ? 1 : 0] ?? "@",
     ...(base === undefined ? {} : { base }),
     ...(policy === undefined ? {} : { policy }),
+    ...(parsed.command === "check" ? { all: parsed.flags.all === true } : {}),
     ...(parsed.command === "view" ? { name: positional[0] } : {}),
     list: parsed.command === "view" && parsed.flags.list === true,
   });

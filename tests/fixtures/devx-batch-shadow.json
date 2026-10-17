@@ -1,0 +1,164 @@
+{
+  "measuredAt": "2026-10-17T16:44:19.073142236Z",
+  "baseline": "/tmp/dx-devx-baseline",
+  "counts": "deduplicated finding rows; compare complete new:true rows as a set",
+  "versionChoice": "private alpha remains 0.1.0; no release or changeset",
+  "comparisons": [
+    {
+      "name": "retrospectives",
+      "source": "/tmp/dx-yaml-shadow/retrospectives",
+      "copy": "/home/fuyu/.cache/agx/tmp/33adaf85-57e7-432f-aa07-078202dcfd99/dx-devx-shadow-lRZxua/retrospectives",
+      "head": "2cae34f0b96dd952159b119d2f7546a3c771c88a",
+      "base": "@",
+      "before": {
+        "exit": 0,
+        "newFindings": 0,
+        "stderr": "新しい finding 0 件 / 既存 1084 件\n"
+      },
+      "after": {
+        "exit": 0,
+        "newFindings": 0,
+        "stderr": "新しい finding 0 件 / 既存 1084 件\n"
+      },
+      "all": {
+        "exit": 0,
+        "findings": 1084,
+        "stderr": "新しい finding 0 件 / 既存 1084 件\n"
+      },
+      "allStdoutEqual": true,
+      "newStdoutEqual": true,
+      "added": [],
+      "removed": []
+    },
+    {
+      "name": "retrospectives",
+      "source": "/tmp/dx-yaml-shadow/retrospectives",
+      "copy": "/home/fuyu/.cache/agx/tmp/33adaf85-57e7-432f-aa07-078202dcfd99/dx-devx-shadow-lRZxua/retrospectives",
+      "head": "2cae34f0b96dd952159b119d2f7546a3c771c88a",
+      "base": "root()",
+      "before": {
+        "exit": 1,
+        "newFindings": 1193,
+        "stderr": "FINDINGS: 新しい finding 1193 件 / 既存 0 件\n"
+      },
+      "after": {
+        "exit": 1,
+        "newFindings": 1193,
+        "stderr": "FINDINGS: 新しい finding 1193 件 / 既存 0 件\n"
+      },
+      "all": {
+        "exit": 1,
+        "findings": 1193,
+        "stderr": "FINDINGS: 新しい finding 1193 件 / 既存 0 件\n"
+      },
+      "allStdoutEqual": true,
+      "newStdoutEqual": true,
+      "added": [],
+      "removed": []
+    },
+    {
+      "name": "retrospectives",
+      "source": "/tmp/dx-yaml-shadow/retrospectives",
+      "copy": "/home/fuyu/.cache/agx/tmp/33adaf85-57e7-432f-aa07-078202dcfd99/dx-devx-shadow-lRZxua/retrospectives",
+      "head": "2cae34f0b96dd952159b119d2f7546a3c771c88a",
+      "base": "default",
+      "before": {
+        "exit": 0,
+        "newFindings": 0,
+        "stderr": "新しい finding 0 件 / 既存 1084 件\n"
+      },
+      "after": {
+        "exit": 0,
+        "newFindings": 0,
+        "stderr": "新しい finding 0 件 / 既存 1084 件\n"
+      },
+      "all": {
+        "exit": 0,
+        "findings": 1084,
+        "stderr": "新しい finding 0 件 / 既存 1084 件\n"
+      },
+      "allStdoutEqual": true,
+      "newStdoutEqual": true,
+      "added": [],
+      "removed": []
+    },
+    {
+      "name": "soks",
+      "source": "/tmp/dx-yaml-shadow/soks",
+      "copy": "/home/fuyu/.cache/agx/tmp/33adaf85-57e7-432f-aa07-078202dcfd99/dx-devx-shadow-lRZxua/soks",
+      "head": "c6310f681c185cf7b0a33d06e4340e64fd398f6a",
+      "base": "@",
+      "before": {
+        "exit": 0,
+        "newFindings": 0,
+        "stderr": "新しい finding 0 件 / 既存 426 件\n"
+      },
+      "after": {
+        "exit": 0,
+        "newFindings": 0,
+        "stderr": "新しい finding 0 件 / 既存 426 件\n"
+      },
+      "all": {
+        "exit": 0,
+        "findings": 426,
+        "stderr": "新しい finding 0 件 / 既存 426 件\n"
+      },
+      "allStdoutEqual": true,
+      "newStdoutEqual": true,
+      "added": [],
+      "removed": []
+    },
+    {
+      "name": "soks",
+      "source": "/tmp/dx-yaml-shadow/soks",
+      "copy": "/home/fuyu/.cache/agx/tmp/33adaf85-57e7-432f-aa07-078202dcfd99/dx-devx-shadow-lRZxua/soks",
+      "head": "c6310f681c185cf7b0a33d06e4340e64fd398f6a",
+      "base": "root()",
+      "before": {
+        "exit": 1,
+        "newFindings": 422,
+        "stderr": "FINDINGS: 新しい finding 422 件 / 既存 4 件\n"
+      },
+      "after": {
+        "exit": 1,
+        "newFindings": 422,
+        "stderr": "FINDINGS: 新しい finding 422 件 / 既存 4 件\n"
+      },
+      "all": {
+        "exit": 1,
+        "findings": 426,
+        "stderr": "FINDINGS: 新しい finding 422 件 / 既存 4 件\n"
+      },
+      "allStdoutEqual": true,
+      "newStdoutEqual": true,
+      "added": [],
+      "removed": []
+    },
+    {
+      "name": "soks",
+      "source": "/tmp/dx-yaml-shadow/soks",
+      "copy": "/home/fuyu/.cache/agx/tmp/33adaf85-57e7-432f-aa07-078202dcfd99/dx-devx-shadow-lRZxua/soks",
+      "head": "c6310f681c185cf7b0a33d06e4340e64fd398f6a",
+      "base": "default",
+      "before": {
+        "exit": 0,
+        "newFindings": 0,
+        "stderr": "新しい finding 0 件 / 既存 426 件\n"
+      },
+      "after": {
+        "exit": 0,
+        "newFindings": 0,
+        "stderr": "新しい finding 0 件 / 既存 426 件\n"
+      },
+      "all": {
+        "exit": 0,
+        "findings": 426,
+        "stderr": "新しい finding 0 件 / 既存 426 件\n"
+      },
+      "allStdoutEqual": true,
+      "newStdoutEqual": true,
+      "added": [],
+      "removed": []
+    }
+  ]
+}

@@ -74,14 +74,13 @@ test(
     await write(cwd, "records/old.md", markdown("old", "bad: true\n"));
     const base = await advance(cwd);
     const existing = await checked(cwd, base, 0);
-    expect(existing.findings).toHaveLength(1);
-    expect(existing.findings[0]?.new).toBe(false);
+    expect(existing.findings).toHaveLength(0);
+    expect(existing.stderr).toContain("既存 1 件");
     await write(cwd, "records/new.md", markdown("new", "bad: true\n"));
     const result = await checked(cwd, base, 1);
-    expect(result.findings).toHaveLength(2);
-    expect(result.findings.find((r) => r.id === "old")?.new).toBe(false);
+    expect(result.findings).toHaveLength(1);
+    expect(result.stderr).toContain("既存 1 件");
     expect(result.findings.find((r) => r.id === "new")?.new).toBe(true);
-    expect(result.findings.find((r) => r.id === "old")?.key).toBe(existing.findings[0]?.key);
   },
   timeout,
 );
@@ -93,20 +92,19 @@ test(
     await write(cwd, "records/edited.md", markdown("edited", "bad: true\n"));
     await write(cwd, "records/untouched.md", markdown("untouched", "bad: true\n"));
     const base = await advance(cwd);
-    const before = await checked(cwd, base, 0);
+    const before = await checked(cwd, "root()", 1);
     await write(cwd, "records/edited.md", markdown("edited", "bad: true\n", "Changed\n"));
     const rejected = await checked(cwd, base, 1);
-    expect(rejected.findings).toHaveLength(2);
+    expect(rejected.findings).toHaveLength(1);
     expect(rejected.findings.find((row) => row.id === "edited")).toEqual({
       ...before.findings.find((row) => row.id === "edited"),
       new: true,
     });
-    expect(rejected.findings.find((row) => row.id === "untouched")?.new).toBe(false);
+    expect(rejected.stderr).toContain("既存 1 件");
     await write(cwd, "records/edited.md", markdown("edited", "", "Changed\n"));
     const repaired = await checked(cwd, base, 0);
-    expect(repaired.findings).toHaveLength(1);
-    expect(repaired.findings[0]?.id).toBe("untouched");
-    expect(repaired.findings[0]?.new).toBe(false);
+    expect(repaired.findings).toHaveLength(0);
+    expect(repaired.stderr).toContain("既存 1 件");
   },
   timeout,
 );
@@ -119,11 +117,11 @@ test(
     const base = await advance(cwd);
     await write(cwd, "records/pair.toml", mutableTomlPair("After"));
     const unchanged = await checked(cwd, base, 0);
-    expect(unchanged.findings).toHaveLength(1);
-    expect(unchanged.findings[0]?.new).toBe(false);
+    expect(unchanged.findings).toHaveLength(0);
+    expect(unchanged.stderr).toContain("既存 1 件");
     await write(cwd, "records/pair.toml", mutableTomlPair("After", "Edited"));
     const changed = await checked(cwd, base, 1);
-    expect(changed.findings[0]?.key).toBe(unchanged.findings[0]?.key);
+    expect(changed.findings[0]?.check).toBe("quality");
     expect(changed.findings[0]?.new).toBe(true);
   },
   timeout,
@@ -137,8 +135,8 @@ test(
     const base = await advance(cwd);
     await write(cwd, "records/old.md", markdown("old", "bad: true\nreview: {}\n"));
     const result = await checked(cwd, base, 0);
-    expect(result.findings).toHaveLength(1);
-    expect(result.findings[0]?.new).toBe(false);
+    expect(result.findings).toHaveLength(0);
+    expect(result.stderr).toContain("既存 1 件");
   },
   timeout,
 );
@@ -152,8 +150,8 @@ test(
     const base = await advance(cwd);
     await write(cwd, ".dx/note.ts", typeSource());
     const result = await checked(cwd, base, 0);
-    expect(result.findings).toHaveLength(1);
-    expect(result.findings[0]?.new).toBe(false);
+    expect(result.findings).toHaveLength(0);
+    expect(result.stderr).toContain("既存 1 件");
   },
   timeout,
 );
@@ -353,16 +351,17 @@ test(
 );
 
 test(
-  "check defaults to configured branch@remote and fails closed when absent",
+  "check uses root when the configured remote branch is absent, even with a local bookmark",
   async () => {
     const { cwd } = await repo();
     const result = await dx(cwd, "check");
-    expect(result.exit).toBe(4);
+    expect(result.exit).toBe(0);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("alpha@origin");
+    expect(result.stderr).toContain("base: remote branch absent; using root()\n");
     await jj(cwd, "bookmark", "create", "alpha", "-r", "@-");
     const resultLocal = await dx(cwd, "check");
-    expect(resultLocal.exit).toBe(4); // A local bookmark cannot replace the remote authority.
+    expect(resultLocal.exit).toBe(0);
+    expect(resultLocal.stderr).toBe(result.stderr); // A local bookmark cannot replace the remote authority.
   },
   timeout,
 );
@@ -377,7 +376,8 @@ test(
     await write(cwd, "records/c.md", markdown("same"));
     const result = await checked(cwd, base, 1);
     const duplicates = result.findings.filter((r) => r.check === "I-05.duplicate");
-    expect(duplicates.filter((r) => r.new === false)).toHaveLength(1);
+    expect(duplicates.filter((r) => r.new === false)).toHaveLength(0);
+    expect(result.stderr).toContain("既存 1 件");
     expect(duplicates.filter((r) => r.new === true)).toHaveLength(1);
   },
   timeout,

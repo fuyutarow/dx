@@ -72,8 +72,8 @@ test("YAML rejection is a format finding with a stable path key; unchanged viola
   const next = await advance(cwd);
   await write(cwd, "records/b.md", markdown("b"));
   const unchanged = await checked(cwd, next, 0);
-  expect(unchanged.findings[0]?.key).toBe(initial.findings[0]?.key);
-  expect(unchanged.findings[0]?.new).toBe(false);
+  expect(unchanged.findings).toEqual([]);
+  expect(unchanged.stderr).toContain("既存 1 件");
 });
 
 test("soks explicit scalar key counterexample produces a format finding", async () => {
