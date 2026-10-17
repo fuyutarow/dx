@@ -26,6 +26,12 @@ refuted_by = "retrospectives か soks の写しで、終了コードか新しい
 | 5 | review が断ったとき、それが I-10 だと書いていない | retrospectives 2(e) |
 | 6 | [files] ignore は依存のため以外に使う場面が無く、誤用の元になった | research-record-v2 6 |
 
+## 前の回（run 3411ae34）の返却を受けての決定（coordinator。最新版）
+
+- soks では、`--base 'root()'` でも、既存の finding が 4 件残った（soks.LEAK）。規則と inputs は 1 つの revision から読み、base にも使う（policy-rev）。そのため、空の木の base でも、inputs についての木全体の検査が同じ finding を出す、と見られる（未確認）。
+- 決定: 「root() を base にすれば全部が新しくなる」という説明を、spec と README から外す。代わりに `dx check --all` を足し、既存の finding も stdout に出す（監査のため）。既定は、新しい finding だけを出す。判定（終了コードと、新しい finding の組）は変えない。
+- 比べ方: `--all` を付けた出力が、変える前の出力と同じであること。付けない出力が、変える前の出力から `new:true` の行だけを取り出したものと同じであること。この 2 つで、6 つの比べ合わせを完了させる。
+
 ## やること
 
 1. stdout に出す finding を、新しいもの（`new:true`）だけにする。stderr の要約（「新しい finding N 件 / 既存 M 件」）は残す。全体を監査したいときは、今までどおり `--base 'root()'` を使う（すべてが新しい finding になる）。spec の C3 を直す。
