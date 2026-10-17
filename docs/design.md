@@ -48,7 +48,7 @@ dx は **「型付きの不変な記録のグラフを、git の上で、1 点�
 |---|---|---|---|---|
 | 1 | 保存と輸送 | バイト、履歴、原子的な更新、blob の id、複製、大きなファイル | git / jj / LFS / GitHub | 記録の意味 |
 | 2 | 書き手の分離 | 書き手ごとの作業場所 | agx が作る jj workspace（`<repo>.ws/ws_<slug>`。1 workspace に 1 run） | 正規の線 |
-| 3 | **関門（1 点）** | 正規の bookmark `alpha` を進めてよいか | `dx land` + remote 側の保護 | 書いている途中の検査 |
+| 3 | **関門（1 点）** | 正規の bookmark `alpha` を進めてよいか | `dx land`（git の remote だけを使い、hosting の機能には依存しない） | 書いている途中の検査、`dx land` を通らない push を止めること（権限を持つ者の責務） |
 | 4 | **判定** | 差分が規則を満たすか | `dx check`（共通の検査部品） | 規則の中身 |
 | 5 | **規則** | 記録の種類、schema、辺、凍結、領域に固有の判定、ビュー | 各 store の `kinds/*.ts` | 判定の実行と land |
 | 6 | **派生ビュー** | status、index、board、keys | `dx derive <view>`（実体は store の kinds が定義する） | 保存（作った結果を正本にしない） |
@@ -130,7 +130,7 @@ dx schema  <kind>                 # → JSON Schema
 | # | 残差 | 扱い |
 |---|---|---|
 | R-A | **leaderboard を使う箇所が firedancer に残っている**（`launcher/repository.test.ts:146-149`、`v1_record.test.ts:307-335`、`ModelRegistry.jl/scripts/generate_editions_catalog.ts:249-269`、`lineage_gate.ts:133-148`） | dx の外（D4）。firedancer 側の課題として渡す。dx が約束するのは、rows と arena の記録を `dx records` で読めることだけ。**消費者の移行を確かめずに削った（P5）ことは、firedancer 側で直す** |
-| R-B | 関門を remote で強制できるか（GitHub のプランと ruleset）［未確認］ | 強制できなければ「検出と revert」に下げる。CI か定期実行で、alpha の履歴を `dx check` でたどる |
+| R-B | `dx land` を通らずに alpha へ push されること | dx の責務の外（push の権限を持つ者が決める）。dx が約束するのは、`dx check --base A B` で任意の範囲を後から判定できることだけ。dx は GitHub などの hosting の機能に依存しない |
 | R-C | 書き手ごとの workspace は agx が守るが、人や agx を通さない書き手は守られない | 破られたときの被害は、自分の作業コピーが汚れる程度で、alpha は汚れない（関門があるため） |
 | R-D | 書いている途中に止めてもらえなくなる | 受け入れる。`dx check` を手元で流せる |
 | R-E | 時刻と producer は自己申告で、偽造できる | 今も同じ水準（4-N6, 6-N32）。必要になったら、署名つき commit を関門の条件に加える |
@@ -159,7 +159,7 @@ dx schema  <kind>                 # → JSON Schema
 ## 8. owner の決定（2026-10-17）
 
 - D1: 書き手ごとに workspace を分けることを、dx の前提にする。**決定済み**
-- D2: 関門を remote で強制するか（R-B）。**未決**
+- D2: dx は hosting（GitHub など）の機能に依存しない。`dx land` を通らない push を止めるのは dx の責務の外。**決定済み**（owner: 「github の機能に依存する CLI って全くその役割を放棄しています」）
 - D3: run は dx の外に置く。**決定済み**
 - D4: leaderboard と研究の再現性は、dx の責務の外に置く。**決定済み**
 - D5: blob の保存は dx の責務の外（持ち場 1。dx は blob を管理しない）。109 MB の blob の扱いは store の持ち主の判断で、dx の設計の対象ではない。**決定済み**
