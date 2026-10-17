@@ -346,3 +346,9 @@ export default defineType({
 | R-5 | repo をまたぐ参照 | `dx:<name>/<id>` の形だけを予約し、検査は repo の中に限る |
 | R-6 | 移行が正しいか | §8 の影運用で確かめる |
 | R-7 | 全記録を毎回検査する費用（soks 6,748 文書、research_record 3,132 fragment） | 試作 2、3 で測る。遅ければ base 側の読み出し結果を cache する |
+| R-8 | soks: review の要求の上限（30,000 バイト）を超える文書が 266 件（全 6,789 件の 3.9%）、100 KB を超えるものが 5 件ある（2026-10-17 に `wc -c knowledge/*.md` で計測） | 上限を超えた記録の review は、終了コード 4（判定できない）で止める。黙って切り詰めない。分割して review するか、その type には別の rubric を当てるかは、soks の `.dx/` で決める（未決） |
+| R-9 | soks: rubric がまだ無い。今の soks は `semantic_review: not_performed` で、review を求めると、新しい evi ごとに Jev の費用と、待ち時間が加わる | soks の rubric を書くまで、soks の type には `review` を宣言しない（今と同じ水準）。宣言した時点から、新しいものと変わったものに review を求める |
+| R-10 | soks: 生成した `knowledge/index.md`（2.7 MB）を commit している。land のたびに同じ 1 ファイルが変わるので、並行して land すると、毎回 RACE → rebase → index の作り直しになる | 使う側が commit された index.md を読んでいるかを確かめる（未検証）。読んでいなければ commit をやめ、`dx view index` で読む |
+| R-11 | soks: 書き手の流れが変わる。今は、worker が scratchpad に bundle を作り、soks-govern が alpha に書く唯一の書き手である。dx では、worker が soks の自分の workspace に直接書く | 書き手の手順書（AGENTS.md）を書き換える。新しい evi の UUIDv7 は書き手が作る（今の `soks-govern ids` に当たるものは dx に無い） |
+| R-12 | soks: firedancer と QOED の harness 設定が、soks-govern の hook を指している | soks-govern を消す前に、それらの設定を harness の規則に置き換える。外すだけにすると、hook のコマンドが無くなって設定が壊れる |
+| R-13 | soks: 誤った著者の事故（`ce4daad`、`dd4f23c`）と、replica からの直接 push（`231817a`）が過去にあった。dx は著者を検査せず、land を通らない push も止めない | 著者の設定は git と agx が持つ。push を止めるのは権限を持つ人（D2）。dx が提供するのは、`dx check --base A B` による後からの検出だけ |
