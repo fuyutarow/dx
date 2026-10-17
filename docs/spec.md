@@ -58,7 +58,7 @@
 | US-03 | 書き手 | 受け入れ | `dx land` で、構造と verdict の両方が通った変更を入れる |
 | US-04 | 読み手 | 読む | `dx ls` と `dx view` で、ある revision の記録と view を読む |
 | US-05 | repo の保守者 | 規則を変える | `.dx/` を変えて land する |
-| US-06 | 監査する者 | 読む | `dx check --base A B` で、正規の branch の任意の範囲を後から判定する |
+| US-06 | 監査する者 | 読む | `dx check --base A B` で、正規の branch の任意の範囲を後から判定する。`--policy alpha` で規則を読む revision を別に指定し、規則を持たない過去の履歴も今の規則で判定できる |
 
 | ID | dx がしないこと | 持ち主 |
 |---|---|---|
@@ -74,14 +74,14 @@
 | ID | 性質 | 確かめる場所 |
 |---|---|---|
 | I-01 | 受け入れた ⇔ remote の正規の branch から到達できる | land |
-| I-02 | head の規則で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分の finding を（既存のものも含めて）1 つも持たない。変わっていない記録の既存の finding だけを残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため） | check |
+| I-02 | 同じ規則 revision（既定は head、指定時は `--policy REV`）の設定・型定義・inputs で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分の finding を（既存のものも含めて）1 つも持たない。変わっていない記録の既存の finding だけを残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため） | check |
 | I-03 | `immutable` の type の記録は、変わらず、消えない | check |
 | I-04 | links は宣言された type を指し、参照先がある。acyclic（既定 true）が true の辺だけで作るグラフは循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
 | I-06 | rubric を持つ type の記録で、新しいものと変わったものはすべて、今の記録の sha256 と今の rubric の sha256 に結びついた合格の verdict を持つ。verdict の `by` は、記録の `by` と違う。記録に `by` が無いときは、作り手と判定者の違いを確かめられないので、`by` が `process:` で始まる（機械の判定者の）verdict だけを認める | check |
 | I-07 | `ls`、`check`、`view` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない | 各コマンド |
 | I-08 | 正規の branch は、check を通った commit への fast-forward でだけ動く | land |
-| I-09 | `.dx/`、`[files] inputs` に当たるファイル、または inputs 宣言を変える change は、ほかの記録を一緒に変えない | check |
+| I-09 | `.dx/`、`[files] inputs` に当たるファイル、または inputs 宣言を変える change は、ほかの記録を一緒に変えない。`check --policy` を明示した場合は検査しない | check |
 | I-10 | review は、check の finding が無い記録にだけ Jev を呼ぶ。そのため、既存の finding を持つ旧い記録を変えるときは、先にその記録の finding をすべて消す必要がある（rubric を持つ type の場合。retrospectives で 2026-10-17 に実際に起きた） | review |
 
 | Story | 関わる禁止 | 守る invariant |
@@ -172,10 +172,16 @@ dx land @-
 | Synopsis / input | Ordering and repetition | stdin | Help / example |
 |---|---|---|---|
 | `dx ls [REV]` | REV は 1 個まで | 読まない | 例: `dx ls alpha \| jq -c 'select(.type=="evi")'` |
-| `dx check [--base REV] [REV]` | 各 1 個まで | 読まない | 例: `dx check`（作業コピー対 `alpha@origin`） |
+| `dx check [--policy REV] [--base REV] [REV]` | 各 1 個まで | 読まない | 例: `dx check`（作業コピー対 `alpha@origin`）、`dx check --policy alpha --base A B` |
 | `dx review [REV]` | REV は 1 個まで | 読まない | 例: `dx review @-` |
 | `dx land [REV]` | REV は 1 個まで | 読まない | 例: `dx land @-` |
 | `dx view <name> [REV]`、`dx view --list` | name は必須。`--list` は単独で使う | 読まない | 例: `dx view status \| jq 'select(.empirical_status=="falsified")'` |
+
+`check` は `dx.toml`、`.dx/`、`[files] inputs` の内容を、1 つの規則 revision から一度読み、
+base と head の両方の評価に使う（I-02）。既定は head、`--policy REV` を明示したときはその REV とする。
+判定する木は変えない。`--base` の既定は、規則 revision の設定の branch と remote から決める。
+head と同じ REV を指定した場合も、`--policy` を明示したときは I-09 を検査せず、
+stderr に `dx: --policy: I-09 の検査を省略します` を 1 行出す。
 
 ## C2 EFFECTS
 
@@ -264,6 +270,8 @@ strict = false              # true なら、どの type にも当たらないフ
 - 判定全体の時間の上限は呼び出し側が持つ（`timeout 120 dx check`、agx の `timeout_s`、CI）。
 - `dx.toml` に規則は書かない。規則は `.dx/` に書く。
 - inputs に当たるファイルは snapshot に残り、`tree.files` と `tree.read` で読める。
+  base の評価でも、規則 revision（既定は head）の内容とファイル集合を返す。
+  inputs のパターンを足しただけでは、既存の記録の当たりを新しい finding にしない。
   type の match にも当たる場合は inputs を優先し、記録にはしない。
 - inputs の内容は判定する規則を左右するため、その追加・変更・削除を `.dx/` と同じ規則の変更として I-09 に含める。
   `inputs` 宣言自体の変更も同じ扱いとする。規則を緩める変更と、その緩みを使う記録の変更を分けるためである。

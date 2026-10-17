@@ -5,7 +5,7 @@ import { parseInvocation, type Invocation } from "./cli.ts";
 import { readConfig } from "./config.ts";
 
 import { revision, root, show } from "./repository.ts";
-import { loadTypes } from "./policy.ts";
+import { loadTypes, matches } from "./policy.ts";
 import { isolationFindings, readSnapshot, ruleFiles, snapshotCache } from "./collection.ts";
 import { review } from "./commands/review.ts";
 import { check } from "./commands/check.ts";
@@ -22,7 +22,12 @@ export async function execute(
   return safeTry(async function* () {
     const repo = yield* await root(cwd);
     const head = yield* await revision(repo, invocation.rev);
-    const config = yield* readConfig(yield* await show(repo, head, "dx.toml", 120000));
+    const policy =
+      invocation.command === "check" && invocation.policy !== undefined
+        ? yield* await revision(repo, invocation.policy)
+        : head;
+    const configText = yield* await show(repo, policy, "dx.toml", 120000);
+    const config = yield* readConfig(configText);
     if (invocation.command === "land")
       return ok(
         yield* await land(repo, head, config, (base, rev) =>
@@ -39,8 +44,16 @@ export async function execute(
     // Repository I/O keeps its per-operation bound; callers bound total execution.
     const ms = 120000;
     const cache = snapshotCache(repo, ms);
-    const types = yield* await loadTypes(yield* await ruleFiles(repo, head, ms, cache.reader));
-    const current = yield* await readSnapshot(repo, head, config, types, ms, cache);
+    const rules = yield* await ruleFiles(repo, policy, ms, cache.reader);
+    const types = yield* await loadTypes(rules);
+    const policyFiles = yield* await cache.reader.read(
+      (yield* await cache.reader.tree(policy)).filter(({ path }) =>
+        matches(config.files.inputs, path),
+      ),
+    );
+    for (const [path, text] of Object.entries(rules)) policyFiles.set(path, text);
+    policyFiles.set("dx.toml", configText);
+    const current = yield* await readSnapshot(repo, head, config, types, ms, cache, policyFiles);
     if (
       invocation.command !== "check" &&
       invocation.command !== "review" &&
@@ -48,7 +61,7 @@ export async function execute(
     )
       return undetermined("record format could not be read; run dx check for findings");
     if (invocation.command === "review" && base !== undefined) {
-      const previous = yield* await readSnapshot(repo, base, config, types, ms, cache);
+      const previous = yield* await readSnapshot(repo, base, config, types, ms, cache, policyFiles);
       const isolation = yield* await isolationFindings(
         repo,
         base,
@@ -61,12 +74,14 @@ export async function execute(
       return review(repo, previous, current, types, config, isolation);
     }
     if (invocation.command === "check" && base !== undefined) {
-      const previous = yield* await readSnapshot(repo, base, config, types, ms, cache);
+      const previous = yield* await readSnapshot(repo, base, config, types, ms, cache, policyFiles);
       const findings = yield* await check(
         previous,
         current,
         types,
-        yield* await isolationFindings(repo, base, head, config, types, ms, cache.reader),
+        invocation.policy === undefined
+          ? yield* await isolationFindings(repo, base, head, config, types, ms, cache.reader)
+          : [],
       );
       const count = findings.filter((f) => f.new).length;
       return ok({
@@ -74,7 +89,9 @@ export async function execute(
         stdout:
           findings.map((finding) => stableJson(finding)).join("\n") +
           (findings.length > 0 ? "\n" : ""),
-        stderr: `${count > 0 ? "FINDINGS: " : ""}新しい finding ${count} 件 / 既存 ${findings.length - count} 件\n`,
+        stderr:
+          (invocation.policy === undefined ? "" : "dx: --policy: I-09 の検査を省略します\n") +
+          `${count > 0 ? "FINDINGS: " : ""}新しい finding ${count} 件 / 既存 ${findings.length - count} 件\n`,
       });
     }
     const viewName = invocation.list ? undefined : invocation.name;

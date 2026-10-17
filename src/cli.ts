@@ -24,6 +24,7 @@ export const invocationSchema = z.object({
   command: z.enum(["ls", "check", "review", "land", "view"]),
   rev: z.string().default("@"),
   base: z.string().optional(),
+  policy: z.string().optional(),
   name: z.string().optional(),
   list: z.boolean().default(false),
 });
@@ -70,13 +71,13 @@ export function parseInvocation(args: string[]): CliAction | undefined {
     const allowed =
       flag === "--help" ||
       flag === "-h" ||
-      (name === "check" && flag === "--base") ||
+      (name === "check" && (flag === "--base" || flag === "--policy")) ||
       (name === "view" && flag === "--list");
     if (!allowed) usage(`unknown option: ${token}`);
     const key = flag === "-h" ? "--help" : flag;
     if (seen.has(key)) usage(`repeated option: ${flag}`);
     seen.add(key);
-    if (flag === "--base") i = baseArgument(args, i, token);
+    if (flag === "--base" || flag === "--policy") i = revisionArgument(args, i, token, flag);
     else if (flag !== token) usage(`option does not take a value: ${token}`);
   }
   if (positional.length > (name === "view" ? 2 : 1)) usage("too many positional arguments");
@@ -107,7 +108,7 @@ export function parseInvocation(args: string[]): CliAction | undefined {
         command({
           name: "check",
           parameters: ["[REV]"],
-          flags: { base: String },
+          flags: { base: String, policy: String },
           help: {
             description: "Report all findings; reject newly introduced findings",
             render: renderPlainHelp,
@@ -131,10 +132,12 @@ export function parseInvocation(args: string[]): CliAction | undefined {
   );
   if (parsed.command === undefined) return undefined;
   const base = parsed.command === "check" ? parsed.flags.base : undefined;
+  const policy = parsed.command === "check" ? parsed.flags.policy : undefined;
   const invocation = invocationSchema.safeParse({
     command: parsed.command,
     rev: positional[parsed.command === "view" ? 1 : 0] ?? "@",
     ...(base === undefined ? {} : { base }),
+    ...(policy === undefined ? {} : { policy }),
     ...(parsed.command === "view" ? { name: positional[0] } : {}),
     list: parsed.command === "view" && parsed.flags.list === true,
   });
@@ -142,12 +145,12 @@ export function parseInvocation(args: string[]): CliAction | undefined {
   return invocation.data;
 }
 
-function baseArgument(args: string[], index: number, token: string): number {
+function revisionArgument(args: string[], index: number, token: string, flag: string): number {
   if (token.includes("=")) {
-    if (token.slice(token.indexOf("=") + 1) === "") usage("--base needs a REV");
+    if (token.slice(token.indexOf("=") + 1) === "") usage(`${flag} needs a REV`);
     return index;
   }
   const value = args[index + 1];
-  if (value === undefined || value.startsWith("-")) usage("--base needs a REV");
+  if (value === undefined || value.startsWith("-")) usage(`${flag} needs a REV`);
   return index + 1;
 }
