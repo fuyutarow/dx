@@ -26,7 +26,7 @@ owner は、polysearch-v1・soks・retrospectives の 3 つを、Unix 哲学で�
 1. コードのまとまり(おおむね 150 行以上のモジュール・crate・script、または一つの機能群)を数え上げ、行数を付ける。
 2. それぞれについて、足された時期と理由を、次から突き合わせて特定する。
    - repo の履歴: `git log --follow` / `jj log` のコミットメッセージ、CHANGELOG.md、changes/、HANDOFF.md、spec/sections の決定の記録(09-decisions-retired-terms.md、10-open-design-plan.md など)。
-   - retrospectives(/home/fuyu/Workspace/retrospectives/records/): **rr で引く**(ccc 登録済みで、raw の grep/rg/find は hook で禁止。`rr about '<意味>'`、`rr text '<語>'`、`rr regex` を使う。rr about は 5 秒を超えることがあるので run_in_background を使う)。特に 20261012_polysearch-v1-coordinator.md、20261015_polysearch-issue-structure-retro.md、20261016_polysearch-issue-structure-retro.md、20261016_polysearch-v1-frustration-review.md、20261016_polysearch-v1-purge-decision.md、20261016_polysearch-v1-responsibility-split.md と、firedancer の記録で polysearch を扱うもの。どの事故・owner の指示・不満がその仕組みを生んだかを拾う。
+   - retrospectives(/home/fuyu/Workspace/retrospectives/records/): **rr で引く**。retrospectives は ccc 未登録なので `rr about` は FATAL になる(これは「記録を読めない」ではない。refuted_by に当たらない)。`rr text '<語>'`・`rr regex '<re>'`・`rr files '<glob>'` で引き、該当ファイルは直接読む。特に 20261012_polysearch-v1-coordinator.md、20261015_polysearch-issue-structure-retro.md、20261016_polysearch-issue-structure-retro.md、20261016_polysearch-v1-frustration-review.md、20261016_polysearch-v1-purge-decision.md、20261016_polysearch-v1-responsibility-split.md と、firedancer の記録で polysearch を扱うもの。どの事故・owner の指示・不満がその仕組みを生んだかを拾う。
    - firedancer からの実際の呼び出し(launcher/ の v1_record.ts、lineage_gate.ts、repository.test.ts、row_capture.ts、packages/ModelRegistry.jl/scripts/generate_editions_catalog.ts など)。firedancer も ccc 登録済みなので rr を使う。
 3. 各まとまりのニーズを次の 4 つに分類し、根拠を書く。
    - D: 領域に固有のニーズ(dx でも持ち主が必要)

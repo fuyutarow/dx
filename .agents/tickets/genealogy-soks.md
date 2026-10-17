@@ -26,7 +26,7 @@ owner は、polysearch-v1・soks・retrospectives の 3 つを、Unix 哲学で�
 1. コードのまとまり(おおむね 150 行以上のモジュール・script、または一つの機能群)を数え上げ、行数を付ける。
 2. それぞれについて、足された時期と理由を、次から突き合わせて特定する。
    - repo の履歴: `jj --ignore-working-copy log` / `git log --follow` のコミットメッセージ、soks-govern/README.md の退役の記録(:299-315 付近)、DOCTRINE.md、AGENTS.md。
-   - retrospectives(/home/fuyu/Workspace/retrospectives/records/): **rr で引く**(ccc 登録済みで、raw の grep/rg/find は hook で禁止。`rr about '<意味>'`、`rr text '<語>'`、`rr regex` を使う。rr about は 5 秒を超えることがあるので run_in_background を使う)。soks・soks-govern・knowledge・hook・custody などを扱う記録を読み、どの事故・owner の指示・不満がその仕組みを生んだかを拾う。
+   - retrospectives(/home/fuyu/Workspace/retrospectives/records/): **rr で引く**。retrospectives は ccc 未登録なので `rr about` は FATAL になる(これは「記録を読めない」ではない。refuted_by に当たらない)。`rr text '<語>'`・`rr regex '<re>'`・`rr files '<glob>'` で引き、該当ファイルは直接読む。ccc 登録済みの repo(soks など)では raw の grep/rg/find は hook で禁止なので rr を使う。soks・soks-govern・knowledge・hook・custody などを扱う記録を読み、どの事故・owner の指示・不満がその仕組みを生んだかを拾う。
    - 他の repo からの呼び出し(install-hooks で入った consumer、submodule での読み手)。
 3. 各まとまりのニーズを次の 4 つに分類し、根拠を書く。
    - D: 領域に固有のニーズ(dx でも持ち主が必要)
