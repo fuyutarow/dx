@@ -19,6 +19,10 @@ const rejected = [
   ["collection tag", "data: !!map {a: 1}\n", "tags"],
   ["non-specific tag", "data: ! x\n", "tags"],
   ["verbatim tag", "data: !<tag:yaml.org,2002:str> x\n", "tags"],
+  ["explicit scalar key", "? a\n: x\n", "explicit keys"],
+  ["nested explicit scalar key", "data:\n  ? scalar\n  : value\n", "explicit keys"],
+  ["flow explicit scalar key", "data: {? a: x}\n", "explicit keys"],
+  ["flow sequence explicit key", "data: [? a: x]\n", "explicit keys"],
   ["complex key", "data:\n  ? [a, b]\n  : value\n", "keys must be strings"],
   ["mapping key", "data: {? {a: b}: value}\n", "keys must be strings"],
   ["numeric key", "data: {1: x}\n", "keys must be strings"],
@@ -48,7 +52,8 @@ for (const extra of [
   "data: |\n  &anchor *alias !tag ? complex <<\n",
   "# &anchor *alias !tag\ndata: https://example.test/a!b&c*d\n",
   "data: café 日本語\n",
-  "data:\n  ? scalar\n  : value\n",
+  '?question: value\ndata: {"? a": x, ?plain: y}\n',
+  "# ? a\ndata: |\n  ? a\n  : x\n",
 ]) {
   test(`strict YAML preserves ordinary values: ${JSON.stringify(extra)}`, () => {
     const text = markdown("a", extra);
@@ -69,6 +74,18 @@ test("YAML rejection is a format finding with a stable path key; unchanged viola
   const unchanged = await checked(cwd, next, 0);
   expect(unchanged.findings[0]?.key).toBe(initial.findings[0]?.key);
   expect(unchanged.findings[0]?.new).toBe(false);
+});
+
+test("soks explicit scalar key counterexample produces a format finding", async () => {
+  const { cwd, base } = await repo();
+  await write(cwd, "records/probe.md", "---\n? a\n: x\n---\nbody");
+  const result = await checked(cwd, base, 1);
+  expect(result.findings).toHaveLength(1);
+  expect(result.findings[0]).toMatchObject({
+    check: "format",
+    path: "records/probe.md",
+    message: "YAML explicit keys are unsupported",
+  });
 });
 
 test("editing rejected YAML must satisfy I-02 even if its format key already exists", async () => {

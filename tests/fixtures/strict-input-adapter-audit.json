@@ -1,0 +1,34 @@
+{
+  "measuredAt": "2026-10-17T15:39:45.182639976Z",
+  "counts": "matched Markdown source files; per-file adapter rejection, with unchanged accepted values compared as JSON",
+  "results": [
+    {
+      "repo": "retrospectives",
+      "source": "/tmp/dx-yaml-shadow/retrospectives",
+      "files": 116,
+      "newlyRejected": [],
+      "existingRejected": []
+    },
+    {
+      "repo": "soks",
+      "source": "/tmp/dx-yaml-shadow/soks",
+      "files": 6823,
+      "newlyRejected": [
+        {
+          "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+          "reason": "document character U+000C is outside the accepted input domain"
+        }
+      ],
+      "existingRejected": [
+        {
+          "path": "knowledge/evi-hada2026_bpi_ck_comparison_abstract.md",
+          "reason": "Map keys must be unique at line 14, column 5:\n\n    last_modified: 2026-09-04\n    last_modified: 2026-09-04\n    ^\n"
+        },
+        {
+          "path": "knowledge/evi-hada2026_binary_partition_ideation_five_step_method.md",
+          "reason": "Map keys must be unique at line 14, column 5:\n\n    last_modified: 2026-09-04\n    last_modified: 2026-09-04\n    ^\n"
+        }
+      ]
+    }
+  ]
+}

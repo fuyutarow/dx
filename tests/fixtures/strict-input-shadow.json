@@ -1,0 +1,113 @@
+{
+  "measuredAt": "2026-10-17T15:46:36.430207063Z",
+  "baseline": "/tmp/dx-strict-input-baseline",
+  "sourceSnapshots": "/tmp/dx-yaml-shadow; see strict-yaml-shadow.json for original snapshot provenance",
+  "counts": "JSONL rows deduplicated by finding key; added/removed compare keys; changed compares full row at same key",
+  "versionChoice": "private alpha stays 0.1.0, no release or changeset",
+  "status": "RETURN: builtin soks comparison also adds non-format findings; opt-in test fails",
+  "comparisons": [
+    {
+      "repo": "retrospectives",
+      "policy": "original",
+      "copy": "/home/fuyu/.cache/agx/tmp/3da35b75-6f94-4de3-9a8c-a2e1e12d05ef/dx-strict-input-shadow-LnuThA/retrospectives-original",
+      "cmd": "dx check --base root()",
+      "before": {
+        "exit": 1,
+        "findings": 1193,
+        "stderr": "FINDINGS: 新しい finding 1193 件 / 既存 0 件\n"
+      },
+      "after": {
+        "exit": 1,
+        "findings": 1193,
+        "stderr": "FINDINGS: 新しい finding 1193 件 / 既存 0 件\n"
+      },
+      "exactStdoutEqual": true,
+      "added": [],
+      "removed": [],
+      "changed": [],
+      "newFormatFindings": []
+    },
+    {
+      "repo": "soks",
+      "policy": "original",
+      "copy": "/home/fuyu/.cache/agx/tmp/3da35b75-6f94-4de3-9a8c-a2e1e12d05ef/dx-strict-input-shadow-LnuThA/soks-original",
+      "cmd": "dx check --base root()",
+      "before": {
+        "exit": 1,
+        "findings": 426,
+        "stderr": "FINDINGS: 新しい finding 426 件 / 既存 0 件\n"
+      },
+      "after": {
+        "exit": 1,
+        "findings": 426,
+        "stderr": "FINDINGS: 新しい finding 426 件 / 既存 0 件\n"
+      },
+      "exactStdoutEqual": true,
+      "added": [],
+      "removed": [],
+      "changed": [],
+      "newFormatFindings": []
+    },
+    {
+      "repo": "soks",
+      "policy": "builtin",
+      "copy": "/home/fuyu/.cache/agx/tmp/3da35b75-6f94-4de3-9a8c-a2e1e12d05ef/dx-strict-input-shadow-LnuThA/soks-builtin",
+      "cmd": "dx check --base root()",
+      "before": {
+        "exit": 1,
+        "findings": 423,
+        "stderr": "FINDINGS: 新しい finding 423 件 / 既存 0 件\n"
+      },
+      "after": {
+        "exit": 1,
+        "findings": 426,
+        "stderr": "FINDINGS: 新しい finding 426 件 / 既存 0 件\n"
+      },
+      "exactStdoutEqual": false,
+      "added": [
+        {
+          "check": "format",
+          "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+          "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+          "message": "document character U+000C is outside the accepted input domain",
+          "new": true,
+          "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+          "v": 1
+        },
+        {
+          "check": "soks.LOCALITY",
+          "field": "led-count_based_compressor_component_ablations_and_ppm_escape_effects.md:source:01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+          "id": "urn:uuid:01a10846-b914-74a2-8e57-3c6c544a88ae",
+          "key": "[\"soks.LOCALITY\",\"urn:uuid:01a10846-b914-74a2-8e57-3c6c544a88ae\",\"led-count_based_compressor_component_ablations_and_ppm_escape_effects.md:source:01a10814-7ce7-73a1-aaab-292e75a0eaa3\"]",
+          "message": "internal source UUID URN does not resolve uniquely: 01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+          "new": true,
+          "path": "knowledge/led-count_based_compressor_component_ablations_and_ppm_escape_effects.md",
+          "v": 1
+        },
+        {
+          "check": "soks.LOCALITY",
+          "field": "pro-count_based_compressor_component_ablations_and_ppm_escape_effects.md:source:01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+          "id": "urn:uuid:01a10846-b914-74a2-8e57-3c6da4233bda",
+          "key": "[\"soks.LOCALITY\",\"urn:uuid:01a10846-b914-74a2-8e57-3c6da4233bda\",\"pro-count_based_compressor_component_ablations_and_ppm_escape_effects.md:source:01a10814-7ce7-73a1-aaab-292e75a0eaa3\"]",
+          "message": "internal source UUID URN does not resolve uniquely: 01a10814-7ce7-73a1-aaab-292e75a0eaa3",
+          "new": true,
+          "path": "knowledge/pro-count_based_compressor_component_ablations_and_ppm_escape_effects.md",
+          "v": 1
+        }
+      ],
+      "removed": [],
+      "changed": [],
+      "newFormatFindings": [
+        {
+          "check": "format",
+          "field": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+          "key": "[\"format\",null,\"knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md\"]",
+          "message": "document character U+000C is outside the accepted input domain",
+          "new": true,
+          "path": "knowledge/evi-knoll_defreitas2012_paq8l_level_init_and_ekf_second_layer_calgary_tables_1_and_4.md",
+          "v": 1
+        }
+      ]
+    }
+  ]
+}
