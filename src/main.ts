@@ -5,6 +5,7 @@ import { attemptAsync, undetermined } from "./errors.ts";
 import { revision, root, show } from "./repository.ts";
 import { responseSchema } from "./worker.ts";
 import { land } from "./commands/land.ts";
+import { version } from "../package.json" with { type: "json" };
 
 export async function execute(
   invocation: Invocation,
@@ -97,14 +98,19 @@ export async function execute(
 if (import.meta.main) {
   const invocation = parseInvocation(Bun.argv.slice(2));
   if (invocation !== undefined) {
-    const result = await attemptAsync(() => execute(invocation));
-    if (result.isErr()) {
-      process.stderr.write(`UNDETERMINED:${result.error.replaceAll("\n", " ")}\n`);
-      process.exitCode = 4;
+    if (invocation.command === "version") {
+      process.stdout.write(`dx ${version}\n`);
+      process.exitCode = 0;
     } else {
-      process.stdout.write(result.value.stdout);
-      process.stderr.write(result.value.stderr);
-      process.exitCode = result.value.exit;
+      const result = await attemptAsync(() => execute(invocation));
+      if (result.isErr()) {
+        process.stderr.write(`UNDETERMINED:${result.error.replaceAll("\n", " ")}\n`);
+        process.exitCode = 4;
+      } else {
+        process.stdout.write(result.value.stdout);
+        process.stderr.write(result.value.stderr);
+        process.exitCode = result.value.exit;
+      }
     }
   }
 }

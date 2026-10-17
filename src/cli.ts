@@ -1,5 +1,6 @@
 import { cli, command, type Renderers } from "cleye";
 import { z } from "zod";
+import { version } from "../package.json" with { type: "json" };
 
 /** Keep cleye's help content while fixing decoration and layout across environments. */
 function renderPlainHelp(nodes: Parameters<Renderers["render"]>[0], renderers: Renderers): string {
@@ -27,15 +28,23 @@ export const invocationSchema = z.object({
   list: z.boolean().default(false),
 });
 export type Invocation = z.infer<typeof invocationSchema>;
+export type CliAction = Invocation | { command: "version" };
 function usage(reason: string): never {
   process.stderr.write(`USAGE: ${reason}\nRun dx --help\n`);
   process.exit(2);
 }
 /** Cleye owns parsing/help. This extra gate rejects repeat flags and extra positionals. */
-export function parseInvocation(args: string[]): Invocation | undefined {
+export function parseInvocation(args: string[]): CliAction | undefined {
   const commands = ["ls", "check", "review", "land", "view", "schema"];
   const name = args[0];
   if (name === undefined) usage("a command is required");
+  if (name === "--version" || name === "-V") {
+    if (args.length > 1) {
+      const repeat = args.slice(1).some((arg) => arg === name);
+      usage(repeat ? `repeated option: ${name}` : `unexpected argument: ${args[1]}`);
+    }
+    return { command: "version" };
+  }
   if (name !== "--help" && name !== "-h" && !commands.includes(name))
     usage(`unknown command: ${name}`);
   const seen = new Set<string>();
@@ -85,9 +94,9 @@ export function parseInvocation(args: string[]): Invocation | undefined {
   const parsed = cli(
     {
       name: "dx",
+      version,
       strictFlags: true,
       help: {
-        version: "0.1.0",
         description: "Read and check records in a jj revision",
         render: renderPlainHelp,
       },
