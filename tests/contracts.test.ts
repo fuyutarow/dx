@@ -3,6 +3,7 @@ import { readdir, readFile, lstat, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { readConfig } from "../src/config.ts";
 import { sha256 } from "../src/formats.ts";
+import { version } from "../package.json" with { type: "json" };
 import {
   advance,
   checked,
@@ -100,9 +101,28 @@ test(
         }
       }
     }
+    expect(await helpOutput(["--help"], baseEnv)).toContain("--version");
   },
   timeout,
 );
+
+test("C1: version flags print the package version and reject repetition", async () => {
+  const { cwd } = await repo();
+  for (const flag of ["--version", "-V"]) {
+    const result = await dx(cwd, flag);
+    expect(result).toEqual({ stdout: `dx ${version}\n`, stderr: "", exit: 0 });
+  }
+  for (const args of [
+    ["--version", "--version"],
+    ["-V", "-V"],
+  ]) {
+    const result = await dx(cwd, ...args);
+    expect(result.exit).toBe(2);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("USAGE:");
+  }
+});
+
 async function inventory(root: string, path = ""): Promise<Record<string, string>> {
   const entries: Record<string, string> = {};
   for (const name of (await readdir(join(root, path))).toSorted()) {

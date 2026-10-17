@@ -167,7 +167,7 @@ dx land @-
 
 ## C1 INVOCATION
 
-- Parser profile: サブコマンド方式（cleye）。長いオプションだけを使い、短いオプションは `-h` だけ。
+- Parser profile: サブコマンド方式（cleye）。長いオプションだけを使い、短いオプションは `-h`（help）と `-V`（`--version`。stdout に `dx <version>` を 1 行出して exit 0）だけ。
 - Ambiguous / invalid cases: 位置引数が多すぎる（`view` は 1〜2 個、ほかは 0〜1 個）、同じオプションの重複、未知のオプションは、使い方の誤りとして終了コード 2 で拒否する。`--` より後ろは位置引数として読む。存在しない REV は判定不能として終了コード 4 で返す。
 
 | Synopsis / input | Ordering and repetition | stdin | Help / example |

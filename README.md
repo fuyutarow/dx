@@ -6,6 +6,8 @@ Bun TypeScript で実装した、jj の revision から記録を読む CLI で�
 
 ```sh
 mise run setup
+bun src/main.ts --version
+bun src/main.ts -V
 bun src/main.ts --help
 bun src/main.ts ls @
 bun src/main.ts check --base alpha@origin @
