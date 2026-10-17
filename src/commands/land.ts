@@ -73,6 +73,23 @@ export async function land(
         stderr: `${failure}\n${checked.stderr}`,
       });
     // The remote has accepted head. Local bookkeeping cannot revoke that acceptance (I-01).
+    // Push uses a URL, so Git does not update the named remote's tracking ref for import.
+    const sync = await run(
+      cwd,
+      [
+        "jj",
+        "--ignore-working-copy",
+        "--no-pager",
+        "--color=never",
+        "git",
+        "fetch",
+        "--remote",
+        `exact:${remote}`,
+        "--branch",
+        `exact:${branch}`,
+      ],
+      { remote, phase: "fetch" },
+    );
     const bookmark = await attemptAsync(() =>
       jj(cwd, ["bookmark", "set", "--allow-backwards", "--revision", head, "--", branch]),
     ).andThen((value) => value);
@@ -81,6 +98,9 @@ export async function land(
       stdout: `${JSON.stringify({ v: 1, commit: head, base, branch, remote })}\n`,
       stderr:
         checked.stderr +
+        (sync.exit !== 0 || sync.timedOut
+          ? "WARNING: push succeeded; jj remote-tracking bookmark could not be updated\n"
+          : "") +
         (bookmark.isErr() ? "WARNING: push succeeded; local bookmark could not be updated\n" : ""),
     });
   });

@@ -87,6 +87,9 @@ for (const colocate of [true, false])
         remote: "origin",
       });
       expect(await tip(remote)).toBe(head);
+      expect(await jj(cwd, "log", "--no-graph", "-r", "alpha@origin", "-T", "commit_id")).toBe(
+        head,
+      );
       expect(await jj(cwd, "log", "--no-graph", "-r", "alpha", "-T", "commit_id")).toBe(head);
       await git(remote, "merge-base", "--is-ancestor", base, head);
     },
@@ -202,6 +205,35 @@ test(
 );
 
 test(
+  "remote-tracking sync failure after push still returns receipt and updates local bookmark",
+  async () => {
+    const { cwd, remote, base } = await fixture();
+    await write(cwd, "records/a.md", markdown("a"));
+    const head = await snapshot(cwd);
+    // Push already resolved its URL; only the subsequent fetch uses this changed URL.
+    const hooks = join(cwd, ".git", "hooks");
+    await mkdir(hooks, { recursive: true });
+    const hook = join(hooks, "pre-push");
+    await Bun.write(
+      hook,
+      `#!${process.execPath}\nconst child = Bun.spawn(["git", "--git-dir=${join(cwd, ".git")}", "remote", "set-url", "origin", ${JSON.stringify(join(cwd, ".git", "missing.git"))}], {stdout:"ignore", stderr:"inherit"}); process.exit(await child.exited);\n`,
+    );
+    await chmod(hook, 0o755);
+    const result = await dx(cwd, "land", head);
+    expect(result.exit, result.stderr).toBe(0);
+    expect(result.stderr).toContain(
+      "WARNING: push succeeded; jj remote-tracking bookmark could not be updated\n",
+    );
+    expect(result.stderr).not.toContain("local bookmark could not be updated");
+    expect(decode(fieldsSchema, result.stdout).commit).toBe(head);
+    expect(await tip(remote)).toBe(head);
+    expect(await jj(cwd, "log", "--no-graph", "-r", "alpha", "-T", "commit_id")).toBe(head);
+    expect(await jj(cwd, "log", "--no-graph", "-r", "alpha@origin", "-T", "commit_id")).toBe(base);
+  },
+  timeout,
+);
+
+test(
   "land rejects force and extra arguments with exit 2",
   async () => {
     const { cwd } = await fixture();
@@ -276,6 +308,9 @@ test(
       remote: "upstream",
     });
     expect(await git(remote, "rev-parse", "refs/heads/release")).toBe(head);
+    expect(await jj(cwd, "log", "--no-graph", "-r", "release@upstream", "-T", "commit_id")).toBe(
+      head,
+    );
     expect(await tip(remote)).toBe(base);
   },
   timeout,
