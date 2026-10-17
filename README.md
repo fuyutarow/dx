@@ -110,7 +110,7 @@ immutable な type では `file:<glob>` が必須です。verdict には次の�
 
 - `v:1`、id・記録 sha256・rubric パス・現在の rubric の全バイトの sha256 が一致する。
 - `pass:true` で、すべての `p` が `[review].pass` 以上。
-- 記録に空でない文字列の `by` があり、verdict の `by` と異なる。
+- 記録に `by` があるときは verdict の `by` と異なる。記録に `by` が無いときは、verdict の `by` が `process:` で始まる機械の判定者だけを認める。
 - C3 の `at`・`bits`・`p` などのフィールドが正しい型である。
 
 記録の sha256 は `review` を除くメタデータを key 順に正規化した値と本文から計算します。
@@ -142,7 +142,7 @@ question = "Does the record explain the conditions and outcome clearly?"
 要求全体を UTF-8 の 30,000 バイト以内に収めます。記録・問いは切らず、証拠だけを
 UTF-8 の文字境界で切り詰め、省略を明記します。最小要求が上限を超えると、問い合わせ前に exit 4 です。
 各 `answers[id].noul` と `[review].pass`（既定0.5）を比較して bits と pass を作ります。
-verdict の `by` は `process:jev/<応答の model>` です。記録の `by` は事前に必要です。
+verdict の `by` は `process:jev/<応答の model>` です。記録に `by` が無くても Jev を呼び、機械の判定者として verdict を保存します。記録に著者を補ったり、本文を変更したりはしません。
 
 `format` は組込み形式名のほか、`FormatAdapter` を受け取ります。
 `markdownFrontmatter` と `tomlFormat` を dx から import して拡張できます。

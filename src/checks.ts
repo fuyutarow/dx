@@ -254,8 +254,7 @@ export function verdictChecker(
         v.rubric_sha256 === rubricHash &&
         (v.rubric === review.rubric || v.rubric === rubricPath(type)) &&
         v.pass &&
-        record.by !== undefined &&
-        v.by !== record.by &&
+        reviewerAllowed(record.by, v.by) &&
         v.p.every((p) => p >= config.review.pass)
       );
     });
@@ -273,4 +272,9 @@ export function reviewChanged(
     (type.review?.place === "frontmatter" &&
       stableJson(old.fields.review) !== stableJson(record.fields.review))
   );
+}
+
+/** I-06: unknown record authors require a machine reviewer; known authors must differ. */
+export function reviewerAllowed(author: string | undefined, reviewer: string): boolean {
+  return author === undefined ? reviewer.startsWith("process:") : reviewer !== author;
 }
