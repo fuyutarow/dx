@@ -35,7 +35,12 @@ function object(value: unknown) {
 function parseFrontmatter(header: string) {
   return safeTry(function* () {
     const document = yield* attempt(() =>
-      parseDocument(header, { strict: true, uniqueKeys: true, merge: false }),
+      parseDocument(header, {
+        strict: true,
+        uniqueKeys: true,
+        merge: false,
+        keepSourceTokens: true,
+      }),
     );
     const error = document.errors[0];
     if (error !== undefined) return undetermined(error.message);
@@ -50,6 +55,10 @@ function parseFrontmatter(header: string) {
         if (!isScalar(node.key) || typeof node.key.value !== "string")
           failure = "YAML keys must be strings; complex keys are unsupported";
         else if (node.key.value === "<<") failure = "YAML merge keys are unsupported";
+        // Scalar nodes alone lose the distinction between implicit and explicit keys.
+        // Pair source tokens preserve it in block maps, flow maps and flow sequences.
+        else if (node.srcToken?.start.some((token) => token.type === "explicit-key-ind") === true)
+          failure = "YAML explicit keys are unsupported";
       }
       if (
         key !== "key" &&
@@ -71,6 +80,17 @@ export function parseRecords(path: string, text: string, format: TypeDefinition[
       const parse = format.parse;
       const value = yield* attempt(() => parse.call(format, path, text));
       return Array.isArray(value) ? ok(value) : value;
+    }
+    // The built-in formats share a source domain across the entire document,
+    // including comments, Markdown bodies and a possible leading BOM.
+    const forbidden =
+      // oxlint-disable-next-line no-control-regex -- Detect the forbidden source characters themselves.
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\uFEFF\u2028\u2029\uFFFE\uFFFF]|\r(?!\n)/u.exec(
+        text,
+      );
+    if (forbidden !== null) {
+      const code = forbidden[0].codePointAt(0)?.toString(16).toUpperCase().padStart(4, "0");
+      return undetermined(`document character U+${code} is outside the accepted input domain`);
     }
     if (format === "markdown-frontmatter") {
       const parts = splitMarkdown(text);
