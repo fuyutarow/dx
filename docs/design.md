@@ -151,6 +151,11 @@ dx schema  <kind>                 # → JSON Schema
 4. **試作 3（polysearch）**: 3,132 fragment を再生する。`derive status` を、今の `read` の出力と bytes 単位で比べる。
 5. 判定が一致して、消費者の移行も確かめられた順に、旧実装を退役させる（Strangler Fig）。
 
+**移行の不変条件（2026-10-17 に追加）:** 移行で、今動いている機能を減らさない。置き換え先が動いて受け入れられるまで、旧い機能は消さない。具体的には次の 2 つ。
+
+- retrospectives の `review.ts`（Jev の評価を呼ぶ）は、agx assess が動くまで retrospectives に残す。dx の外の仕事ではあるが、置き場が空のうちに消すと、評価できなくなる（機能が後退する）。
+- `candidate.ts`（共有の作業コピーから、選んだパスだけを commit する）は、その store のすべての書き手が自分の workspace で書くようになるまで残す。2026-10-17 に coordinator 自身が retrospectives の共有の作業コピーに直接書いて commit しており、D1 の前提はまだ成り立っていない。
+
 ## 8. owner の決定（2026-10-17）
 
 - D1: 書き手ごとに workspace を分けることを、dx の前提にする。**決定済み**
