@@ -1,0 +1,50 @@
+[tools]
+bun = "1.4"
+
+[tasks.setup]
+alias = "i"
+run = "bun install --frozen-lockfile"
+
+[tasks.fmt]
+alias = "f"
+run = "bun run node_modules/oxfmt/bin/oxfmt src tests package.json tsconfig.json .oxlintrc.json .oxfmtrc.json"
+
+[tasks."fmt:check"]
+run = "bun run node_modules/oxfmt/bin/oxfmt --check src tests package.json tsconfig.json .oxlintrc.json .oxfmtrc.json"
+
+[tasks."fmt:staged"]
+run = "fmt-staged --tool 'ts=bun {{config_root}}/node_modules/oxfmt/bin/oxfmt'"
+
+[tasks.lint]
+alias = "l"
+run = "bun run node_modules/oxlint/bin/oxlint --deny-warnings src tests"
+
+[tasks.typecheck]
+run = "bun run node_modules/@typescript/native-preview/bin/tsgo --noEmit"
+
+[tasks.test]
+alias = "t"
+run = "bun test tests"
+
+[tasks.up]
+alias = "u"
+run = "bun update"
+
+[tasks.check]
+alias = "c"
+depends = ["fmt:check", "lint", "typecheck", "test"]
+
+[tasks."mise:contract"]
+run = "mise-contract"
+
+[tasks."hook:pre-commit"]
+depends = ["fmt:staged", "lint", "typecheck", "test"]
+
+[tasks.commit]
+run = "jj-commit"
+
+[tasks.pull]
+run = "jj git fetch --remote origin && jj rebase -b @ -d 'trunk()'"
+
+[tasks.push]
+run = "jj-push"
