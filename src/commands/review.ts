@@ -121,7 +121,9 @@ export async function review(
       const type = types.find((t) => t.name === record.type);
       if (type?.review === undefined || !reviewChanged(previous.get(record.id), record, type))
         continue;
-      const problems = findings.filter((f) => f.path === record.path || f.id === record.id);
+      const problems = findings.filter(
+        (f) => f.path === record.path || f.id === record.id || f.ids?.includes(record.id) === true,
+      );
       if (problems.length > 0) {
         refusals.push(
           `REVIEW_BLOCKED: ${record.id}: I-10: 既存の finding ${problems.length} 件を先に消す\n`,

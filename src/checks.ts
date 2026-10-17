@@ -71,7 +71,12 @@ export async function structural(snapshot: Snapshot, base: Snapshot, types: read
     findings.push(
       ...result.data.map((row) =>
         Object.assign(
-          { check: row.check, path: row.path, message: row.message, id: row.id ?? record.id },
+          {
+            check: row.check,
+            path: row.path,
+            message: row.message,
+            ...(row.ids === undefined ? { id: row.id ?? record.id } : { ids: row.ids }),
+          },
           row.field === undefined ? {} : { field: row.field },
         ),
       ),
@@ -85,6 +90,7 @@ export async function structural(snapshot: Snapshot, base: Snapshot, types: read
         Object.assign(
           { check: row.check, path: row.path, message: row.message },
           row.id === undefined ? {} : { id: row.id },
+          row.ids === undefined ? {} : { ids: row.ids },
           row.field === undefined ? {} : { field: row.field },
         ),
       ),
