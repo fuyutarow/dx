@@ -283,6 +283,7 @@ base の子孫だけを、`check` と同じ判定関数に通します。新し�
 [`--force-with-lease=<ref>:<base>`](https://git-scm.com/docs/git-push) で検査した base を期待値として
 1 ref を push します。fetch 先を正本とするため、pushurl は使いません。hosting API は不要です。
 成功後に手元の bookmark を合わせ、`{"v":1,"commit","base","branch","remote"}` の受領を返します。
+push した branch だけを jj で fetch して `<branch>@<remote>` を合わせます。失敗しても stderr に警告を出し、exit 0 で受領を返します。
 push 後の bookmark 更新失敗は警告と exit 0 です。lease 競合は `RACE`、接続不能・60 秒の打ち切りは
 `REMOTE_UNAVAILABLE`、push の成否不明は `RESULT_UNKNOWN` で、いずれも exit 3 です。
 fetch / push は個別に 60 秒まで待ち、2 秒を超えると stderr に待機を 1 行表示します。
