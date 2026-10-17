@@ -26,6 +26,10 @@ refuted_by = "yaml@2.9.1 の構文木から、明示のキーかどうかを見�
 
 証拠: `/home/fuyu/Workspace/soks.ws/ws_dx-shadow/.dx-shadow-artifacts/yaml-retire-counterexample.json`（読むだけにする）
 
+## 追加の要件（DevX ヒアリング、soks。2026-10-18）
+
+文書全体で禁止する文字を、markdown-frontmatter と toml のアダプタで拒否する（format の finding）。対象は、C0 の制御文字（タブと LF は除く）、C1 の制御文字、U+FEFF（BOM を含む）、U+2028、U+2029、U+FFFE、U+FFFF、LF を伴わない CR。どの repo にも共通の衛生なので、設定の項目は足さない。soks の `.dx/helpers/document-text.ts` を手本として読んでよい。retrospectives と soks の写しで、新しく出る finding を一覧にする（既存の記録は I-02 で残る）。
+
 ## やること
 
 1. 明示のキーの指示子 `?` を、キーが scalar でも、複合のものでも拒否する。yaml の CST（token）か、構文木の node の source の位置で確かめる。
