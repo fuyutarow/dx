@@ -31,6 +31,16 @@ refuted_by = "soks の sources / sok_supersedes で、match を使った宣言�
 1. soks の `sources` は、文字列ではなく、`resource` を持つオブジェクトの配列である。そこで、links の宣言に `values?: (fieldValue: unknown) => string[]` を足す。副作用の無い関数で、フィールドの値から link の候補の文字列を取り出す。省いたときは、今までどおり、フィールドの文字列を候補とする。`match` は、取り出した候補に対して当てる（当たったものの capture group の 1 番を id とする）。repo をまたぐ `dx:<他の repo>/<id>` は、`match` の後で除く。`values` が例外を投げたり、文字列の配列以外を返したりしたら、判定できない（exit 4）。
 2. 照合の基準は I-04（参照先の実在）とする。soks の supersedes.ts は、参照先が無くても指摘しないが、dx では指摘する（spec のニーズ 6「後継の参照先の実在を新たに強制する」）。既存の 9 件の参照先の無い supersedes は、I-02 によって既存の finding として残る。soks との照合で出る差は、この 9 件と、それと同じ理由のものだけであることを確かめ、一覧にして返す。差があっても止まらない。
 
+## 2 回目の返却（run 3417527a）を受けての決定（coordinator。最新版）
+
+- soks との照合で、`sources` の link に、soks の自前の検査が指摘しない循環が 10 件出た。
+- 決定: I-04 を細かくする。
+  - 参照先の実在と、型が合うことは、すべての link にかける。
+  - 循環の禁止は、宣言の `acyclic`（既定は true）が true の link にだけかける。引用のように、互いに引き合うのが正しい link は `acyclic: false` と宣言する。
+  - 既定を true にするので、今の振る舞い（retrospectives の superseded_by など）は変わらない。
+- soks の写しでの照合は、`sources` を `acyclic: false` にし、`sok_supersedes` を既定（true）にした宣言で行う。差が、参照先の無い supersedes の 9 件と同じ理由のものだけであることを確かめる。`sok_supersedes` に循環があれば、それは一覧にして返す（止まらない）。
+- spec の I-04 の行と §7 に、`acyclic` を書く。
+
 ## やること
 
 1. links の宣言に `match: "<正規表現>"` を足す。例: `links: { sources: { to: ["evi","sok"], match: "^urn:uuid:(.+)$" } }`。当たった値の capture group の 1 番を id とする。当たらない値は link ではない。
