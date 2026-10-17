@@ -336,3 +336,38 @@ test("frontmatter verdict edits use the same target selection as I-06", async ()
   await snapshot(cwd);
   expect((await dx(cwd, "check")).exit).toBe(0);
 }, 60000);
+test("offline Jev fixture accepts the successful receipt and rejects its missing-model variant", async () => {
+  const { runReviewCommand } = await import("../src/commands/review.ts");
+  const { default: reference } = await import("./fixtures/jev-request.json");
+  const { cwd } = await fixture();
+  const command = [process.execPath, `${import.meta.dir}/fixtures/jev-command.ts`];
+  const accepted = await runReviewCommand(cwd, command, reference);
+  expect(accepted.response?.answers["blameless"]?.noul).toBe(0.8);
+  const { model: _model, ...withoutModel } = reference;
+  const rejected = await runReviewCommand(cwd, command, withoutModel);
+  expect(rejected.response).toBeUndefined();
+  expect(rejected.error).toContain("HTTP 422");
+}, 60000);
+test("dx review sends a request matching the successful Jev contract and then satisfies I-06", async () => {
+  const { cwd } = await fixture({
+    command: [process.execPath, `${import.meta.dir}/fixtures/jev-command.ts`],
+  });
+  await write(cwd, "records/one.md", markdown("one"));
+  const result = await review(cwd);
+  expect(result.exit, result.stderr).toBe(0);
+  expect(rows(result.stdout)[0]?.pass).toBe(true);
+  await snapshot(cwd);
+  expect((await dx(cwd, "check")).exit).toBe(0);
+}, 60000);
+test("the model field is included in the complete 30000-byte UTF-8 request budget", () => {
+  const parsed = parseRubric(rubric);
+  const record = "😀".repeat(7000);
+  const evidence = [{ locator: "linked", status: "supplied", content: "資料".repeat(10000) }];
+  const request = assembleRequest(record, parsed, evidence);
+  expect(request.model).toBe("jev-latest");
+  expect(request.state.record).toBe(record);
+  expect(Buffer.byteLength(JSON.stringify(request))).toBeLessThanOrEqual(30000);
+  expect(() => assembleRequest(record + "😀".repeat(500), parsed, evidence)).toThrow(
+    "exceeds 30000",
+  );
+}, 60000);

@@ -125,6 +125,8 @@ finding を stdout に出して exit 1 にします。現在のハッシュ・ru
 指定 REV と作業コピーの内容が異なると exit 4 で拒否します。
 
 `[review].command`（既定 `["agx", "jev"]`）に stdin JSON を渡します。
+要求には `model: "jev-latest"` を必ず含めます。現在の Jev endpoint は model を省略すると HTTP 422 を返すためです。
+model のフィールドも要求全体の30,000バイトに含めます。
 rubric は次の TOML 形式です。criteria の順番が `p` と `bits` の順番になります。
 任意の `bit` を書く場合は、順番どおり 0 から連続させます（最大53問）。
 

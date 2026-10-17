@@ -72,6 +72,8 @@ export function assembleRequest(
     hex_locators: [],
   };
   const request = {
+    // The live endpoint rejects requests without an explicit model (HTTP 422).
+    model: "jev-latest",
     state,
     questions: Object.fromEntries(
       rubric.criteria.map((row) => [
