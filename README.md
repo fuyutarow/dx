@@ -1,14 +1,15 @@
 # dx
 
 Bun TypeScript で実装した、jj の revision から記録を読む CLI です。仕様の正本は
-[docs/spec.md](docs/spec.md) 版 1 です。この 0.1.0 は `ls`、`check`、`land`、`view`、`schema` を実装します。
-`review`、既存 3 repo の型定義と移行は別 issue です。
+[docs/spec.md](docs/spec.md) 版 1 です。この 0.1.0 は `ls`、`check`、`review`、`land`、`view`、`schema` を実装します。
+既存 3 repo の型定義と移行は別 issue です。
 
 ```sh
 mise run setup
 bun src/main.ts --help
 bun src/main.ts ls @
 bun src/main.ts check --base alpha@origin @
+bun src/main.ts review @
 bun src/main.ts land @-
 bun src/main.ts view --list
 bun src/main.ts view index @
@@ -72,7 +73,7 @@ TOML はトップレベルの table を 1 記録として読み、`[[records]]` 
 Promise を返せます。`tree` は `records`、`base`、`files`、`read(path)` を持ちます。
 `check` の base 側評価では `records` と `base` の両方が base の記録です。head 側では
 `records` が head、`base` が base です。view では両方とも指定 REV です。
-`files` と `read` は ignore 対象以外の木の内容を返します。`.dx/` と `dx.toml` は配線のため常に読みます。
+`files` と `read` は ignore 対象以外の木の内容を返します。`.dx/`、`dx.toml`、宣言された verdict ファイルは配線のため常に読みます。
 独自 finding の `check` 名は repo が安定させてください。
 
 型定義・checks・views は信頼する純粋な repo policy です。外部 I/O、時刻、乱数、global state を使わず、
@@ -114,12 +115,66 @@ immutable な type では `file:<glob>` が必須です。verdict には次の�
 
 記録の sha256 は `review` を除くメタデータを key 順に正規化した値と本文から計算します。
 verdict 自身を含めたハッシュの自己参照を避け、本文は空白を含めて保存します。
-`recordSha256` と `sha256` を package から公開しているため、後続の review 実装も同じ関数を使えます。
+`recordSha256` と `sha256` を package から公開しているため、review と check が同じ関数を使います。
 既存記録の verdict は、rubric だけの変更では無効にしません。
+
+## review の実行
+
+`dx review [REV]` は `<branch>@<remote>` を base とし、新しい記録と本文ハッシュが変わった
+記録だけを対象にします。frontmatter の verdict だけを変えた場合も I-06 と同じ対象に含めます。I-06 の未取得 verdict を除いて check の finding がある記録には要求を出さず、
+finding を stdout に出して exit 1 にします。現在のハッシュ・rubric に結びつく合格 verdict は再利用します。
+指定 REV と作業コピーの内容が異なると exit 4 で拒否します。
+
+`[review].command`（既定 `["agx", "jev"]`）に stdin JSON を渡します。
+要求には `model: "jev-latest"` を必ず含めます。現在の Jev endpoint は model を省略すると HTTP 422 を返すためです。
+model のフィールドも要求全体の30,000バイトに含めます。
+rubric は次の TOML 形式です。criteria の順番が `p` と `bits` の順番になります。
+任意の `bit` を書く場合は、順番どおり 0 から連続させます（最大53問）。
+
+```toml
+rubric = "example/v1"
+[[criteria]]
+id = "clear"
+bit = 0
+question = "Does the record explain the conditions and outcome clearly?"
+```
+
+要求全体を UTF-8 の 30,000 バイト以内に収めます。記録・問いは切らず、証拠だけを
+UTF-8 の文字境界で切り詰め、省略を明記します。最小要求が上限を超えると、問い合わせ前に exit 4 です。
+各 `answers[id].noul` と `[review].pass`（既定0.5）を比較して bits と pass を作ります。
+verdict の `by` は `process:jev/<応答の model>` です。記録の `by` は事前に必要です。
+
+`format` は組込み形式名のほか、`FormatAdapter` を受け取ります。
+`markdownFrontmatter` と `tomlFormat` を dx から import して拡張できます。
+アダプタは `parse(path,text)`、`hash(file)`、`reviewText(file)` を持ち、
+任意で `writeReview(file,verdict)` と `evidence(file,tree)` を持ちます。
+`evidence` は `{locator,status,content?}` の配列を返し、リンクの解釈・解決・除外は
+repo の type が決めます。組込み形式は証拠を自動収集しません。たとえば以下のように、
+type が宣言する資料だけを指定 REV の木から渡せます。
+
+```ts
+format: {
+  ...markdownFrontmatter,
+  evidence: (file, tree) => [{
+    locator: "definitions.md",
+    status: "repository definition",
+    content: tree.read("definitions.md"),
+  }],
+},
+```
+
+frontmatter の書き戻しではハッシュ不変と verdict の round trip を再検証します。
+`file:<glob>` の `*` / `**` は URL エンコードした id に展開し、glob と一致するパスに書きます。
+ワイルドカードなしの共有ファイルも使えます。JSON/JSONL の出力は verdict の JSON 配列、
+TOML の出力は `[[verdicts]]` です。既存のほかの id の verdict は保存します。
+既存の壊れた sidecar、repo 外へのパス、symlink を経由する出力は拒否します。
+
+途中の不達でも処理済みの verdict は残ります。再実行すると合格済みを飛ばします。
+2秒を超える問い合わせでは stderr に待ち表示を出します。実在の Jev は自動試験で呼びません。
 
 ## 出力と試験
 
-`ls`・`check`・`view` は `v:1` 付き JSONL、`schema` は `v:1` 付き JSON Schema 1 値を返します。
+`ls`・`check`・`review`・`view` は `v:1` 付き JSONL、`schema` は `v:1` 付き JSON Schema 1 値を返します。
 `schema` の type 省略時は全 type を `$defs` に置きます。view 名は全 type 間で一意にします。
 stdout は結果全体を計算してから書きます。判定不能時は空 stdout と
 `UNDETERMINED:<理由>`、exit 4 を返します。使い方の誤りは exit 2 です。
@@ -134,12 +189,14 @@ push 後の bookmark 更新失敗は警告と exit 0 です。lease 競合は `R
 `REMOTE_UNAVAILABLE`、push の成否不明は `RESULT_UNKNOWN` で、いずれも exit 3 です。
 fetch / push は個別に 60 秒まで待ち、2 秒を超えると stderr に待機を 1 行表示します。
 `--force` はありません。
+Jev の不達・非0終了・120秒の時間切れ・応答不正も exit 3 です。
 
 上限は base/head それぞれに適用します。`records` は展開した記録数、`links_per_record` は展開後の
 link 数です。`record_bytes` はアダプタが読む 1 ファイルの UTF-8 バイト数で、複数記録を含む場合も
 分割前に確かめます。`check_seconds` は起動からの経過時間を含み、同期無限ループも打ち切ります。
 
-`tests/acceptance.test.ts` に正・負の受領試験、`tests/contracts.test.ts` に出力・引数・上限・
+`tests/acceptance.test.ts` に正・負の受領試験、`tests/review.test.ts` に偽コマンドによる I-06/I-10 と review の試験、
+`tests/contracts.test.ts` に出力・引数・上限・
 副作用の試験があります。すべての試験は `/tmp` の `jj git init --colocate` で作った repo 内で行い、
 終了時に消します。実在の記録 repo には書き込みません。
 `tests/land/land.test.ts` は一時 bare remote を使い、正常系・拒否・別 clone との競合・受領・待機と

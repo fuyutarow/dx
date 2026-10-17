@@ -183,12 +183,16 @@ export function rubricPath(type: LoadedType): string {
   if (!path.startsWith(".dx/")) return undetermined(`rubric must be in .dx/: ${raw}`);
   return path;
 }
-function sidecarVerdicts(text: string, path: string): unknown[] {
+export function sidecarVerdicts(text: string, path: string): unknown[] {
   const parsed = attempt((): unknown => {
     if (path.endsWith(".toml")) return Bun.TOML.parse(text);
     return JSON.parse(text);
   });
-  if (parsed.isOk()) return Array.isArray(parsed.value) ? parsed.value : [parsed.value];
+  if (parsed.isOk()) {
+    const container = z.object({ verdicts: z.array(z.unknown()) }).safeParse(parsed.value);
+    if (container.success) return container.data.verdicts;
+    return Array.isArray(parsed.value) ? parsed.value : [parsed.value];
+  }
   const lines = text.split("\n").filter((line) => line.trim() !== "");
   const rows = lines.map((line) => attempt((): unknown => JSON.parse(line)));
   if (rows.some((row) => row.isErr())) return [];
@@ -207,38 +211,11 @@ export function reviews(
     const rubric = rubricPath(type);
     const text = head.files[rubric] ?? undetermined(`rubric missing: ${rubric}`);
     const rubricHash = sha256(text);
-    const candidates =
-      type.review.place === "frontmatter"
-        ? []
-        : Object.entries(head.files)
-            .filter(([path]) => matches(type.review?.place.slice(5) ?? "", path))
-            .flatMap(([path, contents]) => sidecarVerdicts(contents, path));
+    const hasPassingVerdict = verdictChecker(head, type, config, rubricHash);
     for (const record of head.records.filter((r) => r.type === type.name)) {
       const old = previous.get(record.id)?.[0];
-      // Adding/changing only a verdict also requires checking its new binding.
-      if (
-        old !== undefined &&
-        old.sha256 === record.sha256 &&
-        (type.review.place !== "frontmatter" ||
-          JSON.stringify(old.fields.review) === JSON.stringify(record.fields.review))
-      )
-        continue;
-      const raw = type.review.place === "frontmatter" ? [record.fields.review] : candidates;
-      const valid = raw.some((value) => {
-        const result = verdictSchema.safeParse(value);
-        if (!result.success) return false;
-        const v = result.data;
-        return (
-          v.id === record.id &&
-          v.sha256 === record.sha256 &&
-          v.rubric_sha256 === rubricHash &&
-          (v.rubric === type.review?.rubric || v.rubric === rubric) &&
-          v.pass &&
-          record.by !== undefined &&
-          v.by !== record.by &&
-          v.p.every((p) => p >= config.review.pass)
-        );
-      });
+      if (!reviewChanged(old, record, type)) continue;
+      const valid = hasPassingVerdict(record);
       if (!valid)
         findings.push({
           check: "I-06.verdict",
@@ -250,4 +227,50 @@ export function reviews(
     }
   }
   return findings;
+}
+
+/** Shared by I-06 and review retries: one schema, binding and storage reader. */
+export function verdictChecker(
+  head: Snapshot,
+  type: LoadedType,
+  config: Config,
+  rubricHash = sha256(head.files[rubricPath(type)] ?? undetermined("missing rubric")),
+): (record: RecordModel) => boolean {
+  const review = type.review ?? undetermined("missing review definition");
+  const raw =
+    review.place === "frontmatter"
+      ? undefined
+      : Object.entries(head.files)
+          .filter(([path]) => matches(review.place.slice(5), path))
+          .flatMap(([path, text]) => sidecarVerdicts(text, path));
+  return (record) =>
+    (raw ?? [record.fields.review]).some((value) => {
+      const result = verdictSchema.safeParse(value);
+      if (!result.success) return false;
+      const v = result.data;
+      return (
+        v.id === record.id &&
+        v.sha256 === record.sha256 &&
+        v.rubric_sha256 === rubricHash &&
+        (v.rubric === review.rubric || v.rubric === rubricPath(type)) &&
+        v.pass &&
+        record.by !== undefined &&
+        v.by !== record.by &&
+        v.p.every((p) => p >= config.review.pass)
+      );
+    });
+}
+
+/** Match the I-06 target set, including edits to frontmatter verdict metadata. */
+export function reviewChanged(
+  old: RecordModel | undefined,
+  record: RecordModel,
+  type: LoadedType,
+): boolean {
+  return (
+    old === undefined ||
+    old.sha256 !== record.sha256 ||
+    (type.review?.place === "frontmatter" &&
+      stableJson(old.fields.review) !== stableJson(record.fields.review))
+  );
 }
