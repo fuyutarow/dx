@@ -1,12 +1,17 @@
 #!/usr/bin/env bun
-import { jsonOf } from "../.dx-preset/zod.ts";
-import { validate, attemptAsync, undetermined } from "./errors.ts";
+import { attemptAsync, undetermined } from "./errors.ts";
 import { ok, safeTry, type Result } from "neverthrow";
 import { parseInvocation, type Invocation } from "./cli.ts";
 import { readConfig } from "./config.ts";
 
 import { revision, root, show } from "./repository.ts";
-import { responseSchema } from "./worker.ts";
+import { loadTypes } from "./policy.ts";
+import { isolationFindings, readSnapshot, ruleFiles, snapshotCache } from "./collection.ts";
+import { review } from "./commands/review.ts";
+import { check } from "./commands/check.ts";
+import { listRecords } from "./commands/ls.ts";
+import { view } from "./commands/view.ts";
+import { stableJson } from "./formats.ts";
 import { land } from "./commands/land.ts";
 import { version } from "../package.json" with { type: "json" };
 
@@ -15,12 +20,8 @@ export async function execute(
   cwd = process.cwd(),
 ): Promise<Result<{ exit: number; stdout: string; stderr: string }, string>> {
   return safeTry(async function* () {
-    const started = performance.now();
     const repo = yield* await root(cwd);
-    const head = yield* await revision(
-      repo,
-      invocation.command === "schema" ? "@" : invocation.rev,
-    );
+    const head = yield* await revision(repo, invocation.rev);
     const config = yield* readConfig(yield* await show(repo, head, "dx.toml", 120000));
     if (invocation.command === "land")
       return ok(
@@ -35,77 +36,57 @@ export async function execute(
             invocation.base ?? `${config.repo.branch}@${config.repo.remote}`,
           )
         : undefined;
-    const milliseconds = config.limits.check_seconds * 1000 - (performance.now() - started);
-    if (milliseconds <= 0) return undetermined("limits.check_seconds exceeded");
-    // CPU/policy work keeps the check deadline. Only an external review wait
-    // receives a separate allowance; the command itself enforces 120 seconds.
-    const controller = new AbortController();
-    let phase = 0;
-    const arm = (duration: number) => {
-      const generation = ++phase;
-      AbortSignal.timeout(Math.ceil(duration)).addEventListener(
-        "abort",
-        () => {
-          if (phase === generation) controller.abort();
-        },
-        { once: true },
+    // Repository I/O keeps its per-operation bound; callers bound total execution.
+    const ms = 120000;
+    const cache = snapshotCache(repo, ms);
+    const types = yield* await loadTypes(yield* await ruleFiles(repo, head, ms, cache.reader));
+    const current = yield* await readSnapshot(repo, head, config, types, ms, cache);
+    if (
+      invocation.command !== "check" &&
+      invocation.command !== "review" &&
+      current.findings.some((finding) => finding.check === "format")
+    )
+      return undetermined("record format could not be read; run dx check for findings");
+    if (invocation.command === "review" && base !== undefined) {
+      const previous = yield* await readSnapshot(repo, base, config, types, ms, cache);
+      const isolation = yield* await isolationFindings(
+        repo,
+        base,
+        head,
+        config,
+        types,
+        ms,
+        cache.reader,
       );
-    };
-    arm(milliseconds);
-    const signal = controller.signal;
-    const child = Bun.spawn({
-      cmd: [process.execPath, "--no-install", `${import.meta.dir}/worker.ts`],
-      cwd: repo,
-      stdin: new Blob([JSON.stringify({ cwd: repo, head, base, config, invocation })]),
-      stdout: "pipe",
-      stderr: "pipe",
-      signal,
-      killSignal: "SIGKILL",
-      env: { ...process.env, BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0" },
+      return review(repo, previous, current, types, config, isolation);
+    }
+    if (invocation.command === "check" && base !== undefined) {
+      const previous = yield* await readSnapshot(repo, base, config, types, ms, cache);
+      const findings = yield* await check(
+        previous,
+        current,
+        types,
+        yield* await isolationFindings(repo, base, head, config, types, ms, cache.reader),
+      );
+      const count = findings.filter((f) => f.new).length;
+      return ok({
+        exit: count > 0 ? 1 : 0,
+        stdout:
+          findings.map((finding) => stableJson(finding)).join("\n") +
+          (findings.length > 0 ? "\n" : ""),
+        stderr: `${count > 0 ? "FINDINGS: " : ""}新しい finding ${count} 件 / 既存 ${findings.length - count} 件\n`,
+      });
+    }
+    const viewName = invocation.list ? undefined : invocation.name;
+    const rows =
+      invocation.command === "ls"
+        ? listRecords(current)
+        : yield* await view(types, current, viewName);
+    return ok({
+      exit: 0,
+      stdout: rows.map((row) => stableJson(row)).join("\n") + (rows.length > 0 ? "\n" : ""),
+      stderr: "",
     });
-    const [stdout, stderr, exit] = await Promise.all([
-      new Response(child.stdout).text(),
-      (async () => {
-        let text = "";
-        const decoder = new TextDecoder();
-        let pending = "";
-        const line = (value: string) => {
-          if (invocation.command === "review" && value === "DX_INTERNAL_REVIEW_WAIT\n") {
-            arm(120000 + milliseconds);
-            return;
-          }
-          if (invocation.command === "review" && value === "DX_INTERNAL_REVIEW_READY\n") {
-            arm(milliseconds);
-            return;
-          }
-          if (invocation.command === "review" && !value.startsWith("UNDETERMINED:"))
-            process.stderr.write(value);
-          text += value;
-        };
-        for await (const chunk of child.stderr) {
-          pending += decoder.decode(chunk, { stream: true });
-          let end = pending.indexOf("\n");
-          while (end >= 0) {
-            line(pending.slice(0, end + 1));
-            pending = pending.slice(end + 1);
-            end = pending.indexOf("\n");
-          }
-        }
-        pending += decoder.decode();
-        if (pending !== "") line(pending);
-        return text;
-      })(),
-      child.exited,
-    ]);
-    if (signal.aborted) return undetermined("limits.check_seconds exceeded");
-    if (exit !== 0)
-      return undetermined(
-        stderr.trim() === ""
-          ? `policy process exited ${exit}`
-          : stderr.trim().replace(/^UNDETERMINED:/u, ""),
-      );
-    // Buffer the entire response. Inability to decide must leave stdout empty (C4).
-    return ok(yield* validate(jsonOf(responseSchema), stdout));
   });
 }
 async function main(): Promise<void> {

@@ -21,7 +21,7 @@ function renderPlainHelp(nodes: Parameters<Renderers["render"]>[0], renderers: R
 }
 
 export const invocationSchema = z.object({
-  command: z.enum(["ls", "check", "review", "land", "view", "schema"]),
+  command: z.enum(["ls", "check", "review", "land", "view"]),
   rev: z.string().default("@"),
   base: z.string().optional(),
   name: z.string().optional(),
@@ -35,7 +35,7 @@ function usage(reason: string): never {
 }
 /** Cleye owns parsing/help. This extra gate rejects repeat flags and extra positionals. */
 export function parseInvocation(args: string[]): CliAction | undefined {
-  const commands = ["ls", "check", "review", "land", "view", "schema"];
+  const commands = ["ls", "check", "review", "land", "view"];
   const name = args[0];
   if (name === undefined) usage("a command is required");
   if (name === "--version" || name === "-V") {
@@ -124,11 +124,6 @@ export function parseInvocation(args: string[]): CliAction | undefined {
           flags: { list: Boolean },
           help: { description: "Compute a view, or list available views", render: renderPlainHelp },
         }),
-        command({
-          name: "schema",
-          parameters: ["[type]"],
-          help: { description: "Print JSON Schema for one or all types", render: renderPlainHelp },
-        }),
       ],
     },
     undefined,
@@ -140,7 +135,7 @@ export function parseInvocation(args: string[]): CliAction | undefined {
     command: parsed.command,
     rev: positional[parsed.command === "view" ? 1 : 0] ?? "@",
     ...(base === undefined ? {} : { base }),
-    ...(parsed.command === "view" || parsed.command === "schema" ? { name: positional[0] } : {}),
+    ...(parsed.command === "view" ? { name: positional[0] } : {}),
     list: parsed.command === "view" && parsed.flags.list === true,
   });
   if (!invocation.success) usage(invocation.error.message);

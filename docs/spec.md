@@ -79,7 +79,7 @@
 | I-04 | links は宣言された type を指し、参照先があり、循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
 | I-06 | rubric を持つ type の記録で、新しいものと変わったものはすべて、今の記録の sha256 と今の rubric の sha256 に結びついた合格の verdict を持つ。verdict の `by` は、記録の `by` と違う。記録に `by` が無いときは、作り手と判定者の違いを確かめられないので、`by` が `process:` で始まる（機械の判定者の）verdict だけを認める | check |
-| I-07 | `ls`、`check`、`view`、`schema` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない | 各コマンド |
+| I-07 | `ls`、`check`、`view` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない | 各コマンド |
 | I-08 | 正規の branch は、check を通った commit への fast-forward でだけ動く | land |
 | I-09 | `.dx/` を変える change は、ほかの記録を一緒に変えない | check |
 | I-10 | review は、check の finding が無い記録にだけ Jev を呼ぶ。そのため、既存の finding を持つ旧い記録を変えるときは、先にその記録の finding をすべて消す必要がある（rubric を持つ type の場合。retrospectives で 2026-10-17 に実際に起きた） | review |
@@ -137,7 +137,6 @@
 | `dx review [REV]` | rubric を持つ type の記録のうち、新しいものと変わったもので finding が無いものについて、Jev に問い、verdict を書く | verdict の JSONL | 作業コピーに verdict を書く。Jev への問い合わせ |
 | `dx land [REV]` | check を通った REV で、remote の正規の branch を fast-forward する | 受領の JSON 1 値 | remote の正規の branch と、手元の bookmark |
 | `dx view <name> [REV]`、`dx view --list` | `.dx/` の views が定義する計算結果を出す | view の JSONL | なし |
-| `dx schema [<type>]` | type の schema を出す | JSON Schema | なし |
 
 書き手の普段の流れ:
 
@@ -177,7 +176,6 @@ dx land @-
 | `dx review [REV]` | REV は 1 個まで | 読まない | 例: `dx review @-` |
 | `dx land [REV]` | REV は 1 個まで | 読まない | 例: `dx land @-` |
 | `dx view <name> [REV]`、`dx view --list` | name は必須。`--list` は単独で使う | 読まない | 例: `dx view status \| jq 'select(.empirical_status=="falsified")'` |
-| `dx schema [<type>]` | type は 1 個まで。省略すると全 type | 読まない | 例: `dx schema evi > evi.schema.json` |
 
 ## C2 EFFECTS
 
@@ -193,7 +191,7 @@ dx land @-
 ## C3 CHANNELS
 
 - Machine mode: 常に machine mode（stdout にはデータだけを出す）。
-- Machine framing: `ls`、`check`、`review`、`view` は JSONL（UTF-8、1 行に 1 つの JSON object）、`land` と `schema` は JSON 1 値で、各 object に `"v":1` を付ける。
+- Machine framing: `ls`、`check`、`review`、`view` は JSONL（UTF-8、1 行に 1 つの JSON object）、`land` は JSON 1 値で、各 object に `"v":1` を付ける。
 
 記録: `{"v":1,"id","type","path","sha256","by"?,"links":[{"rel","to"}],"fields":{…}}`
 finding: `{"v":1,"key","check","id"?,"path","field"?,"new":bool,"message"}`（`key` は「check の名前 + 記録の id + フィールド」から決まり、版をまたいで変えない）
@@ -228,6 +226,7 @@ verdict: `{"v":1,"id","sha256","rubric","rubric_sha256","by","at","bits","p":[�
 | Surface | Promise | Change / deprecation | Verification receipt |
 |---|---|---|---|
 | サブコマンド名と位置引数 | 安定 | 消すときは、1 つの版の間、警告を出してから消す | 試作の後に取る |
+| `dx.toml` の `limits.check_seconds` と `review.pass` | 0.1.x は受け付けて無視する | stderr に `dx: warning: <key> is deprecated and ignored` を 1 行出す。0.2.0 で未知の項目として拒否する | 設定の互換性試験、soks の影運用 |
 | JSONL のフィールド（`v`=1） | 足すだけ | 意味を変えるときは `v` を上げる | 試作の後に取る |
 | 終了コード 0〜4 | 安定 | 変えない | 試作の後に取る |
 | finding の `key` の形 | 安定（I-02 がこれに頼る） | 変えるときは、旧い key との対応表を `.dx/` に置く | 試作の後に取る |
@@ -243,13 +242,11 @@ branch = "alpha"            # 正規の branch
 
 [review]
 command = ["agx", "jev"]    # stdin に JSON の要求を 1 つ受け、stdout に JSON の答えを返すコマンド
-pass    = 0.5               # 問いごとの確率がこれ以上なら、その問いに合格
 
 [limits]                    # 超えたら判定できない（終了コード 4）。黙って打ち切らない
 record_bytes     = 4194304
 records          = 200000
 links_per_record = 10000
-check_seconds    = 120
 
 [files]
 ignore = ["records/raw/**", "tools/**", "README.md"]   # dx が読まないパス
@@ -257,6 +254,8 @@ strict = false              # true なら、どの type にも当たらないフ
 ```
 
 - `name` 以外の値は、すべて上の値が既定になる。
+- review は、すべての問いの確率が 0.5 以上なら合格とする。
+- 判定全体の時間の上限は呼び出し側が持つ（`timeout 120 dx check`、agx の `timeout_s`、CI）。
 - `dx.toml` に規則は書かない。規則は `.dx/` に書く。
 
 ## 7. .dx/ の type 定義
@@ -333,8 +332,9 @@ export default defineType({
 | D5 | blob の管理は dx の外に置く | owner「blob は管理しなくていいだろ」 |
 | D6 | review（Jev）は dx の中心に置く | owner「dx は jev を利用しないの？？そこが肝なんじゃないの？？」 |
 | D7 | status の導出（証明依存グラフ）は、dx 本体ではなく research_record の `.dx/` の view に置く | 記録のグラフだけから決まる研究の意味なので、repo が持つ（2026-10-17、coordinator の提案。反対があれば改める） |
-| D9 | review は 3 つの filter の合成で行う: `rubric request <rubric.toml> <artifact>…`（要求の組み立て。抜粋、上限、UTF-8 を壊さない切り詰め）→ `agx jev`（Jev への運搬だけ。`[review] command`）→ `rubric bits`（応答を `{bits:[{id,p,reason}], refuted?}` に検証して出す）。`rubric` は dotfiles の小さな道具（tools/rubric）で、rubric の schema を持ち、Jev を呼ばず、記録も書かない。dx review が持つのは、判定する記録の選択（I-10）、verdict の結びつけと置き場、合否（`[review] pass`）だけ。`rubric` が land したら、`src/review-request.ts` をこの合成に置き換えて消す。それまでは今の実装を使い続ける | owner が `agx jev judge` / `agx assess` を agx の越権として退けた後の分け方（2026-10-17、dotfiles-agt_g67e 経由） |
-| D8 | 名前: `ls`、`check`、`review`、`land`、`view`、`schema`、`.dx/`、type、`checks`、`immutable`、`links`、`[repo]`、`branch`、`[review]`、`[files]`、`sha256`、`by` | 既存の 3 つの repo と OKF の語にそろえる（Unix の副原則 3）。`.dx/` は、道具が持つ設定を dot ディレクトリに置く慣習（`.claude/`、`.githooks/`、`.cocoindex_code/`）に合わせ、repo の中身（records/、knowledge/）と分ける（owner、2026-10-17） |
+| D9 | review は 3 つの filter の合成で行う: `rubric request <rubric.toml> <artifact>…`（要求の組み立て。抜粋、上限、UTF-8 を壊さない切り詰め）→ `agx jev`（Jev への運搬だけ。`[review] command`）→ `rubric bits`（応答を `{bits:[{id,p,reason}], refuted?}` に検証して出す）。`rubric` は dotfiles の小さな道具（tools/rubric）で、rubric の schema を持ち、Jev を呼ばず、記録も書かない。dx review が持つのは、判定する記録の選択（I-10）、verdict の結びつけと置き場、合否（各問いの確率が 0.5 以上）だけ。`rubric` が land したら、`src/review-request.ts` をこの合成に置き換えて消す。それまでは今の実装を使い続ける | owner が `agx jev judge` / `agx assess` を agx の越権として退けた後の分け方（2026-10-17、dotfiles-agt_g67e 経由） |
+| D8 | 名前: `ls`、`check`、`review`、`land`、`view`、`.dx/`、type、`checks`、`immutable`、`links`、`[repo]`、`branch`、`[review]`、`[files]`、`sha256`、`by` | 既存の 3 つの repo と OKF の語にそろえる（Unix の副原則 3）。`.dx/` は、道具が持つ設定を dot ディレクトリに置く慣習（`.claude/`、`.githooks/`、`.cocoindex_code/`）に合わせ、repo の中身（records/、knowledge/）と分ける（owner、2026-10-17） |
+| D10 | 時間の上限は呼び出し側が持つ。schema と pass の設定は、使う人がいないので消した。旧設定の 2 項目は C5 に従って 0.1.x の間は警告して無視する | owner の簡素化依頼、coordinator の削除・移行決定（2026-10-17） |
 
 ## 10. 残差
 

@@ -15,7 +15,7 @@ import {
   reviewerAllowed,
 } from "../checks.ts";
 import type { Snapshot } from "../collection.ts";
-import type { Config } from "../config.ts";
+import { REVIEW_PASS, type Config } from "../config.ts";
 
 import { parseRecords, formatAdapter, sha256, stableJson } from "../formats.ts";
 import {
@@ -103,10 +103,9 @@ export async function review(
   types: readonly LoadedType[],
   config: Config,
   isolation: readonly FindingInput[],
-  onWait: (waiting: boolean) => void = () => {},
 ) {
   return safeTry(async function* () {
-    const checked = yield* await check(base, head, types, config, isolation);
+    const checked = yield* await check(base, head, types, isolation);
     const findings = checked.filter((f) => f.check !== "I-06.verdict");
     const previous = new Map(base.records.map((r) => [r.id, r]));
     const plans = [];
@@ -115,7 +114,7 @@ export async function review(
     const tree = context(head, base);
     const passing = new Map<string, (record: RecordModel) => boolean>();
     for (const type of types.filter((t) => t.review !== undefined))
-      passing.set(type.name, yield* verdictChecker(head, type, config));
+      passing.set(type.name, yield* verdictChecker(head, type));
     // Preflight every immutable request before starting external work.
     for (const record of head.records) {
       const type = types.find((t) => t.name === record.type);
@@ -188,9 +187,7 @@ export async function review(
     const contents = new Map<string, string | undefined>();
     for (const plan of plans) {
       const { record, type, source, adapter, rubric, rubricText, request, path, target } = plan;
-      onWait(true);
       const posted = await runReviewCommand(cwd, config.review.command, request);
-      onWait(false);
       const response = posted.response;
       const p =
         response === undefined ? [] : rubric.criteria.map((c) => response.answers[c.id]?.noul);
@@ -205,7 +202,7 @@ export async function review(
         );
         continue;
       }
-      const passed = probabilities.data.map((value) => value >= config.review.pass);
+      const passed = probabilities.data.map((value) => value >= REVIEW_PASS);
       const verdict = yield* validate(verdictSchema, {
         v: 1,
         id: record.id,

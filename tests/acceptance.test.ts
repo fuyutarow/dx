@@ -245,7 +245,7 @@ test(
 );
 
 test(
-  "ls, view, view --list and schema acceptance receipts; historical reads ignore disk rules",
+  "ls, view and view --list acceptance receipts; historical reads ignore disk rules",
   async () => {
     const { cwd } = await repo();
     await write(cwd, "records/a.md", markdown("a"));
@@ -254,8 +254,6 @@ test(
       ["ls", revision],
       ["view", "index", revision],
       ["view", "--list"],
-      ["schema", "note"],
-      ["schema"],
     ]) {
       const result = await dx(cwd, ...args);
       expect(result.exit, result.stderr).toBe(0);
@@ -265,8 +263,6 @@ test(
         expect(rows(result.stdout)).toEqual([{ v: 1, id: "a", title: "Title" }]);
       if (args[1] === "--list")
         expect(rows(result.stdout)).toEqual([{ v: 1, name: "index", type: "note" }]);
-      if (args[0] === "schema" && args[1] === "note")
-        expect(rows(result.stdout)[0]?.type).toBe("object");
     }
     await write(cwd, ".dx/note.ts", "invalid TypeScript");
     await snapshot(cwd);

@@ -20,6 +20,15 @@ refuted_by = "既存の 2 つの repo（retrospectives、soks の影運用の .d
 - soks の `.dx/helpers/check.ts` は、木全体の検査を、`record === tree.records[0]` のときだけ行う回避策で書いている。dx の check が記録ごと（`(record, tree) => findings`）にしか書けないため。helper ごとに、同じ id の索引を作り直している。
 - retrospectives は tools/ を消す予定で、そうすると `.dx/*.ts` の型検査と lint が無くなる。
 
+## 追加の要件（soks から。2026-10-17）
+
+- soks の規則は `.leakcheck`（漏洩の denylist）を木の入力として読むが、`.leakcheck` はどの type にも当たらない。
+  - `[files] ignore` に入れると snapshot から消え、check が「missing .leakcheck」で落ちる。
+  - 残しておくと、`strict = true` がそれを指摘する。
+  - 証拠: `/home/fuyu/Workspace/soks.ws/ws_dx-shadow/.dx/tests/boundary/cfg-return.json`
+- そこで `[files] inputs = ["<glob>", …]` を足す。当たったファイルは snapshot に残り、`tree.read` と `tree.files` で読める。記録としては読まれず、`strict` の指摘からも外れる。
+- 決めること: `inputs` の中身が変わったら、その変化を I-09（`.dx/` を変える change と同じ扱い）に入れるか。`inputs` は規則の入力なので、`.dx/` と同じく「規則の変更」として扱い、ほかの記録と一緒に変えるのを禁じる。そう扱う理由を spec に書く。
+
 ## やること
 
 1. type 定義に `treeChecks: [(tree) => FindingInput[]]` を足す（名前は spec の命名に合わせて決める）。base 側と head 側で、それぞれ 1 回ずつ呼ぶ。I-02 の数え方は今と同じにする。

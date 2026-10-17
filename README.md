@@ -1,7 +1,7 @@
 # dx
 
 Bun TypeScript で実装した、jj の revision から記録を読む CLI です。仕様の正本は
-[docs/spec.md](docs/spec.md) 版 1 です。この 0.1.0 は `ls`、`check`、`review`、`land`、`view`、`schema` を実装します。
+[docs/spec.md](docs/spec.md) 版 1 です。この 0.1.0 は `ls`、`check`、`review`、`land`、`view` を実装します。
 既存 3 repo の型定義と移行は別 issue です。
 
 ```sh
@@ -15,7 +15,6 @@ bun src/main.ts review @
 bun src/main.ts land @-
 bun src/main.ts view --list
 bun src/main.ts view index @
-bun src/main.ts schema note
 mise run check
 ```
 
@@ -202,8 +201,7 @@ TOML の出力は `[[verdicts]]` です。既存のほかの id の verdict は�
 
 ## 出力と試験
 
-`ls`・`check`・`review`・`view` は `v:1` 付き JSONL、`schema` は `v:1` 付き JSON Schema 1 値を返します。
-`schema` の type 省略時は全 type を `$defs` に置きます。view 名は全 type 間で一意にします。
+`ls`・`check`・`review`・`view` は `v:1` 付き JSONL を返します。view 名は全 type 間で一意にします。
 stdout は結果全体を計算してから書きます。判定不能時は空 stdout と
 `UNDETERMINED:<理由>`、exit 4 を返します。使い方の誤りは exit 2 です。
 
@@ -221,7 +219,12 @@ Jev の不達・非0終了・120秒の時間切れ・応答不正も exit 3 で�
 
 上限は base/head それぞれに適用します。`records` は展開した記録数、`links_per_record` は展開後の
 link 数です。`record_bytes` はアダプタが読む 1 ファイルの UTF-8 バイト数で、複数記録を含む場合も
-分割前に確かめます。`check_seconds` は起動からの経過時間を含み、同期無限ループも打ち切ります。
+分割前に確かめます。判定全体の時間の上限は、呼び出し側の `timeout 120 dx check`、agx の
+`timeout_s`、CI などで設けます。判定不能なら stdout は空で、終了コード 4 です。
+
+review の合格条件は、すべての問いで確率が 0.5 以上であることです。
+`limits.check_seconds` と `review.pass` は 0.1.x の間だけ受け付けて無視し、
+stderr に `dx: warning: <key> is deprecated and ignored` を出します。0.2.0 からは未知の項目として拒否します。
 
 `tests/acceptance.test.ts` に正・負の受領試験、`tests/review.test.ts` に偽コマンドによる I-06/I-10 と review の試験、
 `tests/contracts.test.ts` に出力・引数・上限・
