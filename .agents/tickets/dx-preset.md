@@ -15,6 +15,16 @@ refuted_by = "プリセットの規則が、spec.md の振る舞い（たとえ�
 
 **owner の指示:「dotfiles の standard presets 水準で」**
 
+## 前の回（run d314ed43）の返却を受けての決定（coordinator。最新版）
+
+- 衝突していた点: プリセットの `ThrowStatement` の禁止（`presets/typescript/.oxlintrc.json:101`）と、dx の `throw`（`src/errors.ts:8`）、`src/review-request.ts:95` の中断、`tests/review.test.ts:370` の `toThrow`。仮に当てると、31 ファイルで 110 件のエラーになった。
+- **決定: プリセットに合わせる。例外は作らない。** エラーは値（neverthrow の `Result` / `ResultAsync`）で返す。
+  - 外から見える振る舞い（spec §5 の終了コード 0〜4、stdout と stderr の中身）は変えない。
+  - 例外を前提にしていた試験は、`isErr()` と、そのエラーの種類を確かめる形に書き換える。それは内部の契約の変更として認める。
+- プリセットの禁止を、例外の規則（`// eslint-disable` の類）で外してはいけない。プリセットに正式な例外の手続きがあり、どうしても避けられない箇所（外部の library が throw するのを catch する境目など）がある場合だけ、その手続きに従う。その箇所と理由は、返却に書く。
+- 型検査は `bun check` を優先する（プリセットが tsgo を求めても）。その食い違いは返却に書く。
+- この issue は、dx-perf-read（読み込みの修理）を統合した後の alpha の上で行う。
+
 ## 事実（coordinator が確かめた）
 
 - dx の `.oxlintrc.json` は最小のもので、`correctness` と `no-debugger`、`no-unused-vars` だけ。プリセットは当てていない。
