@@ -37,7 +37,7 @@ refuted_by = "`--policy` を省いたときの判定が、変える前と違う�
 4. 試験: 規則を持たない過去の commit を、`--policy alpha` で判定できること。省いたときの判定が変わらないこと。
 5. spec の §5（C1 の表）と US-06 に書き足す。
 
-この issue は、dx-group-findings を統合した後の alpha の上で行う。
+この issue は、dx-link-match を統合した後の alpha の上で行う（2026-10-18 に順番を前に出した。soks が dx land に切り替えた後、.leakcheck にパターンを足す change が拒否される後退を、早く閉じるため）。
 
 ## jj について
 
