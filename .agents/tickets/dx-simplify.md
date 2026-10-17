@@ -25,6 +25,15 @@ refuted_by = "retrospectives か soks の影運用で、消す前と後の findi
 
 **消さないもの:** `[limits]` の `record_bytes`、`records`、`links_per_record`。データの大きさの上限は、同じプロセスの中で安く確かめられ、Tiger Style の「資源の上限を明示する」に当たる。超えたら今までどおり終了コード 4。
 
+## 前の回（run 40ac2f8b）の返却を受けての決定（coordinator。最新版）
+
+- soks の影運用の `dx.toml` には `[limits] check_seconds = 1200` がある。設定を厳格に読む（知らない項目を拒否する）ので、項目をそのまま消すと exit 4 になる。
+- **決定:** spec §5 C5（消すときは 1 つの版のあいだ警告を出してから消す）に従う。`dx.toml` の項目も、公開している面に含まれる。
+  - `[limits] check_seconds` と `[review] pass` は、0.1.x のあいだは受け付けて無視し、stderr に `dx: warning: <key> is deprecated and ignored` を 1 行出す。
+  - 0.2.0 で、知らない項目として拒否する。spec の C5 の表に、この 2 つの項目の予定を書く。
+  - ほかの知らない項目は、今までどおり拒否する（exit 4）。
+- 比べ方: soks の写しは、`check_seconds` を残したままのものと、消したものの両方で流す。どちらも、消す前の dx と finding の組・終了コードが一致すること。
+
 ## やること
 
 1. 上の 3 つを消す。同じプロセスの中で、判定したものを全部出し終えてから stdout に書く、という性質は保つ。判定できないときは、stdout を空にして終了コード 4（C4）。今は子プロセスがこれを担っているので、消した後も同じ性質を保つこと。
