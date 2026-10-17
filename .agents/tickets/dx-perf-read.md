@@ -13,7 +13,18 @@ claim = "読み込みをまとめる変更は、soks と retrospectives の両�
 refuted_by = "soks か retrospectives で、変える前と後の finding の組か終了コードが違う（その差を返す）"
 +++
 
-**この brief は、前の回（run ed02fb1e）の返却を受けて書き直した最新版です。**
+**この brief は、run 215056e1 の返却を受けて書き直した最新版です。**
+
+## 2 回目の返却（run 215056e1）を受けての決定（coordinator）
+
+- lint、README、`mise run check`（74 試験）は済んだ。retrospectives の判定は、前と後で SHA-256 が一致した。
+- soks の「変える前」は、`[limits] check_seconds`（既定 120 秒、写しでは 600 秒）で打ち切られ、exit 4 になった。そのため比べられていない。
+- **この回でやること（これだけ）:** soks の写し（`/tmp/dx-perf-soks-copy`）の `dx.toml` で、`[limits] check_seconds` を 1800 にする。そのうえで、変える前と後を、同じ base（5450e31b）と同じ head（af36d0c3）で流し、finding の組の SHA-256 と終了コードを比べる。
+  - 一致すれば、今の作業コピーを commit して返す。
+  - 一致しなければ、差を返す。
+  - 写しの `dx.toml` を変えるのは測るためだけ。soks の本物の repo には書かない。
+
+以下は、前の版の brief（参考として残す）。
 
 ## 前の回の結果（coordinator が受け入れる部分）
 
