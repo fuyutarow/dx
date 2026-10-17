@@ -35,7 +35,7 @@ test("--all restores existing findings without changing exits or summaries, incl
   }
 }, 60000);
 
-test("--all includes input findings that remain existing even against root()", async () => {
+test("--all preserves new input findings and rejection against root()", async () => {
   const { cwd } = await repo({}, '[files]\ninputs=[".leakcheck"]\n');
   await write(cwd, ".leakcheck", "invalid pattern");
   await write(
@@ -49,11 +49,11 @@ test("--all includes input findings that remain existing even against root()", a
   await snapshot(cwd);
   const current = await dx(cwd, "check", "--base", "root()");
   const all = await dx(cwd, "check", "--base", "root()", "--all");
-  expect(current.exit).toBe(0);
-  expect(all.exit).toBe(0);
-  expect(current.stdout).toBe("");
+  expect(current.exit).toBe(1);
+  expect(all.exit).toBe(1);
+  expect(current.stdout).toBe(all.stdout);
   expect(current.stderr).toBe(all.stderr);
-  expect(rows(all.stdout)).toMatchObject([{ check: "policy.input", new: false }]);
+  expect(rows(all.stdout)).toMatchObject([{ check: "policy.input", new: true }]);
 });
 
 test("--all is a check-only boolean flag and appears in help", async () => {

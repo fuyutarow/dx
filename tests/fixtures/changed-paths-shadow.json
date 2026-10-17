@@ -1,0 +1,1447 @@
+{
+  "scope": "Same 161 parent/head pairs as changed-clean-shadow.json. Frozen rules and inputs on both sides; I-06 disabled and I-09 omitted as in prior shadow. Compare d36af1e7 classification with changed-path classification. No source repository writes.",
+  "baseline": "d36af1e7",
+  "counts": "pairs = distinct parent/head comparisons; changedFindings = deduplicated keys whose new flag changes; additional rejection = exit 0 to 1; exit 4 is undetermined",
+  "policyDigests": {
+    "soks": "02d068151256e00ee931741ddca6a3059ca23b49fd10d60562c15d3f054732a2",
+    "retrospectives": "beb5ab65d97b0a3038a5468ae20712e20c8719b841f3d679bfedc62dd1f27aa5"
+  },
+  "results": [
+    {
+      "repo": "retrospectives",
+      "commit": "6ce1a1eb1ec1e6c8ecd359675d5d0802025fd794",
+      "base": "root()",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "f685b82f6d3755228ec28b4d79e94f5f1046c822",
+      "base": "6ce1a1eb1ec1e6c8ecd359675d5d0802025fd794",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "4000ea889a674308436ce9828ebbcb97c6e611dc",
+      "base": "f685b82f6d3755228ec28b4d79e94f5f1046c822",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "7cf25d59c8154d64a6ce794844a7db6c81d09f02",
+      "base": "4000ea889a674308436ce9828ebbcb97c6e611dc",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "f0201a8646a9ab37a54dc22a6e3c6a3117793eca",
+      "base": "7cf25d59c8154d64a6ce794844a7db6c81d09f02",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "6a81007c14e0e01763adbee0740663a5a906f82a",
+      "base": "f0201a8646a9ab37a54dc22a6e3c6a3117793eca",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "ce6a0ee459f879da8098e6db49bd547e07ba7904",
+      "base": "6a81007c14e0e01763adbee0740663a5a906f82a",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "3b786d8e679e9ee4aedf8248c4d2bce6fe351f72",
+      "base": "ce6a0ee459f879da8098e6db49bd547e07ba7904",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "ff8085c402eb49da1171da33e6dd4f775ae602bd",
+      "base": "3b786d8e679e9ee4aedf8248c4d2bce6fe351f72",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "cc00c0b0fc22e8721746fd8b33d3c78c6e089dcb",
+      "base": "ff8085c402eb49da1171da33e6dd4f775ae602bd",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "c33fe5e6f7b8edddfc011af2b569c59e29c7e869",
+      "base": "cc00c0b0fc22e8721746fd8b33d3c78c6e089dcb",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "2a0b2536b71880a3ad2e0b5ccf93d64ecd0f80f3",
+      "base": "c33fe5e6f7b8edddfc011af2b569c59e29c7e869",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "292c7d5c0478b04c3e81b0f563b688ee90fece21",
+      "base": "2a0b2536b71880a3ad2e0b5ccf93d64ecd0f80f3",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "2b937f8352d61c69db16cefbc2649dbd7eed1260",
+      "base": "292c7d5c0478b04c3e81b0f563b688ee90fece21",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "39c790b0fc10cf1725dfa9a1dfe480c6c78cfa7d",
+      "base": "2b937f8352d61c69db16cefbc2649dbd7eed1260",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "f41b81ca07f6b797a8c4c00ad7efe72c8ef793e1",
+      "base": "39c790b0fc10cf1725dfa9a1dfe480c6c78cfa7d",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "6bcc61e552de37e437552c5a0745b7107ace4971",
+      "base": "f41b81ca07f6b797a8c4c00ad7efe72c8ef793e1",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "9c11d3c33f5ae7e5135bae0885db61a03ecb5d0d",
+      "base": "6bcc61e552de37e437552c5a0745b7107ace4971",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "7d99c266a408a6f9278999a86ad394936bc94dca",
+      "base": "9c11d3c33f5ae7e5135bae0885db61a03ecb5d0d",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "99ee32136bcf04be08f20865253336e0da50d146",
+      "base": "7d99c266a408a6f9278999a86ad394936bc94dca",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "90acb751f2ae69043f2929863684bc99865d0e2f",
+      "base": "99ee32136bcf04be08f20865253336e0da50d146",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "a24edc84f8a49810128b6a9d308334a3ae79287d",
+      "base": "90acb751f2ae69043f2929863684bc99865d0e2f",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "df02df1de00027a07b40039e1363e90774da24d1",
+      "base": "a24edc84f8a49810128b6a9d308334a3ae79287d",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "035d12dec0706dc6bc6725c0132033fede0d90e1",
+      "base": "df02df1de00027a07b40039e1363e90774da24d1",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "4135ba5115c4590de3fdafbdd263282d0f653d35",
+      "base": "035d12dec0706dc6bc6725c0132033fede0d90e1",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "43012b5630b4066a13b3d969e1b9a766abd7a10b",
+      "base": "4135ba5115c4590de3fdafbdd263282d0f653d35",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "06d4a51c25a21b50348087f5e52a1e1e827a5983",
+      "base": "43012b5630b4066a13b3d969e1b9a766abd7a10b",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "b33161c5d1f0b9a60021413f8fca7b43a6c3dd54",
+      "base": "06d4a51c25a21b50348087f5e52a1e1e827a5983",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "5045a07bae803fe1f9c374521e2632f6f3fa8587",
+      "base": "b33161c5d1f0b9a60021413f8fca7b43a6c3dd54",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": [
+        {
+          "finding": {
+            "v": 1,
+            "check": "retro.layout",
+            "path": "records/register.toml",
+            "message": "a non-Markdown file belongs in raw/",
+            "id": "20260703_qoed-postmortem-r2607-020-overview-authority-rot.md",
+            "field": "a non-Markdown file belongs in raw/",
+            "key": "[\"retro.layout\",\"20260703_qoed-postmortem-r2607-020-overview-authority-rot.md\",\"a non-Markdown file belongs in raw/\"]",
+            "new": true
+          },
+          "before": {
+            "v": 1,
+            "check": "retro.layout",
+            "path": "records/register.toml",
+            "message": "a non-Markdown file belongs in raw/",
+            "id": "20260703_qoed-postmortem-r2607-020-overview-authority-rot.md",
+            "field": "a non-Markdown file belongs in raw/",
+            "key": "[\"retro.layout\",\"20260703_qoed-postmortem-r2607-020-overview-authority-rot.md\",\"a non-Markdown file belongs in raw/\"]",
+            "new": false
+          },
+          "fileChanged": true,
+          "baseBlob": "ad747bacdc485831cfe6c794d88a04108d4b70e4",
+          "headBlob": "e40dd460b548d40ef5388f1a15bf091881baedd4"
+        }
+      ]
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "2c46dd5d3fb7bfb5559a2ce8684958fa1b5080ab",
+      "base": "5045a07bae803fe1f9c374521e2632f6f3fa8587",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "b15002326cec42be4da825d1279c092f27ab0e7e",
+      "base": "2c46dd5d3fb7bfb5559a2ce8684958fa1b5080ab",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "ccb2e6b745e9e9d54c0c6cb51fe2863d4bc801c1",
+      "base": "b15002326cec42be4da825d1279c092f27ab0e7e",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "98e4c438a48703351cc456fe052f8011e4f2fe55",
+      "base": "ccb2e6b745e9e9d54c0c6cb51fe2863d4bc801c1",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "b323603e94d5fc69c0455782a92bfc4733bea522",
+      "base": "98e4c438a48703351cc456fe052f8011e4f2fe55",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "8b603a991c3ae0987a1318070e1703559994ab8d",
+      "base": "b323603e94d5fc69c0455782a92bfc4733bea522",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "b1451534b2cf86a427e3e8bb7d9b58281322faa1",
+      "base": "8b603a991c3ae0987a1318070e1703559994ab8d",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "e5a27da3c49c917fe35f08fff31e2f4c5a5f2f08",
+      "base": "b1451534b2cf86a427e3e8bb7d9b58281322faa1",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "b0945ee0df409799b5807d0376cb7824e92b06d8",
+      "base": "e5a27da3c49c917fe35f08fff31e2f4c5a5f2f08",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "fcaeb5eae0297133c007b7cc1b89744904f5b8e9",
+      "base": "b0945ee0df409799b5807d0376cb7824e92b06d8",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "300e84f6d1cd7f961834cf8ada80dcfb3e2ac560",
+      "base": "fcaeb5eae0297133c007b7cc1b89744904f5b8e9",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "c6a356348b62c1f5e22ca42afd2a7ebffd875561",
+      "base": "300e84f6d1cd7f961834cf8ada80dcfb3e2ac560",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "a74cce39aa08245869d6f160868acd3045ad571a",
+      "base": "c6a356348b62c1f5e22ca42afd2a7ebffd875561",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1383d9e3b2baa0052fe3916a0a61e8903ce9bc1b",
+      "base": "a74cce39aa08245869d6f160868acd3045ad571a",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "ce9c6f811be33206efe5f8be75301ed7f3a34d61",
+      "base": "1383d9e3b2baa0052fe3916a0a61e8903ce9bc1b",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "9ddc8a560c76d26c8e2944355ba6f6d1770994eb",
+      "base": "ce9c6f811be33206efe5f8be75301ed7f3a34d61",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "3550c53e0918d9ab9cec350c01b3b91850f2e3e4",
+      "base": "9ddc8a560c76d26c8e2944355ba6f6d1770994eb",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "e4680f516c65240e5911bfd3c12157d1f719f965",
+      "base": "3550c53e0918d9ab9cec350c01b3b91850f2e3e4",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "7e2af473cae5bed91fd0d49497454666c6eb1baa",
+      "base": "e4680f516c65240e5911bfd3c12157d1f719f965",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "07d857b0f58250377e91bb3c34db643e3c4a949e",
+      "base": "7e2af473cae5bed91fd0d49497454666c6eb1baa",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "e538778419cb0960acf70ab209a36e31127a502b",
+      "base": "07d857b0f58250377e91bb3c34db643e3c4a949e",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "99d5b7579e35d770b99520ea6a9a2657a03b84ff",
+      "base": "e538778419cb0960acf70ab209a36e31127a502b",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "758dfd916f2b25eafc54f6052dff077ecd7eddaa",
+      "base": "99d5b7579e35d770b99520ea6a9a2657a03b84ff",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "ba930f3d65080a4bfb0da2a309f792487ee1a481",
+      "base": "758dfd916f2b25eafc54f6052dff077ecd7eddaa",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "18c6c6b8c6d99ba3cdbfb0b60e0142c3183423f9",
+      "base": "ba930f3d65080a4bfb0da2a309f792487ee1a481",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "2e2ce274fbfdb9e7f10df954e4bbd905a1cec60f",
+      "base": "18c6c6b8c6d99ba3cdbfb0b60e0142c3183423f9",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "39e1f39f7184188545580ff819738e7f6a3dfa6e",
+      "base": "2e2ce274fbfdb9e7f10df954e4bbd905a1cec60f",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "30f27762b3f2ef61d72f4eaa300399c37fd05157",
+      "base": "39e1f39f7184188545580ff819738e7f6a3dfa6e",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "a04614b02be18298fe992b2c4f656768978975b2",
+      "base": "30f27762b3f2ef61d72f4eaa300399c37fd05157",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "871f212804dab88ff2961775b8d9690a7c399c94",
+      "base": "a04614b02be18298fe992b2c4f656768978975b2",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "be05a8b24b4de2bb69c1a4a0b2d3e4033fa5b64b",
+      "base": "871f212804dab88ff2961775b8d9690a7c399c94",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "f6b6fdd8bf12555a2768fe976cca2dd124c369bf",
+      "base": "be05a8b24b4de2bb69c1a4a0b2d3e4033fa5b64b",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "3439bc14b9cfdae988f25ed213642f79e0bdf3a8",
+      "base": "f6b6fdd8bf12555a2768fe976cca2dd124c369bf",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "df0004a1fc2b940db7f065260e2c52da0322fc03",
+      "base": "3439bc14b9cfdae988f25ed213642f79e0bdf3a8",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "b552c1d6a92257de1bebbe816261cb36481f30e8",
+      "base": "df0004a1fc2b940db7f065260e2c52da0322fc03",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "21315aa5bbf36d968f6925d9ab8781e1ea869903",
+      "base": "b552c1d6a92257de1bebbe816261cb36481f30e8",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1f25a22eac4e5c9402a5669d94cf99ad3fb2d626",
+      "base": "21315aa5bbf36d968f6925d9ab8781e1ea869903",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "4470a0bab110741ead1d6197cb4232cf85bd8773",
+      "base": "1f25a22eac4e5c9402a5669d94cf99ad3fb2d626",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "d6886395f36afe5dbd617a2674c38a56369e2d45",
+      "base": "4470a0bab110741ead1d6197cb4232cf85bd8773",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "d8379abb5a928ac9fd4fe458be7bc342105fbdec",
+      "base": "d6886395f36afe5dbd617a2674c38a56369e2d45",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "b374dada66b2d155af3097926ecbbba18b8763f2",
+      "base": "d8379abb5a928ac9fd4fe458be7bc342105fbdec",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "50848bc873904570ba6006803e417df5cb694c73",
+      "base": "b374dada66b2d155af3097926ecbbba18b8763f2",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1e7e2441c7e547368d81d9e9a64ef0fc7c5a05e4",
+      "base": "50848bc873904570ba6006803e417df5cb694c73",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "96771cbe6a3d6a9e1f3fd89474caf61d6ce0c807",
+      "base": "1e7e2441c7e547368d81d9e9a64ef0fc7c5a05e4",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "378057317e8ff3f992d8fbf908ba728a28b28246",
+      "base": "96771cbe6a3d6a9e1f3fd89474caf61d6ce0c807",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "5f3a3363ec1f046bf0a0b7b2c00370aaef551371",
+      "base": "378057317e8ff3f992d8fbf908ba728a28b28246",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "8b70040d0112776c12741a6850bc669774c7c871",
+      "base": "5f3a3363ec1f046bf0a0b7b2c00370aaef551371",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "f03f0688c6b16f817529711043f0eb7cc6c19813",
+      "base": "8b70040d0112776c12741a6850bc669774c7c871",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "13ec5b4510f2e1f313e9711d2ae4c1e172032bdc",
+      "base": "f03f0688c6b16f817529711043f0eb7cc6c19813",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1a34d6bebf475d7515a824a5d6fe84f748966ab0",
+      "base": "13ec5b4510f2e1f313e9711d2ae4c1e172032bdc",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1102814876bde672a1b5c281ebf3bd6fbd700a47",
+      "base": "1a34d6bebf475d7515a824a5d6fe84f748966ab0",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1a7190728005621ae948bc04e35cfc3df64f13f9",
+      "base": "1102814876bde672a1b5c281ebf3bd6fbd700a47",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "8bfb027f07265a55ef94b2724798dc9fd6ea9f8e",
+      "base": "1a7190728005621ae948bc04e35cfc3df64f13f9",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "0c7c34de12afb7b0b06b9496f4daf4ddc0eeaff9",
+      "base": "8bfb027f07265a55ef94b2724798dc9fd6ea9f8e",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "9ebed2940830ed5d83cb7e1fdc4066f3a67ec1a9",
+      "base": "0c7c34de12afb7b0b06b9496f4daf4ddc0eeaff9",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "82cc925edf9a6634d86a6c1519a4d10f0ba84f57",
+      "base": "9ebed2940830ed5d83cb7e1fdc4066f3a67ec1a9",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "914dce77b89ad70c03efbd9123f0648d70fa59ab",
+      "base": "82cc925edf9a6634d86a6c1519a4d10f0ba84f57",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "eef2758cd6764edc8ea667524065e5812891cc70",
+      "base": "914dce77b89ad70c03efbd9123f0648d70fa59ab",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "870fbb20e7dec53ea8d26d725647dce2ca56004e",
+      "base": "eef2758cd6764edc8ea667524065e5812891cc70",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "d0097e3fa966d6431dd4bc490f67347ca67b6b7f",
+      "base": "870fbb20e7dec53ea8d26d725647dce2ca56004e",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "be1a404be8ec8b742907f674e4460ef1d8fdebf2",
+      "base": "d0097e3fa966d6431dd4bc490f67347ca67b6b7f",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "a662f18637c9a62beb6e24df82a4f098715de544",
+      "base": "be1a404be8ec8b742907f674e4460ef1d8fdebf2",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "767f2f248330aed14cb424d8322bf147ca3e6635",
+      "base": "a662f18637c9a62beb6e24df82a4f098715de544",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "85b56c87691d808184912d76c3206626f4f80b30",
+      "base": "767f2f248330aed14cb424d8322bf147ca3e6635",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "fa23510e845c0eeff177337b7f1065538d7f0257",
+      "base": "85b56c87691d808184912d76c3206626f4f80b30",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "b53f5e8036a4801c9bb3715a96dbe51f9e9bbf7d",
+      "base": "fa23510e845c0eeff177337b7f1065538d7f0257",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "c643779892380b7a96537a0cd79fedd0b28d7cb4",
+      "base": "b53f5e8036a4801c9bb3715a96dbe51f9e9bbf7d",
+      "oldExit": 1,
+      "newExit": 1,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1553d48ae158a44c02cab9723a42b84de3689fd3",
+      "base": "c643779892380b7a96537a0cd79fedd0b28d7cb4",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "7ea7072e4eaaf2bf6ccd16a7633b57e1e9be2675",
+      "base": "1553d48ae158a44c02cab9723a42b84de3689fd3",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "bf98410645293a1505f9c8858dde167e7c566500",
+      "base": "7ea7072e4eaaf2bf6ccd16a7633b57e1e9be2675",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "f019fac9c0a489a4a843c135acfec70589c172b4",
+      "base": "bf98410645293a1505f9c8858dde167e7c566500",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1fab13f8585e957b94c55b2e0fec5b7753f09bfd",
+      "base": "f019fac9c0a489a4a843c135acfec70589c172b4",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "5ccc930d21425b39b2f128e72181887cc875beb0",
+      "base": "1fab13f8585e957b94c55b2e0fec5b7753f09bfd",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "cb6338d413a2c661d0dc3f3e0ded3a0ddb68fa40",
+      "base": "5ccc930d21425b39b2f128e72181887cc875beb0",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "5529cd8b09505ab32961379e3d206fe7f4c6958d",
+      "base": "cb6338d413a2c661d0dc3f3e0ded3a0ddb68fa40",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "3b8106e54d61e24d18fffea9c9465a6feca0e82d",
+      "base": "5529cd8b09505ab32961379e3d206fe7f4c6958d",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "d6a28a8d36f792439d9fee6daba5b8af9b331ee1",
+      "base": "3b8106e54d61e24d18fffea9c9465a6feca0e82d",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "410cc62a3a2dba0b14760c60c341e9264966ed1c",
+      "base": "d6a28a8d36f792439d9fee6daba5b8af9b331ee1",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "adadbdd7dfbc13b3513cc28499e53dc1d9ced8aa",
+      "base": "410cc62a3a2dba0b14760c60c341e9264966ed1c",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "6910203ae271599a44c804440f910158f80200ac",
+      "base": "adadbdd7dfbc13b3513cc28499e53dc1d9ced8aa",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "4f0902790e429f6416002b76236328c828f3a6cf",
+      "base": "6910203ae271599a44c804440f910158f80200ac",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1c955fbd26b5f63ef33c926c9137520d7a1e4927",
+      "base": "4f0902790e429f6416002b76236328c828f3a6cf",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "2875f2d4599b70545b598c45d02b61d4146c6990",
+      "base": "1c955fbd26b5f63ef33c926c9137520d7a1e4927",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "b2adfaddc6adb6924c1cbce64fd7451ddde1e013",
+      "base": "2875f2d4599b70545b598c45d02b61d4146c6990",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "e115eba6beede8122496d718ce59ec5ce6c78f47",
+      "base": "b2adfaddc6adb6924c1cbce64fd7451ddde1e013",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "48449b71f463833210295e9e14d77369a5066b86",
+      "base": "e115eba6beede8122496d718ce59ec5ce6c78f47",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "1478ce50104efd2f77483762742f9eddc53ae488",
+      "base": "48449b71f463833210295e9e14d77369a5066b86",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "3988ccbc74de8eed7ff1510594b989afbe068f92",
+      "base": "1478ce50104efd2f77483762742f9eddc53ae488",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "6eb8d608647bc1eff2e4fa170d67363cce81f94a",
+      "base": "3988ccbc74de8eed7ff1510594b989afbe068f92",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "retrospectives",
+      "commit": "277d04253a28789fa1ca3f6ef53dc2290ff65302",
+      "base": "6eb8d608647bc1eff2e4fa170d67363cce81f94a",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "125ee38091adb42031079fc9599eaf06e326c0a1",
+      "base": "ea2a41c0e9dbf77fa0325e8992707f539361876f",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "ac395df5152d0ba6746cc3da608b274800df4e21",
+      "base": "516e8127dd14c13dc355af731b0467420aa4c92e",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "e1e0ec8e5f6ab2228b1fd258d47a80ee7eb58e6f",
+      "base": "ba5281a2a6e46aeefe12e061bc87540d3abf7e74",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "ba5281a2a6e46aeefe12e061bc87540d3abf7e74",
+      "base": "26dead457e619ec9774de00aaa7aa471d4043b16",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "26dead457e619ec9774de00aaa7aa471d4043b16",
+      "base": "8da48bbabcea37b08b8ed124170f927dcdaaf91a",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "4d61487170bc1053363f77bbd57887b2ed8e7b61",
+      "base": "72acf5238de766b865da923f6f337680afa2cb00",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "5a3bbd62f5c288d721ea3ba85ed5ecc9a88107b2",
+      "base": "40db54115a587588589748998d510383461b7721",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "40db54115a587588589748998d510383461b7721",
+      "base": "773838e248d8ec5951391f34ae7d8e7973d9ae6a",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "773838e248d8ec5951391f34ae7d8e7973d9ae6a",
+      "base": "23ddc46e99670e404c013b841a9bc0cd03fb1a3d",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "d9b0d360e1b8dc6a0d7868b2f831fcc598251cfc",
+      "base": "06203ebc4c6f8b73a783612b7cd6affb329f57af",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "9df9dbe6345ec6dd7c9b86ae224f8ff588416c8d",
+      "base": "ab56ea7cdfca08185825f6c5ca478bea45821f89",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "d35b3f69fb59af368d44b1aa61221e47b490cf07",
+      "base": "640086f5a73ba726c28592f29a44721898dd0c1b",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "d972ee310e8178eb84d55fc9e005d0718feefd7f",
+      "base": "0062256fcd88338a104010986c1a3f41b8233e13",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "1a4841a006952f481305bfb82013f08ff5de346b",
+      "base": "bc5ea17bfc4609e2b21706c4456ec332a4481a49",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "bc5ea17bfc4609e2b21706c4456ec332a4481a49",
+      "base": "49bd3e2d868dd0a1e408b2a0d90f4c3652ab09d9",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "908bfd508e4b59beb840316b89942d16e138555a",
+      "base": "39fa55e0af0878a0bb68762857c423fcf4980e2d",
+      "oldExit": 4,
+      "newExit": 4,
+      "changedFindings": [],
+      "undetermined": "Error: Rust regex needs regeneration/parity: (?m)(^|[^A-Za-z])R-[A-Z]{2,}(-[0-9]+)?([^A-Za-z]|$)"
+    },
+    {
+      "repo": "soks",
+      "commit": "64f606e5748039bb3344ffeb6693a309599eca25",
+      "base": "d9fd7cc311f3612a3972db25d48608df3451aca1",
+      "oldExit": 4,
+      "newExit": 4,
+      "changedFindings": [],
+      "undetermined": "Error: Rust regex needs regeneration/parity: (?m)(^|[^A-Za-z])R-[A-Z]{2,}(-[0-9]+)?([^A-Za-z]|$)"
+    },
+    {
+      "repo": "soks",
+      "commit": "c53e57fe4a729772fb93207ba117e484c25c6645",
+      "base": "5fabae39da72e5f9f33f906df49cbe08dbf39013",
+      "oldExit": 4,
+      "newExit": 4,
+      "changedFindings": [],
+      "undetermined": "Error: Rust regex needs regeneration/parity: (?m)DOCTRINE\\.md"
+    },
+    {
+      "repo": "soks",
+      "commit": "c26823de48125c3b8a178414bec5a8bf848c6f13",
+      "base": "a7bebdc839d774e04ed79cc83de35ece846a90cd",
+      "oldExit": 4,
+      "newExit": 4,
+      "changedFindings": [],
+      "undetermined": "Error: Rust regex needs regeneration/parity: (?m)DOCTRINE\\.md"
+    },
+    {
+      "repo": "soks",
+      "commit": "9d51d38cb556de8658e0fb0ce1bffee15c66ae32",
+      "base": "3e6cabc42609a0cde897ab2f6365e7c9ad043e2f",
+      "oldExit": 4,
+      "newExit": 4,
+      "changedFindings": [],
+      "undetermined": "Error: Rust regex needs regeneration/parity: (?m)DOCTRINE\\.md"
+    },
+    {
+      "repo": "soks",
+      "commit": "2557f0b2554ad92ff88918e7a2c132b3fef1cdaf",
+      "base": "095e0f6db41a50c4781e153380df2c1ce4f8394f",
+      "oldExit": 4,
+      "newExit": 4,
+      "changedFindings": [],
+      "undetermined": "Error: Rust regex needs regeneration/parity: (?m)DOCTRINE\\.md"
+    },
+    {
+      "repo": "soks",
+      "commit": "c91e93985fc4918bc62ef57c928019db1f4242e8",
+      "base": "7e8e5763635e001b24cb35a48a9f2fe32606dbe6",
+      "oldExit": 4,
+      "newExit": 4,
+      "changedFindings": [],
+      "undetermined": "Error: Rust regex needs regeneration/parity: (?im)DOCTRINE\\.md"
+    },
+    {
+      "repo": "soks",
+      "commit": "8a2fc3e2e63ad9d99585e51e464df68cc05e504c",
+      "base": "17c8264517867453ae33bd8af3eea7549e4e8733",
+      "oldExit": 4,
+      "newExit": 4,
+      "changedFindings": [],
+      "undetermined": "Error: Rust regex needs regeneration/parity: (?im)DOCTRINE\\.md"
+    },
+    {
+      "repo": "soks",
+      "commit": "23887c1949818d2bb5b7b0af5d500b809bc9601c",
+      "base": "d81825fb6826662e976b1c74a6e6c793afeb7fbe",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "d81825fb6826662e976b1c74a6e6c793afeb7fbe",
+      "base": "0a0cfdc1587c269d05eaab994b0faa0584a3612f",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "4be107bba00962af85869884639e1b314ee413f3",
+      "base": "52381b6888005e11ee29a71ce115f26b71f91168",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "053ac7852cdb17eaeefaa40cfe423606b7c363d5",
+      "base": "6c005f580ac93858a82663743697aadc748dadf4",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "23819055eb69951d126f628c3545e8b881652f9e",
+      "base": "615d4fdba63ac25c5ef2f7b8e155aceaa146d619",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "60288e3f14d202d39f0f1c1aecf1c96d277b73b8",
+      "base": "dedcd24f814052551d98b11812e691bfd495fba8",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "dedcd24f814052551d98b11812e691bfd495fba8",
+      "base": "root()",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "6bddde07c677cd1c225047a00eaf8bd35e0e00c0",
+      "base": "789bab07a2b36dfdd8b0713d5f619b0315c59e5a",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "b742cd7b3638dc8c81ef7c770cb2e0a20dace6b5",
+      "base": "9ff0dd19c63a967482ba25203a58b3efbe035d43",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "9528d36f8e27688bb1ee288febccbdfd57859524",
+      "base": "d83e498f4e57eb63cc6233d8aaa3142d3e0b58b2",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "e2c7e22dd58f984ff4d94318945209b8de1832e9",
+      "base": "01ad6dce7ecd5761ca8c2862add8288a58ea3cb9",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "4467f0b89ab08e2cb5059dfa18c3057e1a05908a",
+      "base": "22df64d4a4c06c32712938b86b0837291e2d56e1",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "2f1b3d0a100f48bde3bbf292ced3f74cd5a5fd20",
+      "base": "c2c206878ae77996970ba517950781a197cd9875",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "25937c4db0021d8a5073696e3d6b435a64af928b",
+      "base": "33795e9e8ec78c756f5efaebd599caa0bc920ec9",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "283fed563208b544c50103ed15fb2eddd9b0b597",
+      "base": "99f3ccc74d22c0e81b2c7899b267da2af534dd4c",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "54fe9f5a62967aef4275e082a52287da73121685",
+      "base": "141eafbefa744550f4717056979d078a83fb3d1d",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "5d063aa2c312fb1242e52279008183316d0e4d28",
+      "base": "c9377871589509b75a4aa0980a91f2558479da94",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "b3fbc9f38ae13ef94b0fb264c0bdad687622f296",
+      "base": "889fbef02db2712a7b8797be92e1841c1e22c229",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    },
+    {
+      "repo": "soks",
+      "commit": "885b1e2894161cf39ccd62b7e43ce324df5d1a56",
+      "base": "c40cf24cbc16c30c3bffca052cfa78bf045fa116",
+      "oldExit": 0,
+      "newExit": 0,
+      "changedFindings": []
+    }
+  ],
+  "configNormalization": "Remove obsolete limits.check_seconds from old soks shadow config for both classifiers; caller still bounds I/O.",
+  "summary": {
+    "pairs": 161,
+    "changedCommits": [
+      {
+        "repo": "retrospectives",
+        "commit": "5045a07bae803fe1f9c374521e2632f6f3fa8587",
+        "oldExit": 1,
+        "newExit": 1,
+        "changedFindings": [
+          {
+            "finding": {
+              "v": 1,
+              "check": "retro.layout",
+              "path": "records/register.toml",
+              "message": "a non-Markdown file belongs in raw/",
+              "id": "20260703_qoed-postmortem-r2607-020-overview-authority-rot.md",
+              "field": "a non-Markdown file belongs in raw/",
+              "key": "[\"retro.layout\",\"20260703_qoed-postmortem-r2607-020-overview-authority-rot.md\",\"a non-Markdown file belongs in raw/\"]",
+              "new": true
+            },
+            "before": {
+              "v": 1,
+              "check": "retro.layout",
+              "path": "records/register.toml",
+              "message": "a non-Markdown file belongs in raw/",
+              "id": "20260703_qoed-postmortem-r2607-020-overview-authority-rot.md",
+              "field": "a non-Markdown file belongs in raw/",
+              "key": "[\"retro.layout\",\"20260703_qoed-postmortem-r2607-020-overview-authority-rot.md\",\"a non-Markdown file belongs in raw/\"]",
+              "new": false
+            },
+            "fileChanged": true,
+            "baseBlob": "ad747bacdc485831cfe6c794d88a04108d4b70e4",
+            "headBlob": "e40dd460b548d40ef5388f1a15bf091881baedd4"
+          }
+        ]
+      }
+    ],
+    "additionalRejections": [],
+    "undetermined": [
+      {
+        "repo": "soks",
+        "commit": "908bfd508e4b59beb840316b89942d16e138555a",
+        "reason": "Error: Rust regex needs regeneration/parity: (?m)(^|[^A-Za-z])R-[A-Z]{2,}(-[0-9]+)?([^A-Za-z]|$)"
+      },
+      {
+        "repo": "soks",
+        "commit": "64f606e5748039bb3344ffeb6693a309599eca25",
+        "reason": "Error: Rust regex needs regeneration/parity: (?m)(^|[^A-Za-z])R-[A-Z]{2,}(-[0-9]+)?([^A-Za-z]|$)"
+      },
+      {
+        "repo": "soks",
+        "commit": "c53e57fe4a729772fb93207ba117e484c25c6645",
+        "reason": "Error: Rust regex needs regeneration/parity: (?m)DOCTRINE\\.md"
+      },
+      {
+        "repo": "soks",
+        "commit": "c26823de48125c3b8a178414bec5a8bf848c6f13",
+        "reason": "Error: Rust regex needs regeneration/parity: (?m)DOCTRINE\\.md"
+      },
+      {
+        "repo": "soks",
+        "commit": "9d51d38cb556de8658e0fb0ce1bffee15c66ae32",
+        "reason": "Error: Rust regex needs regeneration/parity: (?m)DOCTRINE\\.md"
+      },
+      {
+        "repo": "soks",
+        "commit": "2557f0b2554ad92ff88918e7a2c132b3fef1cdaf",
+        "reason": "Error: Rust regex needs regeneration/parity: (?m)DOCTRINE\\.md"
+      },
+      {
+        "repo": "soks",
+        "commit": "c91e93985fc4918bc62ef57c928019db1f4242e8",
+        "reason": "Error: Rust regex needs regeneration/parity: (?im)DOCTRINE\\.md"
+      },
+      {
+        "repo": "soks",
+        "commit": "8a2fc3e2e63ad9d99585e51e464df68cc05e504c",
+        "reason": "Error: Rust regex needs regeneration/parity: (?im)DOCTRINE\\.md"
+      }
+    ],
+    "determinate": 153,
+    "repos": [
+      {
+        "repo": "retrospectives",
+        "pairs": 119,
+        "determinate": 119,
+        "classificationChangedCommits": 1,
+        "changedFindings": 1,
+        "additionalRejections": 0
+      },
+      {
+        "repo": "soks",
+        "pairs": 42,
+        "determinate": 34,
+        "classificationChangedCommits": 0,
+        "changedFindings": 0,
+        "additionalRejections": 0
+      }
+    ]
+  },
+  "method": {
+    "runner": "/tmp/dx-paths-history.ts",
+    "runnerSha256": "de67df4eb88db58674b1c20a883e012a5bea6f1409363d576953238e847411eb",
+    "originalCheckSha256": "b1610d0b85a101d36198569a6021d64b3a5c4558f4b4b9857cf192e55384922a",
+    "originalClassifySha256": "8d5b9b883f0a0346f1fc021d6158e04e96ae141e255de35f1403b8043f8cbf06",
+    "priorSample": "tests/fixtures/changed-clean-shadow.json",
+    "priorSampleSha256": "bdf25c856186d7494700d46600b8310e0394042067c30e23044817a3f26e3eec",
+    "retrospectivesPolicy": "277d04253a28789fa1ca3f6ef53dc2290ff65302",
+    "soksPolicy": "/home/fuyu/.cache/soks-coord/dx-snap-1",
+    "soksInputRevision": "adb5ca374c6ce7780353f1fa64312eb2fb8229ac\n",
+    "comparison": "Original d36af1e7 check/classify imports are rewritten only to absolute source module paths. Both classifiers receive the same snapshots; fileIds come from raw base/head trees. Resume retained the first 119 results and processed the remaining 42.",
+    "versionChoice": "No release in this ticket; package remains alpha 0.1.2. No CHANGELOG or changeset written."
+  }
+}

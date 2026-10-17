@@ -13,12 +13,12 @@ const groupFinding = (ids: string[]): FindingInput => ({
 test("I-02: a group finding is new when any member record changed", () => {
   const base = [groupFinding(["sok", "pro", "led"])];
 
-  expect(classify([groupFinding(["led", "sok", "pro"])], base, new Set())).toMatchObject([
-    { ids: ["led", "pro", "sok"], new: false },
-  ]);
-  expect(classify([groupFinding(["led", "sok", "pro"])], base, new Set(["pro"]))).toMatchObject([
-    { ids: ["led", "pro", "sok"], new: true },
-  ]);
+  expect(classify([groupFinding(["led", "sok", "pro"])], base, new Set(), new Set())).toMatchObject(
+    [{ ids: ["led", "pro", "sok"], new: false }],
+  );
+  expect(
+    classify([groupFinding(["led", "sok", "pro"])], base, new Set(["pro"]), new Set()),
+  ).toMatchObject([{ ids: ["led", "pro", "sok"], new: true }]);
 });
 
 test("finding keys for ids ignore input order and preserve the single-id key", () => {
@@ -47,4 +47,14 @@ test("finding input accepts one subject form and rejects both or an empty ids li
   expect(
     findingInputSchema.safeParse({ check: "group", ids: [], path: "x", message: "bad" }).success,
   ).toBe(false);
+});
+
+test("I-02: changed paths promote existing keys independently of record IDs", () => {
+  const finding = groupFinding(["a", "b"]);
+  expect(classify([finding], [finding], new Set(), new Set([finding.path]))).toMatchObject([
+    { new: true },
+  ]);
+  expect(classify([finding], [finding], new Set(), new Set(["other.md"]))).toMatchObject([
+    { new: false },
+  ]);
 });

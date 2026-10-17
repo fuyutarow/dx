@@ -16,6 +16,8 @@ import {
 } from "./model.ts";
 
 export interface Snapshot {
+  /** Raw revision blob IDs, before policy overlays or ignore filtering. */
+  readonly fileIds: ReadonlyMap<string, string>;
   readonly files: Readonly<Record<string, string>>;
   readonly records: readonly RecordModel[];
   readonly sources: ReadonlyMap<RecordModel, SourceFile>;
@@ -75,7 +77,9 @@ export async function readSnapshot(
         return ok(undefined);
       });
     const recordPaths = new Set<string>();
-    const entries = (yield* await cache.reader.tree(rev)).filter(({ path }) => {
+    const tree = yield* await cache.reader.tree(rev);
+    const fileIds = new Map(tree.map(({ path, id }) => [path, id]));
+    const entries = tree.filter(({ path }) => {
       if (
         policyFiles !== undefined &&
         (matches(config.files.inputs, path) || path === "dx.toml" || path.startsWith(".dx/"))
@@ -153,7 +157,7 @@ export async function readSnapshot(
     for (const [path, text] of policyFiles ?? []) files[path] = text;
     // Keep raw bytes for immutable and I-09, including files rejected by the parser.
     for (const path of recordPaths) yield* requireValue(files[path], `unread record: ${path}`);
-    return ok({ files, records, sources, findings });
+    return ok({ fileIds, files, records, sources, findings });
   });
 }
 export async function changedPaths(cwd: string, base: string, head: string, ms: number) {
