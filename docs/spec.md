@@ -208,14 +208,15 @@ verdict: `{"v":1,"id","sha256","rubric","rubric_sha256","by","at","bits","p":[�
 
 ## C4 OUTCOMES
 
-- Fallbacks / handoffs: なし。判定できないことを空の成功にしない。push や Jev の結果が分からないとき（応答の前に接続が切れたときなど）は終了コード 3 で返し、成功とは返さない。
+- Fallbacks / handoffs: 判定できないことを空の成功にしない。push の結果が分からないときは、対象 branch を remote から fetch する。試した REV が `<branch>@<remote>` の祖先なら、受領を出して exit 0。祖先でなければ exit 3 `RACE`。fetch・remote の REV の解決・祖先の照合ができない場合だけ exit 3 `RESULT_UNKNOWN` を残す。Jev の結果が分からないときも exit 3。rebase と再試行は呼び出し側が行い、dx は行わない。
 
 | Outcome class | Exit / status | Output | Retry / next action |
 |---|---|---|---|
 | 新しい finding が無い。review ならすべて合格。land なら push まで済んだ | 0 | finding（すべて `new:false`）、verdict、または受領 | なし |
 | 新しい finding がある。review で不合格がある。fast-forward でない | 1 | finding か verdict を全件。fast-forward でなければ `NOT_FAST_FORWARD` | 記録を直すか、rebase してから流し直す |
+| push が pre-push / pre-receive hook に拒否された | 1 | stderr に `PUSH_REJECTED` と Git が出した拒否理由の最初の行 | hook や入力を直してから流し直す |
 | 使い方の誤り | 2 | stderr に使い方 | 引数を直す |
-| 一時的な失敗（lease が外れた、remote や Jev に届かない、時間切れ、結果が分からない） | 3 | stderr に `RACE`、`REMOTE_UNAVAILABLE`、`REVIEW_UNAVAILABLE`、`RESULT_UNKNOWN` | 必要なら fetch と rebase をしてから流し直す |
+| 一時的な失敗（lease の外れ・remote の ref のロック競合、remote や Jev の不達、時間切れ、照合後も結果が分からない） | 3 | stderr に `RACE`、`REMOTE_UNAVAILABLE`、`REVIEW_UNAVAILABLE`、`RESULT_UNKNOWN` | `RACE` は必要なら fetch と rebase をしてから流し直す。`RESULT_UNKNOWN` は受け入れを確認する |
 | 判定できない（REV が無い、`.dx/` が読めない・型が合わない、上限を超えた、I/O の失敗） | 4 | stderr に `UNDETERMINED:<理由>`。stdout は空 | 原因を直す |
 
 ## C5 EVOLUTION
