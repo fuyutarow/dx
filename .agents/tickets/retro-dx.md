@@ -17,7 +17,7 @@ refuted_by = "dx の type 定義の制約（.dx/ の中の import だけ、純�
 
 ## やること
 
-1. `dx.toml`（`[repo] name = "retrospectives"`。ほかは既定値でよい。`[files] ignore` に、records 以外のものを入れる）を置く。
+1. `dx.toml`（`[repo] name = "retrospectives"`）を置く。`[files] ignore` には、生成物と依存（`tools/node_modules/**` など）だけを入れる。**records 以外のファイルを ignore しない。** 相対リンクの先が実在するかの検査には、`tree.files` が木の全ファイルを見ている必要があるため。
 2. `.dx/retro.ts` を書く。
    - `match: "records/*.md"`、`format: "markdown-frontmatter"`。
    - id、ファイル名の規則、frontmatter の schema、`superseded_by` の link を書く。
@@ -33,10 +33,12 @@ refuted_by = "dx の type 定義の制約（.dx/ の中の import だけ、純�
    - 結果を `.dx/SHADOW.md` に書く: 記録の数、一致の数、一致しない記録と理由、比べ方（コマンド）。
 5. 一致しないものは、原因が retro の規則の移し方にあれば直す。dx 本体にあれば、直さずに `for_coordinator` に書く。
 
-## 分かっている食い違い（必ず扱う）
+## review の置き場（coordinator の決定）
 
-- 今の retro の frontmatter の `review:` は `{rubric, by, at, sha256, bits, p}` の形（`tools/scripts/schema.ts` の `Review`）。dx の verdict は `{v, id, sha256, rubric, rubric_sha256, by, at, bits, p, pass}`（spec §5 C3）で、形が違う。
-- 移行している間、2 つの gate が同じ `review:` を読む。このときに起きる問題（dx が書いた verdict を今の gate が拒否する、など）を、具体的に `for_coordinator` に書く。直し方の案があれば書く（spec は変えない）。
+- 今の retro の frontmatter の `review:`（`{rubric, by, at, sha256, bits, p}`）は、そのまま残す。今の gate が使い続ける。
+- `.dx/retro.ts` の `review` は `place: "file:<glob>"` にして、dx の verdict を別のファイル（例: `.dx/verdicts/` の下）に置く。frontmatter の `review:` には dx から書かない。
+- rubric は、今の `tools/review/retro-review-v4.toml` と同じ中身を `.dx/rubrics/` に置く。2 か所に同じ rubric を持つのは、移行の間だけの重複として許す。その旨を `.dx/SHADOW.md` に書く。
+- この issue では、`dx review` は実行しない（review の統合は別 issue）。I-06 は、今の記録はどれも「新しくも変わってもいない」ので finding が出ないことだけを確かめる。
 
 ## 作業場所の事実
 
@@ -51,6 +53,9 @@ refuted_by = "dx の type 定義の制約（.dx/ の中の import だけ、純�
 
 - 変えたファイル
 - `.dx/SHADOW.md` の要約（数と、一致しないもの）
-- `mise run check` の結果
-- review の形の食い違いの具体例と、直し方の案
+- `mise run check` の結果（sandbox で mise の状態に書けず流せなかった場合は、`bun test tools/tests` と、`bun tools/scripts/lint-records.ts` に当たる検査を直接流した結果）
 - 未検証のこと
+
+## 前の回（run 45b9b0dc）から引き継ぐこと
+
+前の回は、`ignore` の指示が相対リンクの検査と両立しないことを見つけて、正しく止まった。その指示は上で直した。記録は 116 件。前の回が作った `.dx/SHADOW.md` は、この回の結果で書き直す。
