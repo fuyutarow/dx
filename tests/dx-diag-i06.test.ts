@@ -9,6 +9,6 @@ test("I-06 missing verdict finding explains how to land the working-copy verdict
   const finding = result.findings.find((row) => row.check === "I-06.verdict");
 
   expect(finding?.message).toContain(
-    "dx review は verdict を作業コピーに書く。verdict を含む commit を land する（例: dx land @）",
+    'dx review は verdict を作業コピーに書く。jj commit -m "<説明>" で verdict を確定してから、その commit を land する（例: dx land @-）',
   );
 }, 60000);

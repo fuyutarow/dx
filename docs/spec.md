@@ -144,10 +144,11 @@
 jj commit records/20261017_foo.md -m "..."
 dx check @-
 dx review @-
-dx land @
+jj commit -m "dx verdict for <記録>"
+dx land @-
 ```
 
-`dx review` は verdict を作業コピー（`@`）に書くので、verdict を含む `@` を land します。land の後は `jj new` します。
+`dx review` は verdict を作業コピー（`@`）に書くので、説明を付けて commit してから、その commit（`@-`）を land する。land の後は `jj new` します。
 
 `REV` の既定は `@`、`--base` の既定は `<branch>@<remote>`（例: `alpha@origin`）。
 既定の remote branch が無ければ、空の木 `root()` を使い、stderr に `base: remote branch absent; using root()` を 1 行出す。

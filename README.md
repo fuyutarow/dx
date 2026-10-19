@@ -13,14 +13,15 @@ bun src/main.ts ls @
 jj commit records/20261017_foo.md -m "..."
 bun src/main.ts check @-
 bun src/main.ts review @-
-bun src/main.ts land @
+jj commit -m "dx verdict for <記録>"
+bun src/main.ts land @-
 jj new
 bun src/main.ts view --list
 bun src/main.ts view index @
 mise run check
 ```
 
-`review` は verdict を作業コピー（`@`）に書くので、verdict を含む `@` を land します。land の後は `jj new` します。
+`review` は verdict を作業コピー（`@`）に書くので、説明を付けて commit してから、その commit（`@-`）を land します。land の後は `jj new` します。
 
 呼び出す cwd は対象 jj repo 内です。`dx` package の `bin` は `src/main.ts`、公開 API は
 `src/index.ts` にあります。ソース版には Bun 1.4.3 以上と jj と Git が PATH に必要です。
