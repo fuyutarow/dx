@@ -268,7 +268,7 @@ export async function isolationFindings(
       }
       const policyPath = (path: string) => isPolicyPath(path, localInputs);
       if (!declarationChanged && ![...change.paths].some((path) => policyPath(path))) continue;
-      const policyFiles = [...change.paths].filter(policyPath).toSorted();
+      const policyFiles = [...change.paths].filter((path) => policyPath(path)).toSorted();
       const policyFileList = `${policyFiles.slice(0, 5).join(", ")}${policyFiles.length > 5 ? ", …" : ""}`;
       const candidates = [...change.paths].filter(
         (path) => !policyPath(path) && !ignored(config, path),
