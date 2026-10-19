@@ -24,9 +24,9 @@ test.each([
   });
 });
 
-test("CR in the Markdown body is not a format finding", async () => {
+test("CRLF in the Markdown body is accepted", async () => {
   const { cwd, base } = await repo();
-  await write(cwd, "records/a.md", markdown("a", "", "Body\r text\n"));
+  await write(cwd, "records/a.md", markdown("a", "", "Body\r\ntext\r\n"));
   const result = await checked(cwd, base, 0);
   expect(result.findings).toEqual([]);
 });

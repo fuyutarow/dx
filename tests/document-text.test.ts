@@ -11,7 +11,6 @@ const forbidden = [
   0x2029,
   0xfffe,
   0xffff,
-  13,
 ];
 
 for (const code of forbidden) {
@@ -30,6 +29,16 @@ for (const code of forbidden) {
   }
 }
 
+test("Markdown rejects lone CR in the body as a forbidden document character", () => {
+  const text = markdown("a", "", "body a\rb\n");
+  const result = parseRecords("probe", text, "markdown-frontmatter");
+  expect(result.isErr()).toBe(true);
+  if (result.isErr())
+    expect(result.error).toContain(
+      "document character U+000D is outside the accepted input domain",
+    );
+});
+
 test("a leading BOM is rejected before splitting Markdown or decoding TOML", () => {
   for (const [format, text] of [
     ["markdown-frontmatter", `\uFEFF${markdown("a")}`],
@@ -43,7 +52,7 @@ test("a leading BOM is rejected before splitting Markdown or decoding TOML", () 
 
 test("tabs, LF, CRLF, Unicode and literal U+FFFD remain accepted", () => {
   for (const newline of ["\n", "\r\n"]) {
-    const text = markdown("a", 'data: "日本語 café �"\n', "body\ttext\n").replaceAll("\n", newline);
+    const text = markdown("a", 'data: "日本語 café �"\n', `body\ttext${newline}`);
     expect(value(parseRecords("a.md", text, "markdown-frontmatter"))[0]?.body).toBe(
       `body\ttext${newline}`,
     );
