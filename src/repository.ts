@@ -240,6 +240,26 @@ function cacheBlobs(
   return ok(undefined);
 }
 
+function validThreeByteSecond(first: number, second: number | undefined): boolean {
+  return (
+    second !== undefined &&
+    second >= 0x80 &&
+    second <= 0xbf &&
+    (first !== 0xe0 || second >= 0xa0) &&
+    (first !== 0xed || second <= 0x9f)
+  );
+}
+
+function validFourByteSecond(first: number, second: number | undefined): boolean {
+  return (
+    second !== undefined &&
+    second >= 0x80 &&
+    second <= 0xbf &&
+    (first !== 0xf0 || second >= 0x90) &&
+    (first !== 0xf4 || second <= 0x8f)
+  );
+}
+
 /** Return the first byte that cannot begin a valid UTF-8 sequence. */
 function invalidUtf8At(bytes: Buffer): number | undefined {
   const continuation = (index: number) => {
@@ -253,34 +273,30 @@ function invalidUtf8At(bytes: Buffer): number | undefined {
       index++;
       continue;
     }
+    if (first >= 0xc2 && first <= 0xdf && !continuation(index + 1)) return index;
     if (first >= 0xc2 && first <= 0xdf) {
-      if (!continuation(index + 1)) return index;
       index += 2;
       continue;
     }
+    if (
+      first >= 0xe0 &&
+      first <= 0xef &&
+      (!validThreeByteSecond(first, bytes[index + 1]) || !continuation(index + 2))
+    )
+      return index;
     if (first >= 0xe0 && first <= 0xef) {
-      const second = bytes[index + 1];
-      const validSecond =
-        second !== undefined &&
-        (first === 0xe0
-          ? second >= 0xa0 && second <= 0xbf
-          : first === 0xed
-            ? second >= 0x80 && second <= 0x9f
-            : second >= 0x80 && second <= 0xbf);
-      if (!validSecond || !continuation(index + 2)) return index;
       index += 3;
       continue;
     }
+    if (
+      first >= 0xf0 &&
+      first <= 0xf4 &&
+      (!validFourByteSecond(first, bytes[index + 1]) ||
+        !continuation(index + 2) ||
+        !continuation(index + 3))
+    )
+      return index;
     if (first >= 0xf0 && first <= 0xf4) {
-      const second = bytes[index + 1];
-      const validSecond =
-        second !== undefined &&
-        (first === 0xf0
-          ? second >= 0x90 && second <= 0xbf
-          : first === 0xf4
-            ? second >= 0x80 && second <= 0x8f
-            : second >= 0x80 && second <= 0xbf);
-      if (!validSecond || !continuation(index + 2) || !continuation(index + 3)) return index;
       index += 4;
       continue;
     }
