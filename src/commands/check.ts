@@ -1,5 +1,5 @@
 import { ok, safeTry } from "neverthrow";
-import { structural, transitions, reviews } from "../checks.ts";
+import { structural, transitions, reviews, reviewPlacePolicy } from "../checks.ts";
 import { classify } from "../findings.ts";
 import type { Snapshot } from "../collection.ts";
 import type { FindingInput, LoadedType } from "../model.ts";
@@ -10,8 +10,10 @@ export async function check(
   head: Snapshot,
   types: readonly LoadedType[],
   isolation: readonly FindingInput[],
+  inputs?: readonly string[],
 ) {
   return safeTry(async function* () {
+    yield* reviewPlacePolicy(types, head.files, inputs);
     const previous = new Map<string, Set<string>>();
     for (const record of base.records) {
       const hashes = previous.get(record.id) ?? new Set<string>();

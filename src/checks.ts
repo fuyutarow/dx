@@ -14,8 +14,41 @@ import {
   type RecordModel,
   type TreeContext,
 } from "./model.ts";
-import { matches } from "./policy.ts";
+import { isPolicyPath, matches } from "./policy.ts";
 import { sha256, stableJson } from "./formats.ts";
+import { inputPatternsSchema } from "./config.ts";
+
+function policyInputs(files: Readonly<Record<string, string>>): readonly string[] {
+  try {
+    const config = Bun.TOML.parse(files["dx.toml"] ?? "") as { files?: { inputs?: unknown } };
+    const parsed = inputPatternsSchema.safeParse(config.files?.inputs ?? []);
+    return parsed.success ? parsed.data : [];
+  } catch {
+    return [];
+  }
+}
+
+export function reviewPlacePolicy(
+  types: readonly LoadedType[],
+  files: Readonly<Record<string, string>>,
+  inputs?: readonly string[],
+) {
+  const declaredInputs = inputs ?? policyInputs(files);
+  for (const type of types) {
+    const place = type.review?.place;
+    if (
+      place?.startsWith("file:") === true &&
+      (place.slice(5).startsWith(".dx/") ||
+        Object.keys(files).some(
+          (path) => matches(place.slice(5), path) && isPolicyPath(path, declaredInputs),
+        ))
+    )
+      return undetermined(
+        `policy: ${type.name}: review.place は規則のファイル（dx.toml、.dx/、inputs）の外に置く`,
+      );
+  }
+  return ok(undefined);
+}
 
 export function context(snapshot: Snapshot, base: Snapshot): TreeContext {
   return Object.freeze({

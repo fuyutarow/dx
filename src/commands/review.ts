@@ -103,9 +103,10 @@ export async function review(
   types: readonly LoadedType[],
   config: Config,
   isolation: readonly FindingInput[],
+  inputs?: readonly string[],
 ) {
   return safeTry(async function* () {
-    const checked = yield* await check(base, head, types, isolation);
+    const checked = yield* await check(base, head, types, isolation, inputs);
     const findings = checked.filter((f) => f.check !== "I-06.verdict");
     const previous = new Map(base.records.map((r) => [r.id, r]));
     const plans = [];

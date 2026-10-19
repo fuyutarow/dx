@@ -319,7 +319,7 @@ export default defineType({
 });
 ```
 
-- `review.place` は、`"frontmatter"`（記録の frontmatter の `review:` に書く）か、`"file:<glob>"`（別のファイルに verdict として置く）のどちらか。immutable な type は `"file:<glob>"` を使う。
+- `review.place` は、`"frontmatter"`（記録の frontmatter の `review:` に書く）か、`"file:<glob>"`（別のファイルに verdict として置く）のどちらか。immutable な type は `"file:<glob>"` を使う。`file:<glob>` は規則のファイル（`dx.toml`、`.dx/`、`[files] inputs`）に当たらないものとする。
 - すべての type に dx が必ずかける検査は、I-02〜I-06 と I-09。`.dx/` に書く必要はない。
 
 `links` の各宣言は `{ to, match?, values?, acyclic? }` とする。
