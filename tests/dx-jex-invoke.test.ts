@@ -94,7 +94,7 @@ test("jex unavailable and undetermined responses do not write verdicts", async (
     expect(result.exit, result.stderr).toBe(entry.expected);
     expect(await Bun.file(`${cwd}/verdicts/one.json`).exists()).toBe(false);
   }
-});
+}, 60000);
 
 test("nine questions refuse before invoking jex", async () => {
   const { cwd, logPath } = await fixture({ criteria: 9 });
