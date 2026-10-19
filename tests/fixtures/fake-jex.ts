@@ -38,7 +38,7 @@ const controlsResult = controlsSchema.safeParse(
 );
 const controls = controlsResult.success ? controlsResult.data : {};
 if (controls.delay_ms !== undefined) await Bun.sleep(controls.delay_ms);
-if (controls.fail_on_call === calls) process.exit(7);
+if (controls.fail_on_call === calls) process.exit(3);
 
 const output =
   controls.response ??
