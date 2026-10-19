@@ -457,7 +457,7 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 
 | # | 残差 | 扱い |
 |---|---|---|
-| R-16 | jex の経路では、research-record-v2 の prediction の 2 問目（link 先の仮説から導かれているか）の p が、0.1.4 の Jev の経路より低い（0.61 対 0.84。`notes/jex-presentation/results.json`）。合格の線は越える。基準の 0.1.4 の値は過去の 2 回だけで、Jev の版の違いか jex の包み方かは切り分けていない。 | 持ち主は dx と jex。合否の変わる記録が出たら、記録の id と p で報告を受ける。 |
+| R-16 | research-record-v2 0.1.6 の 90 件の取り直しで残る残差は、同じ rubric での 1 件の flip（`pe4-flip-clarified-seed1-observation`。jev の p は [0.83, 0.54, 0.92]、0.1.5 は [0.91, 0.32, 0.81]、0.1.6 は [0.82, 0.46, 0.91]。jev でも 2 問目は合格線 0.5 の近く）と、link 先の切り詰め（90 件中 42 件）。どちらも判定が厳しくなる向きで、悪い記録が入る向きではない。 | 持ち主は dx（予算の配り方）と jex（入力の上限）。合否の変わる記録が出たら、記録の id と p で報告を受ける。link 先の切り詰めが合否を変えた例が出たら、予算の配り方を見直す。出典: research-record-v2 alpha `3b809485` の `docs/jex-rereview-016.json`。 |
 | R-1 | firedancer に、削除済みの leaderboard を呼ぶ箇所が残っている（`launcher/repository.test.ts:146-149`、`v1_record.test.ts:307-335`、`ModelRegistry.jl/scripts/generate_editions_catalog.ts:249-269`、`lineage_gate.ts:133-148`） | 使う側の課題として firedancer に渡す（D4） |
 | R-2 | 時刻と `by` は自己申告で、偽造できる | 今と同じ水準。必要になったら、署名つきの commit を land の条件に加える |
 | R-3 | finding の key が版をまたいで同じでないと、I-02 が誤る | key の形を契約にする（§5 C5） |
