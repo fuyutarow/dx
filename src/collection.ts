@@ -323,13 +323,12 @@ function makeRecord(file: SourceFile, type: LoadedType, config: Config, findings
         });
         continue;
       }
-      for (const candidate of candidates) {
+      for (const candidate of candidates)
         links.push(
-          ...(yield* linkTarget(candidate, declaration.match, config.repo.name)
+          ...(yield* linkTarget(candidate, config.repo.name)
             .map((to) => (to === undefined ? [] : [{ rel, to }]))
             .mapErr((reason) => `${path}: links.${rel}: ${reason}`)),
         );
-      }
     }
     if (links.length > config.limits.links_per_record)
       return undetermined(`limits.links_per_record exceeded: ${id}`);
@@ -366,16 +365,7 @@ function linkCandidates(raw: unknown, link: LoadedType["links"][string], locus: 
   });
 }
 
-function linkTarget(candidate: string, pattern: RegExp | undefined, repo: string) {
-  let id = candidate;
-  if (pattern !== undefined) {
-    const matched = pattern.exec(candidate);
-    if (matched === null) return ok(undefined);
-    const captured = matched[1];
-    if (captured === undefined || captured.length === 0)
-      return undetermined("links.match capture group 1 must produce a non-empty id");
-    id = captured;
-  }
+function linkTarget(id: string, repo: string) {
   if (id.length === 0) return undetermined("link id must be non-empty");
   const qualified = /^dx:([^/]+)\/(.+)$/u.exec(id);
   if (qualified === null) return ok(id);

@@ -221,19 +221,17 @@ links は宣言したフィールドの id 文字列またはその配列から�
 循環を検査します。`to` は型名 1 つ、または許可する型名の空でない配列です。
 `acyclic` の既定は `true` です。引用のように互いに参照してよい関係は `acyclic: false` とします。
 実在・型はすべての内部 link を検査し、循環は `acyclic: true` の辺だけを集めたグラフで検査します。
-外部の URL や引用と内部の参照が混ざるフィールドには `match` を指定できます。
+候補の選択や id の変換が必要な場合は `values` を指定します。
 
 ```ts
 links: {
-  sources: { to: ["evi", "sok"], match: "^urn:uuid:(.+)$", acyclic: false },
+  sources: { to: ["evi", "sok"], acyclic: false },
 },
 ```
 
-`match` は JavaScript の正規表現の文字列です（Unicode モード、flags の指定なし）。
-候補ごとの最初の一致から capture group 1 を id として取り出し、一致しない候補は無視します。
-この例の参照先の id は接頭辞のない UUID です。参照先の id が `urn:uuid:` を含む場合は、
-`match: "^(urn:uuid:.+)$"` のように接頭辞も capture に含めます。
-`match` を省くと、候補の文字列全体を id とします。
+link の宣言は `{ to, values?, acyclic? }` です。廃止した `match` が残っていれば、
+型定義の読み込みで `UNDETERMINED:policy: <type>.links.<rel>: match は消えた。values を使う` を出して exit 4 にします。
+候補の選択や id の変換が必要な場合は `values` を指定します。
 
 `sources: [{ resource: "…" }]` のようなフィールドには、候補を取り出す純粋な同期関数
 `values: (fieldValue: unknown) => string[]` を指定します。たとえば、型定義で
@@ -245,21 +243,18 @@ links: {
     to: ["evi", "sok"],
     acyclic: false,
     values: value => sourceSchema.safeParse(value).data?.map(s => s.resource) ?? [],
-    match: "^(urn:uuid:.+)$",
   },
 },
 ```
 
 `values` を省くと従来どおり文字列または文字列配列を読みます。フィールドがない場合は呼びません。
-`values` の例外・文字列配列以外の返り値、壊れた正規表現、capture group 1 のない宣言、
-一致したのに空または未定義の id を取り出す宣言は、理由を出して exit 4 にします。
-`match` と `values` を省いた宣言は、従来のフィールドの形と id の検査を保ちます。
+`values` の例外・文字列配列以外の返り値、または空の id は、理由を出して exit 4 にします。
 
-`match` の適用後、`dx:<repo>/<id>` の repo 名を `[repo] name` と比較します。
+`dx:<repo>/<id>` の repo 名を `[repo] name` と比較します。
 異なる repo の参照は link から除き、参照先を検証しません。
 同じ repo の参照は `<id>` を内部 id として検査します（spec §10 R-5）。
 `dx:other/` のように形が不完全な値は、この除外の対象になりません。
-`dx ls` の `links` には抽出・正規化した内部 id だけが入り、元のフィールドは `fields` に残ります。
+`dx ls` の `links` には `values` 適用後の内部 id だけが入り、元のフィールドは `fields` に残ります。
 `limits.links_per_record` は、この処理後の link の件数に適用します。
 
 I-09 は比較範囲内の change ごとに確かめます。規則だけの change の後に記録だけの change が来る
