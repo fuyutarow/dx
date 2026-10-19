@@ -104,6 +104,15 @@ export async function runJex(
       signal,
       killSignal: "SIGKILL",
     });
+    const waiting = setTimeout(() => {
+      process.stderr.write("dx: waiting for jex…\n");
+    }, 2000);
+    using waitingCleanup = {
+      [Symbol.dispose]() {
+        clearTimeout(waiting);
+      },
+    };
+    void waitingCleanup;
     const [stdout, stderr, exit] = await Promise.all([
       new Response(child.stdout).text(),
       new Response(child.stderr).text(),
