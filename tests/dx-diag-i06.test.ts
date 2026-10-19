@@ -1,0 +1,14 @@
+import { expect, test } from "bun:test";
+import { checked, markdown, repo, write } from "./helpers.ts";
+
+test("I-06 missing verdict finding explains how to land the working-copy verdict", async () => {
+  const { cwd, base } = await repo({ review: "frontmatter" });
+  await write(cwd, "records/one.md", markdown("one"));
+
+  const result = await checked(cwd, base, 1);
+  const finding = result.findings.find((row) => row.check === "I-06.verdict");
+
+  expect(finding?.message).toContain(
+    "dx review は verdict を作業コピーに書く。verdict を含む commit を land する（例: dx land @）",
+  );
+}, 60000);

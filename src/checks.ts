@@ -195,7 +195,8 @@ export function reviews(base: Snapshot, head: Snapshot, types: readonly LoadedTy
           id: record.id,
           path: record.path,
           field: "review",
-          message: "missing passing verdict bound to this record, rubric and another author",
+          message:
+            "missing passing verdict bound to this record, rubric and another author; dx review は verdict を作業コピーに書く。verdict を含む commit を land する（例: dx land @）",
         });
       }
     }
