@@ -63,10 +63,17 @@ test("I-06 author policy accepts machines for unknown authors and still rejects 
   }
 }, 60000);
 
-test("real retrospective policy and six authorless records review into .dx sidecars from an empty child", async () => {
+test("real retrospective policy and six authorless records review into external verdict files from an empty child", async () => {
   const { cwd } = await repo();
   await rm(join(cwd, ".dx/note.ts"));
-  for (const [path, text] of Object.entries(fixture.policy)) await write(cwd, path, text);
+  for (const [path, text] of Object.entries(fixture.policy))
+    await write(
+      cwd,
+      path,
+      path === ".dx/retro.ts"
+        ? text.replace('place: "file:.dx/verdicts/*.jsonl"', 'place: "file:.verdicts/*.jsonl"')
+        : text,
+    );
   await write(
     cwd,
     "dx.toml",
@@ -100,7 +107,7 @@ test("real retrospective policy and six authorless records review into .dx sidec
       await Bun.file(
         join(
           cwd,
-          ".dx/verdicts",
+          ".verdicts",
           encodeURIComponent(String(verdict.id)).replaceAll(".", "%2E") + ".jsonl",
         ),
       ).exists(),
