@@ -312,6 +312,9 @@ dx は rubric の `[[criteria]]` から最大 8 件の問いを作り、jex を�
 
 `questions.toml` は `schema = 1` と `[[question]]` の表（`id`、`text`）を持ちます。criteria が 8 件を超える場合、dx は jex を呼ばず exit 4 `UNDETERMINED:review: <rubric>: jex の問いは 8 つまで` を返します。
 
+0.1.6 では、各問いの `text` を、審査対象の 1 文・0.1.4 の前置き・rubric の問い・はいの文・いいえの文の 5 行にします（[spec §7](docs/spec.md#7-dx-の-type-定義)）。
+記録と link 先は、木の中の元の bytes で jex に渡します。木に無い locator は、型が返す `content` を使います。
+
 rubric は次の TOML 形式です。
 
 ```toml
