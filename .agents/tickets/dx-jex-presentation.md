@@ -58,3 +58,9 @@ refuted_by = "5 通りのどれでも p が jev の経路に近づかない、�
   - V5: V1 の各問いの text を、次の順に組み立てる。1 行目「審査対象は <記録の path>。ほかのファイルは、審査対象が link している記録で、審査の対象ではない。」、2 行目に V0 の前置き（V0 の要求の文面をそのまま）、3 行目に rubric の問い、4 行目「はい: <criteria の true の文>」、5 行目「いいえ: <criteria の false の文>」。true と false の文は、research-record-v2 の rubric（.dx/rubrics/）から読む。
   - V6: V5 の記録のファイル（審査対象と link 先）の中身を、木の中の元の bytes（TOML の原文）に替えたもの。
 - 返却に、V5 と V6 の 2 問目が V0（0.835）にどこまで近づいたか、反復の幅に比べて意味があるか、1 問目と 3 問目が V0 から離れていないか、を 3 行以内で書く。
+
+## 3 回目の返却を受けて（coordinator、2026-10-19 20:40。最新版）
+
+- research-record-v2 の rubric には true と false の文が無い（id、bit、question だけ）。V0 の要求の criteria.true と criteria.false の文は、dx 0.1.4 が要求を組み立てるときに足していたもの、と見る。
+- V5 と V6 の true と false の文は、保存してある V0 の要求（capture の中の 0.1.4 の要求）の文面を、そのまま使う。前置きも同じく V0 の要求から取る。2 件の記録とも、その記録の V0 の要求の文を使う。review-old の V0 の要求が無ければ、prediction の V0 の要求の文を、問いの id ごとに当てる（id が合わなければ、文の型（はい・いいえの言い回し）だけを借りて、その問いに合わせて書く。その場合は返却に書く）。
+- 返却に、V0 の要求で true と false の文がどこから来ていたか（dx 0.1.4 の src/review-request.ts の決まった文か、research-record-v2 の review-format.ts か）を 1 行で書く（git show 88b0dfc2:src/review-request.ts で読める）。
