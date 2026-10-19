@@ -74,7 +74,7 @@
 | ID | 性質 | 確かめる場所 |
 |---|---|---|
 | I-01 | 受け入れた ⇔ remote の正規の branch から到達できる | land |
-| I-02 | 同じ規則 revision（既定は head、指定時は `--policy REV`）の設定・型定義・inputs で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分に関わる finding（`id` が自分、または `ids` に自分を含むもの）を既存のものも含めて 1 つも持たない。複数記録に関わる finding は、その `ids` のどれか 1 つでも新しいか変わった記録なら new とする。さらに、head で記録を 1 つも生まないファイル（`dx.toml`、`.dx/`、inputs、読めなかった記録のファイルなど）は、bytes で判定する。`finding.path` がそのようなファイルを指し、base と head の木で bytes が違う、または片方にしか無いなら、base に同じ key があっても new とする。記録を生むファイルは、記録の sha256 で判定する（同じファイルの別の記録や、review のメタデータを変えても、触れていない記録の finding は既存のまま）。`--policy` を指定しても、比べる木は base と head であり、policy の revision ではない。記録の ID と、記録を生まないファイルの bytes の、どちらにも変更がなければ既存 finding は残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため。2026-10-18 に複数記録 finding の `ids` に適用を拡張。同日、記録を生まないファイルにも拡張。policy-rev のもとで、壊れた inputs を入れる commit が既存の finding として通る穴を塞ぐため） | check |
+| I-02 | (a) 同じ規則 revision（既定は head、指定時は `--policy REV`）で base と head を数えて、新しい key の finding が無い。(b) 変わった単位は、既存のものも含めて finding を持たない。単位とは、記録（sha256 で判定。`id` が自分、または `ids` に自分を含む finding）か、head で記録を生まないファイル（bytes で判定。`path` がそのファイルの finding）である。 | check |
 | I-03 | `immutable` の type の記録は、変わらず、消えない | check |
 | I-04 | links は宣言された type を指し、参照先がある。acyclic（既定 true）が true の辺だけで作るグラフは循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
@@ -144,8 +144,10 @@
 jj commit records/20261017_foo.md -m "..."
 dx check @-
 dx review @-
-dx land @-
+dx land @
 ```
+
+`dx review` は verdict を作業コピー（`@`）に書くので、verdict を含む `@` を land します。land の後は `jj new` します。
 
 `REV` の既定は `@`、`--base` の既定は `<branch>@<remote>`（例: `alpha@origin`）。
 既定の remote branch が無ければ、空の木 `root()` を使い、stderr に `base: remote branch absent; using root()` を 1 行出す。
@@ -439,6 +441,9 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 | D9 | review は 3 つの filter の合成で行う: `rubric request <rubric.toml> <artifact>…`（要求の組み立て。抜粋、上限、UTF-8 を壊さない切り詰め）→ `agx jev`（Jev への運搬だけ。`[review] command`）→ `rubric bits`（応答を `{bits:[{id,p,reason}], refuted?}` に検証して出す）。`rubric` は dotfiles の小さな道具（tools/rubric）で、rubric の schema を持ち、Jev を呼ばず、記録も書かない。dx review が持つのは、判定する記録の選択（I-10）、verdict の結びつけと置き場、合否（各問いの確率が 0.5 以上）だけ。`rubric` が land したら、`src/review-request.ts` をこの合成に置き換えて消す。それまでは今の実装を使い続ける | owner が `agx jev judge` / `agx assess` を agx の越権として退けた後の分け方（2026-10-17、dotfiles-agt_g67e 経由） |
 | D8 | 名前: `ls`、`check`、`review`、`land`、`view`、`.dx/`、type、`checks`、`immutable`、`links`、`[repo]`、`branch`、`[review]`、`[files]`、`sha256`、`by` | 既存の 3 つの repo と OKF の語にそろえる（Unix の副原則 3）。`.dx/` は、道具が持つ設定を dot ディレクトリに置く慣習（`.claude/`、`.githooks/`、`.cocoindex_code/`）に合わせ、repo の中身（records/、knowledge/）と分ける（owner、2026-10-17） |
 | D10 | 時間の上限は呼び出し側が持つ。schema と pass の設定は、使う人がいないので消した。旧設定の 2 項目は C5 に従って 0.1.x の間は警告して無視する | owner の簡素化依頼、coordinator の削除・移行決定（2026-10-17） |
+| D11 | 変わった記録は、既存の finding も含めてすべて無いことを求める（I-02） | soks-govern の L と retrospectives の gate が、どちらも「変えた記録は潔白に」を求めていたため（2026-10-17） |
+| D12 | 複数記録に関わる finding は、`ids` のどれか 1 つでも新しいか変わった記録なら new とする（I-02） | I-02 の新規・変更記録に対する規則を、複数記録 finding にも適用するため（2026-10-18） |
+| D13 | head で記録を生まないファイルも、bytes が変われば、その path の finding を new とする（I-02） | policy revision のもとで、壊れた inputs を入れる commit が既存 finding として通る穴を塞ぐため（2026-10-18） |
 
 ## 10. 残差
 
