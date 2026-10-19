@@ -6,7 +6,7 @@ import * as dx from "./index.ts";
 import * as zod from "zod";
 import * as neverthrow from "neverthrow";
 import { z } from "zod";
-import { typeSchema } from "./model.ts";
+import { rejectRemovedLinkMatch, typeSchema } from "./model.ts";
 import type { Config } from "./config.ts";
 
 // Policies share the host's API and fixed dependencies, including in a standalone
@@ -146,6 +146,9 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
           `policy: ${invalid.name}: review.place = "frontmatter" は消えた。"file:<glob>" を使う`,
         );
     }
+    const definitions = z.object({ default: z.array(z.unknown()) }).safeParse(module);
+    for (const definition of definitions.success ? definitions.data.default : [])
+      yield* rejectRemovedLinkMatch(definition);
     const parsed = z.object({ default: z.array(typeSchema) }).safeParse(module);
     if (!parsed.success) return undetermined(`.dx/: ${parsed.error.message}`);
     const types = parsed.data.default;

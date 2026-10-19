@@ -1,4 +1,4 @@
-import type { Result } from "neverthrow";
+import { err, ok, type Result } from "neverthrow";
 import { z } from "zod";
 
 export const fieldsSchema = z.record(z.string(), z.unknown());
@@ -94,29 +94,31 @@ export interface LinkDefinition {
 // Callbacks are executable project policy. Their return values are checked separately.
 const callback = <T extends (...args: never[]) => unknown>() =>
   z.custom<T>((value) => typeof value === "function", "expected a function");
-const rejectRemovedLinkMatch = (value: unknown) => {
+export const rejectRemovedLinkMatch = (value: unknown): Result<unknown, string> => {
   const definition = z
     .looseObject({
       name: z.string(),
       links: z.record(z.string(), z.unknown()),
     })
     .safeParse(value);
-  if (definition.success) {
-    for (const [rel, declaration] of Object.entries(definition.data.links)) {
-      if (
-        typeof declaration === "object" &&
-        declaration !== null &&
-        Object.hasOwn(declaration, "match")
-      )
-        throw new Error(
-          `policy: ${definition.data.name}.links.${rel}: match は消えた。values を使う`,
-        );
-    }
-  }
-  return value;
+  if (!definition.success) return ok(value);
+  const removedMatch = Object.entries(definition.data.links).find(
+    ([, declaration]) =>
+      typeof declaration === "object" &&
+      declaration !== null &&
+      Object.hasOwn(declaration, "match"),
+  );
+  if (removedMatch === undefined) return ok(value);
+  return err(
+    `policy: ${definition.data.name}.links.${removedMatch[0]}: match は消えた。values を使う`,
+  );
 };
 export const typeSchema = z.preprocess(
-  rejectRemovedLinkMatch,
+  (value, ctx) => {
+    const result = rejectRemovedLinkMatch(value);
+    if (result.isErr()) ctx.addIssue({ code: "custom", message: result.error });
+    return value;
+  },
   z.object({
     name: z.string().regex(/^[a-z][a-z0-9_-]*$/u),
     match: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
