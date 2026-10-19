@@ -79,7 +79,7 @@
 | I-04 | links は宣言された type を指し、参照先がある。acyclic（既定 true）が true の辺だけで作るグラフは循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
 | I-06 | rubric を持つ type の記録で、新しいものと変わったものはすべて、今の記録の sha256 と今の rubric の sha256 に結びついた合格の verdict を持つ。verdict の `by` は、記録の `by` と違う。記録に `by` が無いときは、作り手と判定者の違いを確かめられないので、`by` が `process:` で始まる（機械の判定者の）verdict だけを認める | check |
-| I-07 | `ls`、`check`、`view` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない | 各コマンド |
+| I-07 | `ls`、`check`、`view` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない。不正な UTF-8 の記録または inputs は読み替えず、`check: "format"` の finding にする | 各コマンド |
 | I-08 | 正規の branch は、check を通った commit への fast-forward でだけ動く | land |
 | I-09 | `.dx/`、`[files] inputs` に当たるファイル、または inputs 宣言を変える change は、ほかの記録を一緒に変えない。`check --policy` を明示した場合は検査しない | check |
 | I-10 | review は、check の finding が無い記録にだけ Jev を呼ぶ。そのため、既存の finding を持つ旧い記録を変えるときは、先にその記録の finding をすべて消す必要がある（rubric を持つ type の場合。retrospectives で 2026-10-17 に実際に起きた） | review |

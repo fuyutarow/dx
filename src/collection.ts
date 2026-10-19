@@ -4,7 +4,7 @@ import { ok, safeTry } from "neverthrow";
 import { z } from "zod";
 import { inputPatternsSchema, type Config } from "./config.ts";
 
-import { parseRecords, formatAdapter } from "./formats.ts";
+import { parseRecords, formatAdapter, formatFinding } from "./formats.ts";
 import { loadTypes, matches } from "./policy.ts";
 import { jj, RevisionReader } from "./repository.ts";
 import {
@@ -60,7 +60,9 @@ export async function readSnapshot(
   types: readonly LoadedType[],
   ms: number,
   cache = snapshotCache(cwd, ms),
-  policyFiles?: ReadonlyMap<string, string>,
+  policyFiles?: ReadonlyMap<string, string> & {
+    readonly invalidUtf8?: ReadonlyMap<string, number>;
+  },
 ) {
   return safeTry(async function* () {
     const files: Record<string, string> = {};
@@ -68,6 +70,11 @@ export async function readSnapshot(
     const records: RecordModel[] = [];
     const sources = new Map<RecordModel, SourceFile>();
     const findings: FindingInput[] = [];
+    const invalidPolicyPaths = new Set<string>();
+    for (const [path, offset] of policyFiles?.invalidUtf8 ?? []) {
+      invalidPolicyPaths.add(path);
+      findings.push(formatFinding(path, `invalid UTF-8 at byte ${offset}`));
+    }
     const appendRecord = (file: SourceFile, type: LoadedType) =>
       safeTry(function* () {
         if (records.length >= config.limits.records) return undetermined("limits.records exceeded");
@@ -99,6 +106,12 @@ export async function readSnapshot(
     });
     const contents = yield* await cache.reader.read(entries);
     for (const { path, id: blobId } of entries) {
+      const invalidAt = contents.invalidUtf8.get(path);
+      if (invalidAt !== undefined && !invalidPolicyPaths.has(path)) {
+        findings.push(formatFinding(path, `invalid UTF-8 at byte ${invalidAt}`));
+        continue;
+      }
+      if (invalidPolicyPaths.has(path)) continue;
       const verdictPath = types.some(
         (t) =>
           t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),

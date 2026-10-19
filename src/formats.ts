@@ -7,6 +7,7 @@ import { isAlias, isNode, isPair, isScalar, parseDocument, visit } from "yaml";
 
 import {
   fieldsSchema,
+  type FindingInput,
   type SourceFile,
   type FormatAdapter,
   type Verdict,
@@ -14,6 +15,9 @@ import {
 } from "./model.ts";
 
 export const sha256 = (text: string): string => createHash("sha256").update(text).digest("hex");
+export function formatFinding(path: string, message: string): FindingInput {
+  return { check: "format", path, field: path, message };
+}
 export function splitMarkdown(
   text: string,
 ): { header: string; body: string; opening: string; closing: string } | undefined {
