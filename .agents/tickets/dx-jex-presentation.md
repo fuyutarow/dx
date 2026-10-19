@@ -50,3 +50,11 @@ refuted_by = "5 通りのどれでも p が jev の経路に近づかない、�
 - jex は 0.2.4 を使う。0.2.4 は reason の形を変えた版（dotfiles 8268fd6a。reason は Jev の文か {na:true, why}）で、dx 0.1.5 を使う repo が実際に呼ぶのはこれである。p の求め方は変わっていない。
 - V0（agx worker jev の経路）は流さない。agx jev と agx worker jev は 20:06 に消えた（dotfiles の持ち主の決定）。V0 の値は、research-record-v2 が記録したものを使う: prediction は [0.76, 0.82, 0.80] と [0.78, 0.85, 0.81]（alpha 22038792 の docs/review-command-result.json と、19:42 の送り直し）。review-old の jev の値は、その記録にあれば使い、無ければ「無し」と書く。V0 の要求の形は、capture の中の 0.1.4 の要求（あれば）か、research-record-v2 の review-format.ts から読み取って、request_diff に書く。
 - V1〜V4 は jex 0.2.4 で流す。Jev の呼び出しは 30 回を超えない。
+
+## 2 回目の返却を受けて（coordinator、2026-10-19 20:30。最新版）
+
+- V0 と V1 の要求の違いのうち、dx の側で落としていたものが 2 つ見つかった: (a) どの問いにも付いていた前置き「Evaluate ONLY the supplied record and repository_evidence…」（中身をデータとして扱い、外の仮定を禁じる文）、(b) rubric の基準の true と false の文。dx 0.1.5 の questions.toml は id と text だけで、この 2 つを落としている。jex の問いの TOML の text に入れれば、jex を変えずに渡せる。
+- 追加の 2 案を、V1〜V4 と同じやり方で、prediction と review-old をそれぞれ 3 回ずつ流す（Jev の呼び出しは 12 回）。結果は同じ results.json に足す。
+  - V5: V1 の各問いの text を、次の順に組み立てる。1 行目「審査対象は <記録の path>。ほかのファイルは、審査対象が link している記録で、審査の対象ではない。」、2 行目に V0 の前置き（V0 の要求の文面をそのまま）、3 行目に rubric の問い、4 行目「はい: <criteria の true の文>」、5 行目「いいえ: <criteria の false の文>」。true と false の文は、research-record-v2 の rubric（.dx/rubrics/）から読む。
+  - V6: V5 の記録のファイル（審査対象と link 先）の中身を、木の中の元の bytes（TOML の原文）に替えたもの。
+- 返却に、V5 と V6 の 2 問目が V0（0.835）にどこまで近づいたか、反復の幅に比べて意味があるか、1 問目と 3 問目が V0 から離れていないか、を 3 行以内で書く。
