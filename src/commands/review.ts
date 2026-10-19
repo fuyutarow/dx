@@ -104,6 +104,15 @@ export async function runJex(
       signal,
       killSignal: "SIGKILL",
     });
+    const waiting = setTimeout(() => {
+      process.stderr.write("dx: waiting for jex…\n");
+    }, 2000);
+    using waitingCleanup = {
+      [Symbol.dispose]() {
+        clearTimeout(waiting);
+      },
+    };
+    void waitingCleanup;
     const [stdout, stderr, exit] = await Promise.all([
       new Response(child.stdout).text(),
       new Response(child.stderr).text(),
@@ -354,12 +363,18 @@ function serializeVerdicts(path: string, verdicts: unknown[]) {
     const tables: string[] = [];
     for (const verdict of verdicts) {
       const checked = yield* validate(verdictSchema, verdict);
-      tables.push(
-        "[[verdicts]]\n" +
-          Object.entries(checked)
-            .map(([key, value]) => `${key} = ${JSON.stringify(value)}`)
-            .join("\n"),
+      const { reasons, ...fields } = checked;
+      const lines = Object.entries(fields).map(
+        ([key, value]) => `${key} = ${JSON.stringify(value)}`,
       );
+      if (reasons !== undefined)
+        lines.push(
+          "[verdicts.reasons]",
+          ...Object.entries(reasons).map(
+            ([id, reason]) => `${tomlString(id)} = ${tomlString(reason)}`,
+          ),
+        );
+      tables.push("[[verdicts]]\n" + lines.join("\n"));
     }
     return ok(tables.join("\n\n") + "\n");
   });

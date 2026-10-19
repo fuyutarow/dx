@@ -12,6 +12,11 @@ afterEach(async () => {
     await rm(directory, { recursive: true, force: true });
 });
 export const main = join(import.meta.dir, "../src/main.ts");
+export async function temporaryDirectory(prefix: string) {
+  const directory = await mkdtemp(join(tmpdir(), prefix));
+  directories.push(directory);
+  return directory;
+}
 export async function processRun(cwd: string, cmd: string[], milliseconds = 20000) {
   const signal = AbortSignal.timeout(milliseconds);
   const child = Bun.spawn({
