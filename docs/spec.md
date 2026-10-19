@@ -360,7 +360,7 @@ head の同じ宣言で base も評価し、参照先のない既存の supersed
 `?` による複合キー、文字列でないキーは受け付けない。
 文字列の値に U+0085 または U+FEFF が含まれる場合も拒否する。escape を復号した値、
 sequence 内、入れ子、block scalar にも適用する。コメントや引用文字列内の `&`、`*`、`!`、`?` は
-構文として扱わない。文書先頭の BOM と LF/CRLF は従来どおり受け付ける。
+構文として扱わない。文書先頭の BOM は従来どおり受け付ける。frontmatter の区切りは `---\n` のみとし、frontmatter 内の CR は `format` finding にする（本文の CR は対象外）。
 
 これらは設定で緩和せず、`check: "format"`、`field: path` の finding にする。
 head の parser を base にも適用するため、同じバイト列の記録の format finding は I-02 の既存扱いになる。

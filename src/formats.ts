@@ -17,7 +17,7 @@ export const sha256 = (text: string): string => createHash("sha256").update(text
 export function splitMarkdown(
   text: string,
 ): { header: string; body: string; opening: string; closing: string } | undefined {
-  const match = /^(?:\uFEFF)?---\r?\n([\s\S]*?)^---(?:\r?\n|$)/mu.exec(text);
+  const match = /^(?:\uFEFF)?---\n([\s\S]*?)^---(?:\n|$)/mu.exec(text);
   const opening = (match?.[0].indexOf("\n") ?? -1) + 1;
   return match?.index === 0 && match[1] !== undefined
     ? {
@@ -85,7 +85,7 @@ export function parseRecords(path: string, text: string, format: TypeDefinition[
     // including comments, Markdown bodies and a possible leading BOM.
     const forbidden =
       // oxlint-disable-next-line no-control-regex -- Detect the forbidden source characters themselves.
-      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\uFEFF\u2028\u2029\uFFFE\uFFFF]|\r(?!\n)/u.exec(
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\uFEFF\u2028\u2029\uFFFE\uFFFF]/u.exec(
         text,
       );
     if (forbidden !== null) {
@@ -93,6 +93,11 @@ export function parseRecords(path: string, text: string, format: TypeDefinition[
       return undetermined(`document character U+${code} is outside the accepted input domain`);
     }
     if (format === "markdown-frontmatter") {
+      // Recognize the candidate region permissively so CR in CRLF delimiters is
+      // reported as a format finding instead of looking like missing metadata.
+      const candidate = /^(?:\uFEFF)?---\r?\n([\s\S]*?)^---(?:\r?\n|$)/mu.exec(text);
+      if (candidate?.[0].includes("\r") === true || candidate?.[1]?.includes("\r") === true)
+        return undetermined("CR in frontmatter");
       const parts = splitMarkdown(text);
       if (parts === undefined) return validate(z.array(z.never()), undefined);
       return ok([
@@ -106,6 +111,11 @@ export function parseRecords(path: string, text: string, format: TypeDefinition[
         },
       ]);
     }
+    // TOML keeps the document-wide source restriction; Markdown permits CR in
+    // its body and checks it only in the frontmatter region above.
+    // oxlint-disable-next-line no-control-regex -- Detect the forbidden source character itself.
+    if (/\r(?!\n)/u.test(text))
+      return undetermined("document character U+000D is outside the accepted input domain");
     const parsed = yield* object(yield* attempt((): unknown => Bun.TOML.parse(text)));
     const rows =
       parsed.records === undefined
