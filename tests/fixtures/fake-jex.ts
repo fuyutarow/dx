@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { jsonOf, z } from "../../.dx-preset/zod";
 
 const questionsSchema = z.object({
   schema: z.literal(1),
@@ -15,7 +15,9 @@ const controlsSchema = z.object({
 const args = process.argv.slice(2);
 const captureDir = args[0] === "--capture-dir" ? (args[1] ?? ".") : ".";
 const controlPath = args[2] === "--control-file" ? (args[3] ?? "") : "";
-const prefixLength = args[2] === "--control-file" ? 4 : args[0] === "--capture-dir" ? 2 : 0;
+let prefixLength = 0;
+if (args[2] === "--control-file") prefixLength = 4;
+else if (args[0] === "--capture-dir") prefixLength = 2;
 const [questionsPath, ...inputPaths] = args.slice(prefixLength);
 if (questionsPath === undefined) process.exit(2);
 const questionsText = await Bun.file(questionsPath).text();
@@ -32,10 +34,15 @@ const calls = ((await callsFile.exists()) ? Number(await callsFile.text()) : 0) 
 await Bun.write(capturePath, JSON.stringify(capture));
 await Bun.write(callsPath, String(calls));
 
-const controlsFile = Bun.file(controlPath || `${captureDir}/.jex-fixture.json`);
-const controlsResult = controlsSchema.safeParse(
-  (await controlsFile.exists()) ? await controlsFile.json() : {},
+const controlsFile = Bun.file(controlPath !== "" ? controlPath : `${captureDir}/.jex-fixture.json`);
+const controlsResult = jsonOf(controlsSchema).safeParse(
+  (await controlsFile.exists()) ? await controlsFile.text() : "{}",
 );
+if (
+  !controlsResult.success &&
+  controlsResult.error.issues.some((issue) => issue.code === "invalid_format")
+)
+  process.exit(1);
 const controls = controlsResult.success ? controlsResult.data : {};
 if (controls.delay_ms !== undefined) await Bun.sleep(controls.delay_ms);
 if (controls.fail_on_call === calls) process.exit(3);
