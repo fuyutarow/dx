@@ -79,7 +79,7 @@ test("real retrospective policy and six authorless records review into external 
     "dx.toml",
     `[repo]\nname = "retrospectives"\n[review]\ncommand = ${JSON.stringify([
       process.execPath,
-      join(import.meta.dir, "fixtures/jev-command.ts"),
+      join(import.meta.dir, "fixtures/fake-jex.ts"),
     ])}\n[files]\nignore = ["**/node_modules/**"]\n`,
   );
   const base = await advance(cwd);
@@ -100,6 +100,7 @@ test("real retrospective policy and six authorless records review into external 
   expect(reviewed.exit, reviewed.stderr + reviewed.stdout).toBe(0);
   const verdicts = rows(reviewed.stdout);
   expect(verdicts).toHaveLength(6);
+  expect(await Bun.file(join(cwd, ".jex-calls")).text()).toBe("6");
   for (const verdict of verdicts) {
     expect(verdict.by).toBe("process:jev/fake");
     expect(verdict.pass).toBe(true);
@@ -116,7 +117,7 @@ test("real retrospective policy and six authorless records review into external 
   for (const [path, text] of Object.entries(fixture.records))
     expect(await Bun.file(join(cwd, path)).text()).toBe(text);
   // The fake transport capture is test output, not retrospective infrastructure.
-  await rm(join(cwd, "request.json"));
+  await rm(join(cwd, ".jex-capture.json"));
   await snapshot(cwd);
   const after = await dx(cwd, "check", "--base", "alpha@origin", "@");
   expect(after.exit, after.stderr + after.stdout).toBe(0);
@@ -124,4 +125,5 @@ test("real retrospective policy and six authorless records review into external 
     rows(after.stdout).filter((f) => f.check === "I-06.verdict" && f.new === true),
   ).toHaveLength(0);
   expect((await dx(cwd, "review")).stdout).toBe("");
+  expect(await Bun.file(join(cwd, ".jex-calls")).text()).toBe("6");
 }, 60000);

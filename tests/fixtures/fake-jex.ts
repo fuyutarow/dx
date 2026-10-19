@@ -1,0 +1,50 @@
+import { z } from "zod";
+
+const questionsSchema = z.object({
+  schema: z.literal(1),
+  question: z.array(z.object({ id: z.string(), text: z.string() })).max(8),
+});
+const controlsSchema = z.object({
+  p: z.number().optional(),
+  exit: z.number().int().optional(),
+  response: z.string().optional(),
+  delay_ms: z.number().nonnegative().optional(),
+  fail_on_call: z.number().int().positive().optional(),
+});
+
+const [questionsPath, ...inputPaths] = process.argv.slice(2);
+if (questionsPath === undefined) process.exit(2);
+const questionsText = await Bun.file(questionsPath).text();
+const questions = questionsSchema.safeParse(Bun.TOML.parse(questionsText));
+if (!questions.success) process.exit(2);
+
+const files: Record<string, string> = {};
+for (const path of inputPaths) files[path] = await Bun.file(path).text();
+const capture = { questions: questionsText, files };
+const capturePath = ".jex-capture.json";
+const callsPath = ".jex-calls";
+const callsFile = Bun.file(callsPath);
+const calls = ((await callsFile.exists()) ? Number(await callsFile.text()) : 0) + 1;
+await Bun.write(capturePath, JSON.stringify(capture));
+await Bun.write(callsPath, String(calls));
+
+const controlsFile = Bun.file(".jex-fixture.json");
+const controlsResult = controlsSchema.safeParse(
+  (await controlsFile.exists()) ? await controlsFile.json() : {},
+);
+const controls = controlsResult.success ? controlsResult.data : {};
+if (controls.delay_ms !== undefined) await Bun.sleep(controls.delay_ms);
+if (controls.fail_on_call === calls) process.exit(7);
+
+const output =
+  controls.response ??
+  JSON.stringify({
+    model: "fake",
+    bits: questions.data.question.map(({ id }) => ({
+      id,
+      p: controls.p ?? 0.8,
+      reason: `fake reason for ${id}`,
+    })),
+  });
+process.stdout.write(output);
+process.exitCode = controls.exit ?? 0;

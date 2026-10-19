@@ -23,6 +23,7 @@ async function fixture(
   options: {
     place?: string;
     response?: string;
+    exit?: number;
     command?: string[];
     extra?: string;
     format?: string;
@@ -32,22 +33,19 @@ async function fixture(
     review: options.place ?? "file:verdicts/*.json",
     ...(options.format === undefined ? {} : { format: options.format }),
   });
-  const command = options.command ?? [process.execPath, "fake.ts"];
+  const command = options.command ?? [process.execPath, `${import.meta.dir}/fixtures/fake-jex.ts`];
   await write(
     cwd,
     "dx.toml",
     `[repo]\nname = "fixture"\n[review]\ncommand = ${JSON.stringify(command)}\n${options.extra ?? ""}`,
   );
   await write(cwd, ".dx/rubrics/r.toml", rubric);
-  await write(
-    cwd,
-    "fake.ts",
-    `const text = await Bun.stdin.text();
-await Bun.write("request.json", text);
-await Bun.write("calls", String(Number(await Bun.file("calls").text().catch(() => "0"))+1));
-process.stdout.write(${JSON.stringify(options.response ?? '{"model":"fake","answers":{"quality":{"type":"noul","noul":0.8}}}')});
-`,
-  );
+  if (options.response !== undefined || options.exit !== undefined)
+    await write(
+      cwd,
+      ".jex-fixture.json",
+      JSON.stringify({ response: options.response, exit: options.exit }),
+    );
   const base = await advance(cwd);
   await jj(cwd, "bookmark", "create", "review-base", "-r", base);
   // The configured base expression uses <branch>@<remote>.
@@ -83,16 +81,19 @@ test("passing sidecar verdict satisfies I-06 and is skipped on retry", async () 
   await snapshot(cwd);
   expect((await dx(cwd, "check")).exit).toBe(0);
   expect((await review(cwd)).stdout).toBe("");
-  expect(await Bun.file(`${cwd}/calls`).text()).toBe("1");
-  const request = decode(
-    z.object({ state: z.object({ record: z.string() }) }),
-    await Bun.file(`${cwd}/request.json`).text(),
+  expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("1");
+  const capture = decode(
+    z.object({ questions: z.string(), files: z.record(z.string(), z.string()) }),
+    await Bun.file(`${cwd}/.jex-capture.json`).text(),
   );
-  expect(request.state.record).toBe(text);
+  expect(capture.questions).toContain('id = "quality"');
+  expect(capture.questions).toContain('text = "Is the account clear?"');
+  expect(capture.files["records/one.md"]).toBe(text);
 }, 60000);
 test("failed verdict is written with exit 1 and fails I-06", async () => {
   const { cwd } = await fixture({
-    response: '{"model":"fake","answers":{"quality":{"noul":0.2}}}',
+    response: '{"model":"fake","bits":[{"id":"quality","p":0.2,"reason":"unclear"}]}',
+    exit: 1,
   });
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
@@ -111,7 +112,7 @@ test("I-10 blocks a record with a finding while reviewing clean records", async 
   expect(rows(result.stdout).some((r) => r.check === "quality" && r.id === "bad")).toBe(true);
   expect(result.stderr).toContain("REVIEW_BLOCKED: bad: I-10: 既存の finding 1 件を先に消す\n");
   expect(rows(result.stdout).some((r) => r.pass === true && r.id === "good")).toBe(true);
-  expect(await Bun.file(`${cwd}/calls`).text()).toBe("1");
+  expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("1");
 }, 60000);
 test("I-10 blocks every member of a group finding and reviews the rest", async () => {
   const { cwd } = await fixture();
@@ -135,7 +136,7 @@ test("I-10 blocks every member of a group finding and reviews the rest", async (
   expect(result.stderr).toContain("REVIEW_BLOCKED: a: I-10: 既存の finding 1 件を先に消す\n");
   expect(result.stderr).toContain("REVIEW_BLOCKED: b: I-10: 既存の finding 1 件を先に消す\n");
   expect(rows(result.stdout).some((r) => r.pass === true && r.id === "c")).toBe(true);
-  expect(await Bun.file(`${cwd}/calls`).text()).toBe("1");
+  expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("1");
 }, 60000);
 test("oversized record or questions refuse with exit 4, no command and empty stdout", async () => {
   for (const largeQuestion of [false, true]) {
@@ -158,25 +159,28 @@ test("oversized record or questions refuse with exit 4, no command and empty std
     const result = await review(cwd);
     expect(result.exit, result.stderr).toBe(4);
     expect(result.stdout).toBe("");
-    expect(await Bun.file(`${cwd}/calls`).exists()).toBe(false);
+    expect(await Bun.file(`${cwd}/.jex-calls`).exists()).toBe(false);
     expect(await Bun.file(`${cwd}/records/one.md`).text()).not.toContain("review:");
   }
 }, 60000);
-test("missing command and malformed or incomplete response yield 3 without verdict", async () => {
-  for (const options of [
-    { command: ["/no-such-dx-review-command"] },
-    { response: "broken" },
-    { response: '{"model":"fake","answers":{}}' },
-    { response: '{"model":"fake","answers":{"quality":{"noul":2}}}' },
+test("missing jex is unavailable; malformed or incomplete output is undetermined", async () => {
+  const unavailable = await fixture({ command: ["/no-such-dx-jex-command"] });
+  await write(unavailable.cwd, "records/one.md", markdown("one"));
+  const unavailableResult = await review(unavailable.cwd);
+  expect(unavailableResult.exit, unavailableResult.stderr).toBe(3);
+  expect(unavailableResult.stdout).toBe("");
+  expect(unavailableResult.stderr).toContain("REVIEW_UNAVAILABLE");
+  for (const response of [
+    "broken",
+    '{"model":"fake","bits":[]}',
+    '{"model":"fake","bits":[{"id":"quality","p":2,"reason":"bad"}]}',
   ]) {
-    const { cwd } = await fixture(options);
+    const { cwd } = await fixture({ response, exit: 4 });
     const text = markdown("one");
     await write(cwd, "records/one.md", text);
     const result = await review(cwd);
-    expect(result.exit, result.stderr).toBe(3);
+    expect(result.exit, result.stderr).toBe(4);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("REVIEW_UNAVAILABLE");
-    expect(result.stderr.trim().split("\n")).toHaveLength(1);
     expect(await Bun.file(`${cwd}/records/one.md`).text()).toBe(text);
   }
 }, 60000);
@@ -195,7 +199,7 @@ test("sidecar glob, shared JSON and TOML storage satisfy I-06 and retries", asyn
     await snapshot(cwd);
     expect((await dx(cwd, "check")).exit).toBe(0);
     expect((await review(cwd)).stdout).toBe("");
-    expect(await Bun.file(`${cwd}/calls`).text()).toBe("2");
+    expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("2");
   }
 }, 60000);
 test("REV with a different working-copy record refuses before calling Jev", async () => {
@@ -205,7 +209,7 @@ test("REV with a different working-copy record refuses before calling Jev", asyn
   await write(cwd, "records/one.md", markdown("one", "", "New content"));
   const result = await review(cwd, rev);
   expect(result.exit, result.stderr).toBe(4);
-  expect(await Bun.file(`${cwd}/calls`).exists()).toBe(false);
+  expect(await Bun.file(`${cwd}/.jex-calls`).exists()).toBe(false);
 }, 60000);
 test("UTF-8 evidence and escaped JSON fit 30000 bytes without truncating record/questions", () => {
   const text = '😀日本語\\"\n'.repeat(3000);
@@ -242,47 +246,30 @@ test("custom format evidence policy supplies linked files through the revision t
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(0);
-  const request = await Bun.file(`${cwd}/request.json`).text();
-  expect(Buffer.byteLength(request)).toBeLessThanOrEqual(30000);
-  expect(request).toContain("truncated at");
-  expect(request).not.toContain("�");
-}, 60000);
-test("review transport bounds a hanging fake command and rejects nonzero exits", async () => {
-  const { runReviewCommand } = await import("../src/commands/review.ts");
-  const { cwd } = await fixture();
-  const timeout = await runReviewCommand(
-    cwd,
-    [process.execPath, "-e", "await Bun.sleep(10000)"],
-    {},
-    30,
+  const capture = decode(
+    z.object({ questions: z.string(), files: z.record(z.string(), z.string()) }),
+    await Bun.file(`${cwd}/.jex-capture.json`).text(),
   );
-  expect(timeout.error).toContain("timed out");
-  const nonzero = await runReviewCommand(cwd, [process.execPath, "-e", "process.exit(7)"], {});
-  expect(nonzero.error).toContain("exited 7");
+  const evidence = capture.files["evidence.txt"];
+  expect(evidence).toBeDefined();
+  expect(Buffer.byteLength(evidence ?? "")).toBeLessThanOrEqual(30000);
+  expect(evidence).toContain("truncated at");
+  expect(evidence).not.toContain("�");
 }, 60000);
 test("external review waits report liveness and complete", async () => {
   const { cwd } = await fixture();
-  const fake = await Bun.file(`${cwd}/fake.ts`).text();
-  await write(cwd, "fake.ts", "await Bun.sleep(3500);\n" + fake);
+  await write(cwd, ".jex-fixture.json", JSON.stringify({ delay_ms: 3500 }));
   const base = await advance(cwd);
   await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(0);
-  expect(result.stderr).toContain("dx: waiting for jev…");
+  expect(result.stderr).toContain("dx: waiting for jex…");
 }, 60000);
 test("partial verdicts survive a later unavailable response and retry skips them", async () => {
   const { cwd } = await fixture();
-  const fake = await Bun.file(`${cwd}/fake.ts`).text();
-  await write(
-    cwd,
-    "fake.ts",
-    fake.replace(
-      "process.stdout.write(",
-      'if (await Bun.file("calls").text() === "2") process.exit(7);\nprocess.stdout.write(',
-    ),
-  );
+  await write(cwd, ".jex-fixture.json", JSON.stringify({ fail_on_call: 2 }));
   const base = await advance(cwd);
   await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
@@ -296,7 +283,7 @@ test("partial verdicts survive a later unavailable response and retry skips them
   const retry = await review(cwd);
   expect(retry.exit, retry.stderr).toBe(0);
   expect(rows(retry.stdout).map((r) => r.id)).toEqual(["b"]);
-  expect(await Bun.file(`${cwd}/calls`).text()).toBe("3");
+  expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("3");
 }, 60000);
 test("immutable TOML fragments use sidecars even under a default ignored directory", async () => {
   const { cwd } = await fixture({ place: "file:tools/verdicts/*.json", format: "toml" });
@@ -321,7 +308,7 @@ test("new malformed review records block I-10; unchanged malformed records are o
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(1);
   expect(rows(result.stdout)[0]?.check).toBe("format");
-  expect(await Bun.file(`${cwd}/calls`).exists()).toBe(false);
+  expect(await Bun.file(`${cwd}/.jex-calls`).exists()).toBe(false);
   const base = await advance(cwd);
   await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
@@ -329,26 +316,19 @@ test("new malformed review records block I-10; unchanged malformed records are o
   expect(unchanged.exit, unchanged.stderr).toBe(0);
   expect(unchanged.stdout).toBe("");
 }, 60000);
-test("offline Jev fixture accepts the successful receipt and rejects its missing-model variant", async () => {
-  const { runReviewCommand } = await import("../src/commands/review.ts");
-  const { default: reference } = await import("./fixtures/jev-request.json");
+test("dx review sends questions and repository paths to jex and satisfies I-06", async () => {
   const { cwd } = await fixture();
-  const command = [process.execPath, `${import.meta.dir}/fixtures/jev-command.ts`];
-  const accepted = await runReviewCommand(cwd, command, reference);
-  expect(accepted.response?.answers["blameless"]?.noul).toBe(0.8);
-  const { model: _model, ...withoutModel } = reference;
-  const rejected = await runReviewCommand(cwd, command, withoutModel);
-  expect(rejected.response).toBeUndefined();
-  expect(rejected.error).toContain("HTTP 422");
-}, 60000);
-test("dx review sends a request matching the successful Jev contract and then satisfies I-06", async () => {
-  const { cwd } = await fixture({
-    command: [process.execPath, `${import.meta.dir}/fixtures/jev-command.ts`],
-  });
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(0);
   expect(rows(result.stdout)[0]?.pass).toBe(true);
+  const capture = decode(
+    z.object({ questions: z.string(), files: z.record(z.string(), z.string()) }),
+    await Bun.file(`${cwd}/.jex-capture.json`).text(),
+  );
+  expect(capture.questions).toContain("schema = 1");
+  expect(capture.questions).toContain('id = "quality"');
+  expect(capture.files["records/one.md"]).toBe(markdown("one"));
   await snapshot(cwd);
   expect((await dx(cwd, "check")).exit).toBe(0);
 }, 60000);

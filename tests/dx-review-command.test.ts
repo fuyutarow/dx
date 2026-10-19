@@ -1,8 +1,7 @@
 import { expect, test } from "bun:test";
 import { dx, repo, write, snapshot } from "./helpers.ts";
 
-const missingCommand =
-  'UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）';
+const missingCommand = 'UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["jex"]）';
 
 test("rubric types require an explicit review command for check and review", async () => {
   const { cwd, base } = await repo({ review: "file:verdicts/*.jsonl" });
