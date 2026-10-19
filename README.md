@@ -292,7 +292,7 @@ verdict 自身を含めたハッシュの自己参照を避け、本文は空白
 finding を stdout に出して exit 1 にします。現在のハッシュ・rubric に結びつく合格 verdict は再利用します。
 指定 REV と作業コピーの内容が異なると exit 4 で拒否します。
 
-`[review].command`（既定 `["agx", "jev"]`）に stdin JSON を渡します。
+`[review].command` に stdin JSON を渡します。既定値はありません。rubric を持つ type がある repo では必須で、未指定なら `dx check` と `dx review` は `UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）` を出して exit 4 になります。rubric を持つ type が無い repo では省略できます。たとえば `[review]` に `command = ["agx", "worker", "jev"]` と書きます。
 要求には `model: "jev-latest"` を必ず含めます。現在の Jev endpoint は model を省略すると HTTP 422 を返すためです。
 model のフィールドも要求全体の30,000バイトに含めます。
 rubric は次の TOML 形式です。criteria の順番が `p` と `bits` の順番になります。

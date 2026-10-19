@@ -262,7 +262,7 @@ remote = "origin"           # land の push 先
 branch = "alpha"            # 正規の branch
 
 [review]
-command = ["agx", "jev"]    # stdin に JSON の要求を 1 つ受け、stdout に JSON の答えを返すコマンド
+command = ["agx", "worker", "jev"]  # rubric を持つ type がある場合に必須。stdin JSON を受けて stdout JSON を返すコマンド
 
 [limits]                    # 超えたら判定できない（終了コード 4）。黙って打ち切らない
 record_bytes     = 4194304
@@ -275,7 +275,8 @@ inputs = []                 # 規則が読む入力の glob。ignore より優�
 strict = false              # true なら、どの type にも当たらないファイルを finding にする
 ```
 
-- `name` 以外の値は、すべて上の値が既定になる。
+- `name` と `[review] command` 以外の値は、すべて上の値が既定になる。
+- `[review] command` に既定値はない。rubric を持つ type が 1 つでもある repo では必須で、未指定なら `dx check` と `dx review` は `UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）` を出して終了コード 4 にする。rubric を持つ type が無ければ省略できる。
 - `files.ignore` を指定すると既定全体を置き換える（足し合わせない）。`ignore = []` も指定できる。
 - 廃止済みの `limits.check_seconds` と `review.pass` は未知の項目として exit 4 にする。
 - review は、すべての問いの確率が 0.5 以上なら合格とする。

@@ -86,7 +86,11 @@ export async function repo(options: Parameters<typeof typeSource>[0] = {}, confi
   const cwd = await mkdtemp(join(tmpdir(), "dx-test-"));
   directories.push(cwd);
   await jj(cwd, "git", "init", "--colocate");
-  await write(cwd, "dx.toml", `[repo]\nname = "fixture"\n${config}`);
+  const reviewConfig =
+    options.review !== undefined && !config.includes("[review]")
+      ? '\n[review]\ncommand = ["agx", "worker", "jev"]\n'
+      : "";
+  await write(cwd, "dx.toml", `[repo]\nname = "fixture"\n${config}${reviewConfig}`);
   await write(cwd, ".dx/note.ts", typeSource(options));
   if (options.review !== undefined) await write(cwd, ".dx/rubrics/r.toml", 'rubric = "r"\n');
   const base = await advance(cwd);

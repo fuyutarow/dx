@@ -7,6 +7,7 @@ import * as zod from "zod";
 import * as neverthrow from "neverthrow";
 import { z } from "zod";
 import { typeSchema } from "./model.ts";
+import type { Config } from "./config.ts";
 
 // Policies share the host's API and fixed dependencies, including in a standalone
 // executable where import.meta.resolve cannot find packages on the filesystem.
@@ -24,6 +25,14 @@ plugin({
 export function matches(patterns: string | readonly string[], path: string): boolean {
   const values = typeof patterns === "string" ? [patterns] : patterns;
   return values.some((pattern) => new Bun.Glob(pattern).match(path));
+}
+export function reviewCommandRequirement(
+  types: readonly z.infer<typeof typeSchema>[],
+  config: Config,
+) {
+  if (types.some((type) => type.review !== undefined) && config.review.command === undefined)
+    return undetermined('policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）');
+  return ok(undefined);
 }
 export async function loadTypes(files: Readonly<Record<string, string>>) {
   return safeTry(async function* () {

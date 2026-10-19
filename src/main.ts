@@ -5,7 +5,7 @@ import { parseInvocation, type Invocation } from "./cli.ts";
 import { readConfig } from "./config.ts";
 
 import { defaultBase, revision, root, show } from "./repository.ts";
-import { loadTypes, matches } from "./policy.ts";
+import { loadTypes, matches, reviewCommandRequirement } from "./policy.ts";
 import { isolationFindings, readSnapshot, ruleFiles, snapshotCache } from "./collection.ts";
 import { review } from "./commands/review.ts";
 import { check } from "./commands/check.ts";
@@ -49,6 +49,8 @@ export async function execute(
     const cache = snapshotCache(repo, ms);
     const rules = yield* await ruleFiles(repo, policy, ms, cache.reader);
     const types = yield* await loadTypes(rules);
+    if (invocation.command === "check" || invocation.command === "review")
+      yield* reviewCommandRequirement(types, config);
     const policyFiles = yield* await cache.reader.read(
       (yield* await cache.reader.tree(policy)).filter(({ path }) =>
         matches(config.files.inputs, path),

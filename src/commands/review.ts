@@ -27,7 +27,7 @@ import {
   type FormatAdapter,
   type Verdict,
 } from "../model.ts";
-import { matches } from "../policy.ts";
+import { matches, reviewCommandRequirement } from "../policy.ts";
 import {
   assembleBits,
   assembleRequest,
@@ -105,6 +105,7 @@ export async function review(
   isolation: readonly FindingInput[],
 ) {
   return safeTry(async function* () {
+    yield* reviewCommandRequirement(types, config);
     const checked = yield* await check(base, head, types, isolation);
     const findings = checked.filter((f) => f.check !== "I-06.verdict");
     const previous = new Map(base.records.map((r) => [r.id, r]));
@@ -198,7 +199,7 @@ export async function review(
     const contents = new Map<string, string | undefined>();
     for (const plan of plans) {
       const { record, type, source, adapter, rubric, rubricText, request, path, target } = plan;
-      const posted = await runReviewCommand(cwd, config.review.command, request);
+      const posted = await runReviewCommand(cwd, config.review.command ?? [], request);
       const response = posted.response;
       const p =
         response === undefined ? [] : rubric.criteria.map((c) => response.answers[c.id]?.noul);
