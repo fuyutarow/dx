@@ -128,12 +128,10 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
     const frontmatterReview = z
       .object({
         default: z.array(
-          z
-            .object({
-              name: z.string(),
-              review: z.object({ place: z.string() }).passthrough().optional(),
-            })
-            .passthrough(),
+          z.looseObject({
+            name: z.string(),
+            review: z.looseObject({ place: z.string() }).optional(),
+          }),
         ),
       })
       .safeParse(module);
