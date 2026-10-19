@@ -234,11 +234,13 @@ async function reviewed(place: string, immutable = false) {
 }
 
 test(
-  "I-06 frontmatter: matching verdict passes; stale hashes, self-review, low p and fail reject",
+  "I-06 file review: matching verdict passes; stale hashes, self-review, low p and fail reject",
   async () => {
-    const { cwd, base, verdict } = await reviewed("frontmatter");
-    const save = (v: unknown, body = "Body\n") =>
-      write(cwd, "records/a.md", markdown("a", `review: ${JSON.stringify(v)}\n`, body));
+    const { cwd, base, verdict } = await reviewed("file:verdicts/*.jsonl");
+    const save = async (v: unknown, body = "Body\n") => {
+      await write(cwd, "records/a.md", markdown("a", "", body));
+      await write(cwd, "verdicts/a.jsonl", `${JSON.stringify(v)}\n`);
+    };
     await save(verdict);
     await checked(cwd, base, 0);
     for (const v of [
@@ -276,10 +278,11 @@ test(
 );
 
 test(
-  "I-06: rubric-only change does not invalidate an unchanged accepted record",
+  "I-06: rubric-only change does not invalidate an unchanged accepted file verdict",
   async () => {
-    const { cwd, verdict } = await reviewed("frontmatter");
-    await write(cwd, "records/a.md", markdown("a", `review: ${JSON.stringify(verdict)}\n`));
+    const { cwd, verdict } = await reviewed("file:verdicts/*.jsonl");
+    await write(cwd, "records/a.md", markdown("a"));
+    await write(cwd, "verdicts/a.jsonl", `${JSON.stringify(verdict)}\n`);
     const base = await advance(cwd);
     await write(cwd, ".dx/rubrics/r.toml", 'rubric = "new"\n');
     await checked(cwd, base, 0);
