@@ -1,5 +1,5 @@
 import { jsonOf } from "../../.dx-preset/zod.ts";
-import { resultOf, validate, requireValue, attemptAsync, undetermined } from "../errors.ts";
+import { validate, requireValue, attemptAsync, undetermined } from "../errors.ts";
 
 import { ok, safeTry } from "neverthrow";
 import { lstat, mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
@@ -29,12 +29,7 @@ import {
   type Verdict,
 } from "../model.ts";
 import { matches, reviewCommandRequirement } from "../policy.ts";
-import {
-  REVIEW_INPUT_LIMIT_BYTES,
-  assembleBits,
-  fitEvidence,
-  parseRubric,
-} from "../review-request.ts";
+import { REVIEW_INPUT_LIMIT_BYTES, assembleBits, parseRubric } from "../review-request.ts";
 
 const jexResponseSchema = z.object({
   model: z.union([z.string().min(1), z.object({ na: z.literal(true), why: z.string() })]),
@@ -66,12 +61,47 @@ function temporaryPath(root: string, path: string) {
     ? ok(target)
     : undetermined(`jex input path escapes temporary directory: ${path}`);
 }
+function reviewEvidenceBytes(evidence: readonly Evidence[]) {
+  return evidence.reduce((total, file) => total + Buffer.byteLength(file.content ?? ""), 0);
+}
+function capReviewEvidence(file: Evidence, cap: number): Evidence {
+  if (file.content === undefined) return file;
+  const bytes = Buffer.from(file.content);
+  const total = file.original_bytes ?? bytes.length;
+  if (total <= cap) return file;
+  let end = Math.min(cap, bytes.length);
+  while (end > 0 && ((bytes[end] ?? 0) & 0xc0) === 0x80) end -= 1;
+  return {
+    ...file,
+    original_bytes: total,
+    supplied_bytes: end,
+    content: `${bytes.subarray(0, end).toString("utf8")}\n[truncated at ${end} of ${total} bytes]`,
+  };
+}
+function fitReviewEvidence(evidence: readonly Evidence[], budget: number) {
+  let low = 0;
+  let high = REVIEW_INPUT_LIMIT_BYTES / 4;
+  let fitted: Evidence[] | undefined;
+  while (low <= high) {
+    const cap = Math.floor((low + high) / 2);
+    const candidate = evidence.map((file) => capReviewEvidence(file, cap));
+    if (reviewEvidenceBytes(candidate) <= budget) {
+      fitted = candidate;
+      low = cap + 1;
+    } else high = cap - 1;
+  }
+  if (fitted !== undefined) return fitted;
+  const remaining = [...evidence];
+  while (remaining.length > 0 && reviewEvidenceBytes(remaining) > budget) remaining.pop();
+  return reviewEvidenceBytes(remaining) <= budget ? remaining : undefined;
+}
 export async function runJex(
   command: readonly string[],
   recordPath: string,
-  recordText: string,
+  recordBytes: string,
   criteria: readonly { id: string; question: string }[],
   evidence: readonly Evidence[],
+  treeFiles: Readonly<Record<string, string>> = {},
 ) {
   return attemptAsync(async () => {
     const root = await mkdtemp(join(tmpdir(), "dx-jex-review-"));
@@ -82,15 +112,21 @@ export async function runJex(
     };
     void cleanup;
     const questions = questionFile(criteria);
-    const baseBytes = Buffer.byteLength(questions) + Buffer.byteLength(recordText);
+    const baseBytes = Buffer.byteLength(questions) + Buffer.byteLength(recordBytes);
     if (baseBytes > REVIEW_INPUT_LIMIT_BYTES) return { kind: "undetermined" as const };
-    const supplied = evidence.filter((file) => file.content !== undefined);
-    const fitted = fitEvidence(supplied, REVIEW_INPUT_LIMIT_BYTES - baseBytes);
+    const supplied = evidence
+      .map((file) =>
+        treeFiles[file.locator] === undefined
+          ? file
+          : Object.assign({}, file, { content: treeFiles[file.locator] }),
+      )
+      .filter((file) => file.content !== undefined);
+    const fitted = fitReviewEvidence(supplied, REVIEW_INPUT_LIMIT_BYTES - baseBytes);
     if (fitted === undefined) return { kind: "undetermined" as const };
     const recordTarget = temporaryPath(root, recordPath);
     if (recordTarget.isErr()) return { kind: "undetermined" as const };
     await mkdir(dirname(recordTarget.value), { recursive: true });
-    await Bun.write(recordTarget.value, recordText);
+    await Bun.write(recordTarget.value, recordBytes);
     await Bun.write(join(root, "questions.toml"), questions);
     const evidencePaths: string[] = [];
     const usedPaths = new Set([recordTarget.value, join(root, "questions.toml")]);
@@ -208,7 +244,10 @@ export async function review(
         ),
         adapter.evidence?.(source, tree) ?? [],
       );
-      const recordText = yield* resultOf(adapter.reviewText(source));
+      const recordBytes = yield* requireValue(
+        head.files[record.path],
+        `missing review bytes: ${record.path}`,
+      );
       const path = yield* outputPath(type.review.place, record);
       const target = yield* await writablePath(cwd, path);
       const original = await attemptAsync(() => Bun.file(target).text());
@@ -224,7 +263,7 @@ export async function review(
         return undetermined(`invalid existing sidecar verdicts: ${path}`);
       // Sidecar writes must also bind to the selected working-copy record.
       yield* await unchangedRecord(cwd, record, source, "differs from REV");
-      plans.push({ record, type, source, rubric, rubricText, evidence, recordText, path, target });
+      plans.push({ record, type, source, rubric, rubricText, evidence, recordBytes, path, target });
     }
     rows.push(...blocked);
     // A format failure has no model row, but is still an I-10 refusal.
@@ -243,13 +282,15 @@ export async function review(
     let exit: 0 | 1 | 3 = rows.length > 0 ? 1 : 0;
     const contents = new Map<string, string | undefined>();
     for (const plan of plans) {
-      const { record, type, source, rubric, rubricText, evidence, recordText, path, target } = plan;
+      const { record, type, source, rubric, rubricText, evidence, recordBytes, path, target } =
+        plan;
       const posted = await runJex(
         config.review.command ?? [],
         record.path,
-        recordText,
+        recordBytes,
         rubric.criteria,
         evidence,
+        head.files,
       );
       if (posted.isErr()) {
         exit = 3;
