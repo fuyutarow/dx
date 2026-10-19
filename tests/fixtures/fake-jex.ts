@@ -12,7 +12,11 @@ const controlsSchema = z.object({
   fail_on_call: z.number().int().positive().optional(),
 });
 
-const [questionsPath, ...inputPaths] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const captureDir = args[0] === "--capture-dir" ? (args[1] ?? ".") : ".";
+const controlPath = args[2] === "--control-file" ? (args[3] ?? "") : "";
+const prefixLength = args[2] === "--control-file" ? 4 : args[0] === "--capture-dir" ? 2 : 0;
+const [questionsPath, ...inputPaths] = args.slice(prefixLength);
 if (questionsPath === undefined) process.exit(2);
 const questionsText = await Bun.file(questionsPath).text();
 const questions = questionsSchema.safeParse(Bun.TOML.parse(questionsText));
@@ -20,15 +24,15 @@ if (!questions.success) process.exit(2);
 
 const files: Record<string, string> = {};
 for (const path of inputPaths) files[path] = await Bun.file(path).text();
-const capture = { questions: questionsText, files };
-const capturePath = ".jex-capture.json";
-const callsPath = ".jex-calls";
+const capture = { questions: questionsText, files, argv: [questionsPath, ...inputPaths] };
+const capturePath = `${captureDir}/.jex-capture.json`;
+const callsPath = `${captureDir}/.jex-calls`;
 const callsFile = Bun.file(callsPath);
 const calls = ((await callsFile.exists()) ? Number(await callsFile.text()) : 0) + 1;
 await Bun.write(capturePath, JSON.stringify(capture));
 await Bun.write(callsPath, String(calls));
 
-const controlsFile = Bun.file(".jex-fixture.json");
+const controlsFile = Bun.file(controlPath || `${captureDir}/.jex-fixture.json`);
 const controlsResult = controlsSchema.safeParse(
   (await controlsFile.exists()) ? await controlsFile.json() : {},
 );

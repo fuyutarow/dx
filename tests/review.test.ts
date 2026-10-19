@@ -1,7 +1,6 @@
 import {
   decode,
   spawn,
-  value,
   dx,
   repo,
   write,
@@ -10,12 +9,11 @@ import {
   markdown,
   rows,
   advance,
+  temporaryDirectory,
 } from "./helpers.ts";
 import { z } from "zod";
 
 import { expect, test } from "bun:test";
-
-import { assembleRequest, capEvidence, parseRubric } from "../src/review-request.ts";
 
 const rubric =
   'rubric = "test/v1"\n[[criteria]]\nbit = 0\nid = "quality"\nquestion = "Is the account clear?"\n';
@@ -33,7 +31,15 @@ async function fixture(
     review: options.place ?? "file:verdicts/*.json",
     ...(options.format === undefined ? {} : { format: options.format }),
   });
-  const command = options.command ?? [process.execPath, `${import.meta.dir}/fixtures/fake-jex.ts`];
+  const captureDir = await temporaryDirectory("dx-jex-capture-");
+  const command = options.command ?? [
+    process.execPath,
+    `${import.meta.dir}/fixtures/fake-jex.ts`,
+    "--capture-dir",
+    captureDir,
+    "--control-file",
+    `${cwd}/.jex-fixture.json`,
+  ];
   await write(
     cwd,
     "dx.toml",
@@ -61,30 +67,30 @@ async function fixture(
   const git = await spawn(["git", "update-ref", "refs/remotes/origin/alpha", cleanBase], { cwd });
   expect(git.exitCode).toBe(0);
   await jj(cwd, "git", "import");
-  return { cwd, base: cleanBase };
+  return { cwd, captureDir, base: cleanBase };
 }
 async function review(cwd: string, rev?: string) {
   await snapshot(cwd);
   return dx(cwd, "review", ...(rev === undefined ? [] : [rev]));
 }
 test("passing sidecar verdict satisfies I-06 and is skipped on retry", async () => {
-  const { cwd } = await fixture();
+  const { cwd, captureDir } = await fixture();
   const text = markdown("one");
   await write(cwd, "records/one.md", text);
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(0);
   const verdict = rows(result.stdout)[0];
   expect(verdict?.pass).toBe(true);
-  expect(verdict?.by).toBe("process:jev/fake");
+  expect(verdict?.by).toBe("process:jex/fake");
   expect(await Bun.file(`${cwd}/records/one.md`).text()).toBe(text);
   expect(await Bun.file(`${cwd}/verdicts/one.json`).exists()).toBe(true);
   await snapshot(cwd);
   expect((await dx(cwd, "check")).exit).toBe(0);
   expect((await review(cwd)).stdout).toBe("");
-  expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("1");
+  expect(await Bun.file(`${captureDir}/.jex-calls`).text()).toBe("1");
   const capture = decode(
     z.object({ questions: z.string(), files: z.record(z.string(), z.string()) }),
-    await Bun.file(`${cwd}/.jex-capture.json`).text(),
+    await Bun.file(`${captureDir}/.jex-capture.json`).text(),
   );
   expect(capture.questions).toContain('id = "quality"');
   expect(capture.questions).toContain('text = "Is the account clear?"');
@@ -104,7 +110,7 @@ test("failed verdict is written with exit 1 and fails I-06", async () => {
   expect(rows((await dx(cwd, "check")).stdout).some((r) => r.check === "I-06.verdict")).toBe(true);
 }, 60000);
 test("I-10 blocks a record with a finding while reviewing clean records", async () => {
-  const { cwd } = await fixture();
+  const { cwd, captureDir } = await fixture();
   await write(cwd, "records/bad.md", markdown("bad", "bad: true\n"));
   await write(cwd, "records/good.md", markdown("good"));
   const result = await review(cwd);
@@ -112,10 +118,10 @@ test("I-10 blocks a record with a finding while reviewing clean records", async 
   expect(rows(result.stdout).some((r) => r.check === "quality" && r.id === "bad")).toBe(true);
   expect(result.stderr).toContain("REVIEW_BLOCKED: bad: I-10: 既存の finding 1 件を先に消す\n");
   expect(rows(result.stdout).some((r) => r.pass === true && r.id === "good")).toBe(true);
-  expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("1");
+  expect(await Bun.file(`${captureDir}/.jex-calls`).text()).toBe("1");
 }, 60000);
 test("I-10 blocks every member of a group finding and reviews the rest", async () => {
-  const { cwd } = await fixture();
+  const { cwd, captureDir } = await fixture();
   const source = await Bun.file(`${cwd}/.dx/note.ts`).text();
   await write(
     cwd,
@@ -136,11 +142,11 @@ test("I-10 blocks every member of a group finding and reviews the rest", async (
   expect(result.stderr).toContain("REVIEW_BLOCKED: a: I-10: 既存の finding 1 件を先に消す\n");
   expect(result.stderr).toContain("REVIEW_BLOCKED: b: I-10: 既存の finding 1 件を先に消す\n");
   expect(rows(result.stdout).some((r) => r.pass === true && r.id === "c")).toBe(true);
-  expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("1");
+  expect(await Bun.file(`${captureDir}/.jex-calls`).text()).toBe("1");
 }, 60000);
 test("oversized record or questions refuse with exit 4, no command and empty stdout", async () => {
   for (const largeQuestion of [false, true]) {
-    const { cwd } = await fixture();
+    const { cwd, captureDir } = await fixture();
     if (largeQuestion) {
       await write(
         cwd,
@@ -159,7 +165,7 @@ test("oversized record or questions refuse with exit 4, no command and empty std
     const result = await review(cwd);
     expect(result.exit, result.stderr).toBe(4);
     expect(result.stdout).toBe("");
-    expect(await Bun.file(`${cwd}/.jex-calls`).exists()).toBe(false);
+    expect(await Bun.file(`${captureDir}/.jex-calls`).exists()).toBe(false);
     expect(await Bun.file(`${cwd}/records/one.md`).text()).not.toContain("review:");
   }
 }, 60000);
@@ -190,44 +196,30 @@ test("sidecar glob, shared JSON and TOML storage satisfy I-06 and retries", asyn
     "file:verdicts/all.json",
     "file:verdicts/all.toml",
   ]) {
-    const { cwd } = await fixture({ place });
+    const { cwd, captureDir } = await fixture({ place });
     await write(cwd, "records/one.md", markdown("one"));
     await write(cwd, "records/two.md", markdown("two"));
     const result = await review(cwd);
     expect(result.exit, result.stderr).toBe(0);
     expect(rows(result.stdout)).toHaveLength(2);
     await snapshot(cwd);
-    expect((await dx(cwd, "check")).exit).toBe(0);
+    const checked = await dx(cwd, "check");
+    expect(checked.exit, `${checked.stderr}${checked.stdout}`).toBe(0);
     expect((await review(cwd)).stdout).toBe("");
-    expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("2");
+    expect(await Bun.file(`${captureDir}/.jex-calls`).text()).toBe("2");
   }
 }, 60000);
-test("REV with a different working-copy record refuses before calling Jev", async () => {
-  const { cwd } = await fixture();
+test("REV with a different working-copy record refuses before calling jex", async () => {
+  const { cwd, captureDir } = await fixture();
   await write(cwd, "records/one.md", markdown("one"));
   const rev = await advance(cwd);
   await write(cwd, "records/one.md", markdown("one", "", "New content"));
   const result = await review(cwd, rev);
   expect(result.exit, result.stderr).toBe(4);
-  expect(await Bun.file(`${cwd}/.jex-calls`).exists()).toBe(false);
-}, 60000);
-test("UTF-8 evidence and escaped JSON fit 30000 bytes without truncating record/questions", () => {
-  const text = '😀日本語\\"\n'.repeat(3000);
-  const evidence = [{ locator: "linked", status: "supplied", content: text }];
-  const r = value(parseRubric(rubric));
-  const request = value(assembleRequest("Record", r, evidence));
-  const serialized = JSON.stringify(request);
-  expect(Buffer.byteLength(serialized)).toBeLessThanOrEqual(30000);
-  expect(serialized).not.toContain("�");
-  expect(serialized).toContain("truncated at");
-  expect(request.state.record).toBe("Record");
-  for (let cap = 0; cap < 20; cap += 1) {
-    const capped = capEvidence(evidence[0]!, cap);
-    expect(capped.content).not.toContain("�");
-  }
+  expect(await Bun.file(`${captureDir}/.jex-calls`).exists()).toBe(false);
 }, 60000);
 test("custom format evidence policy supplies linked files through the revision tree", async () => {
-  const { cwd } = await fixture();
+  const { cwd, captureDir } = await fixture();
   const typePath = `${cwd}/.dx/note.ts`;
   let type = await Bun.file(typePath).text();
   type = type
@@ -247,14 +239,25 @@ test("custom format evidence policy supplies linked files through the revision t
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(0);
   const capture = decode(
-    z.object({ questions: z.string(), files: z.record(z.string(), z.string()) }),
-    await Bun.file(`${cwd}/.jex-capture.json`).text(),
+    z.object({
+      questions: z.string(),
+      files: z.record(z.string(), z.string()),
+      argv: z.array(z.string()),
+    }),
+    await Bun.file(`${captureDir}/.jex-capture.json`).text(),
   );
   const evidence = capture.files["evidence.txt"];
   expect(evidence).toBeDefined();
-  expect(Buffer.byteLength(evidence ?? "")).toBeLessThanOrEqual(30000);
+  const record = capture.files["records/one.md"];
+  expect(record).toBe(markdown("one"));
+  expect(capture.argv).toEqual(["questions.toml", "records/one.md", "evidence.txt"]);
+  const suppliedBytes =
+    Buffer.byteLength(capture.questions) +
+    Object.values(capture.files).reduce((total, content) => total + Buffer.byteLength(content), 0);
+  expect(suppliedBytes).toBeLessThanOrEqual(30000);
   expect(evidence).toContain("truncated at");
   expect(evidence).not.toContain("�");
+  expect(capture.questions).toContain('text = "Is the account clear?"');
 }, 60000);
 test("external review waits report liveness and complete", async () => {
   const { cwd } = await fixture();
@@ -268,7 +271,7 @@ test("external review waits report liveness and complete", async () => {
   expect(result.stderr).toContain("dx: waiting for jex…");
 }, 60000);
 test("partial verdicts survive a later unavailable response and retry skips them", async () => {
-  const { cwd } = await fixture();
+  const { cwd, captureDir } = await fixture();
   await write(cwd, ".jex-fixture.json", JSON.stringify({ fail_on_call: 2 }));
   const base = await advance(cwd);
   await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
@@ -283,7 +286,7 @@ test("partial verdicts survive a later unavailable response and retry skips them
   const retry = await review(cwd);
   expect(retry.exit, retry.stderr).toBe(0);
   expect(rows(retry.stdout).map((r) => r.id)).toEqual(["b"]);
-  expect(await Bun.file(`${cwd}/.jex-calls`).text()).toBe("3");
+  expect(await Bun.file(`${captureDir}/.jex-calls`).text()).toBe("3");
 }, 60000);
 test("immutable TOML fragments use sidecars even under a default ignored directory", async () => {
   const { cwd } = await fixture({ place: "file:tools/verdicts/*.json", format: "toml" });
@@ -303,12 +306,12 @@ test("immutable TOML fragments use sidecars even under a default ignored directo
   expect((await dx(cwd, "check")).exit).toBe(0);
 }, 60000);
 test("new malformed review records block I-10; unchanged malformed records are outside review", async () => {
-  const { cwd } = await fixture();
+  const { cwd, captureDir } = await fixture();
   await write(cwd, "records/bad.md", "---\nid: [\n---\n");
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(1);
   expect(rows(result.stdout)[0]?.check).toBe("format");
-  expect(await Bun.file(`${cwd}/.jex-calls`).exists()).toBe(false);
+  expect(await Bun.file(`${captureDir}/.jex-calls`).exists()).toBe(false);
   const base = await advance(cwd);
   await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
@@ -317,34 +320,26 @@ test("new malformed review records block I-10; unchanged malformed records are o
   expect(unchanged.stdout).toBe("");
 }, 60000);
 test("dx review sends questions and repository paths to jex and satisfies I-06", async () => {
-  const { cwd } = await fixture();
+  const { cwd, captureDir } = await fixture();
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(0);
   expect(rows(result.stdout)[0]?.pass).toBe(true);
   const capture = decode(
-    z.object({ questions: z.string(), files: z.record(z.string(), z.string()) }),
-    await Bun.file(`${cwd}/.jex-capture.json`).text(),
+    z.object({
+      questions: z.string(),
+      files: z.record(z.string(), z.string()),
+      argv: z.array(z.string()),
+    }),
+    await Bun.file(`${captureDir}/.jex-capture.json`).text(),
   );
   expect(capture.questions).toContain("schema = 1");
   expect(capture.questions).toContain('id = "quality"');
   expect(capture.files["records/one.md"]).toBe(markdown("one"));
+  expect(capture.argv).toEqual(["questions.toml", "records/one.md"]);
   await snapshot(cwd);
   expect((await dx(cwd, "check")).exit).toBe(0);
 }, 60000);
-test("the model field is included in the complete 30000-byte UTF-8 request budget", () => {
-  const parsed = value(parseRubric(rubric));
-  const record = "😀".repeat(7000);
-  const evidence = [{ locator: "linked", status: "supplied", content: "資料".repeat(10000) }];
-  const request = value(assembleRequest(record, parsed, evidence));
-  expect(request.model).toBe("jev-latest");
-  expect(request.state.record).toBe(record);
-  expect(Buffer.byteLength(JSON.stringify(request))).toBeLessThanOrEqual(30000);
-  const oversized = assembleRequest(record + "😀".repeat(500), parsed, evidence);
-  expect(oversized.isErr()).toBe(true);
-  if (oversized.isErr()) expect(oversized.error).toContain("exceeds 30000");
-}, 60000);
-
 test("retired review.pass is an unknown key", async () => {
   const { cwd } = await fixture({ extra: "pass = 0.9\n" });
   await write(cwd, "records/one.md", markdown("one"));
