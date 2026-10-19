@@ -259,6 +259,8 @@ export async function isolationFindings(
       }
       const policyPath = (path: string) => path.startsWith(".dx/") || matches(localInputs, path);
       if (!declarationChanged && ![...change.paths].some((path) => policyPath(path))) continue;
+      const policyFiles = [...change.paths].filter(policyPath).toSorted();
+      const policyFileList = `${policyFiles.slice(0, 5).join(", ")}${policyFiles.length > 5 ? ", …" : ""}`;
       const candidates = [...change.paths].filter(
         (path) => !policyPath(path) && !ignored(config, path),
       );
@@ -273,7 +275,7 @@ export async function isolationFindings(
           check: "I-09.policy",
           path,
           field: path,
-          message: "policy and records changed together",
+          message: `policy and records changed together: policy files ${policyFileList}; 規則は dx.toml、.dx/ の下、[files] inputs。規則の変更は別の commit にする`,
         });
     }
     return ok(findings);
