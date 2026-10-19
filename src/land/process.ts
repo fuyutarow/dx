@@ -129,6 +129,16 @@ export function pushOutcome(result: ProcessResult, ref: string): string | undefi
     ? undefined
     : pushFailure(result);
 }
+
+/** Keep Git's hook diagnostics intact while bounding a rejection message to 200 lines. */
+export function pushRejectionDetails(stderr: string): string[] {
+  const remote = stderr.split(/\r?\n/u).filter((line) => line.startsWith("remote:"));
+  if (remote.length === 0)
+    return [stderr.split(/\r?\n/u).find((line) => line.trim() !== "") ?? "push hook rejected"];
+  if (remote.length <= 200) return remote;
+  return [...remote.slice(0, 199), `… ${remote.length - 199} lines omitted`];
+}
+
 function pushFailure(result: ProcessResult): string {
   const detail = `${result.stdout}\n${result.stderr}`;
   if (
