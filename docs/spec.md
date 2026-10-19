@@ -134,7 +134,7 @@
 |---|---|---|---|
 | `dx ls [REV]` | REV の木から記録を読み出す | 記録の JSONL | なし |
 | `dx check [--all] [--base REV] [REV]` | 構造を検査し、verdict の結びつき（I-06）を確かめる | 新しい finding の JSONL（--all なら既存も含む） | なし |
-| `dx review [REV]` | rubric を持つ type の記録のうち、新しいものと変わったもので finding が無いものについて、Jev に問い、verdict を書く | verdict の JSONL | 作業コピーに verdict を書く。Jev への問い合わせ |
+| `dx review [REV]` | rubric を持つ type の記録のうち、新しいものと変わったもので finding が無いものについて、`[review] command` で jex を呼び、verdict を書く | verdict の JSONL | 作業コピーに verdict を書く。jex への問い合わせ |
 | `dx land [REV]` | check を通った REV で、remote の正規の branch を fast-forward する | 受領の JSON 1 値 | remote の正規の branch と、手元の bookmark |
 | `dx view <name> [REV]`、`dx view --list` | `.dx/` の views が定義する計算結果を出す | view の JSONL | なし |
 
@@ -195,7 +195,7 @@ stderr に `dx: --policy: I-09 の検査を省略します` を 1 行出す。
 |---|---|---|---|
 | remote の正規の branch の更新（push） | preview は `dx check`。force は無い | 無い。1 つの ref の原子的な更新で、通るか通らないかのどちらかしかない | lease が外れたら終了コード 3。rebase してから流し直す。中断しても remote は変わらない |
 | 手元の bookmark の移動 | — | push が通った後で移動に失敗したら、終了コード 0 で返し、stderr に警告を出す（正本は remote） | 次の fetch で直る |
-| review が作業コピーに verdict を書くこと | 構造に finding がある記録には Jev を呼ばない（I-10） | 記録ごとに verdict を 1 つ書く。途中で止まったら、それまでの記録の verdict だけが書かれている | 流し直すと、今の sha256 に結びついた合格の verdict がある記録は飛ばす。Jev に届かなければ終了コード 3 |
+| review が作業コピーに verdict を書くこと | 構造に finding がある記録には jex を呼ばない（I-10）。rubric の criteria が 8 件を超えたら jex を呼ばず exit 4 | 記録ごとに verdict を 1 つ書く。途中で止まったら、それまでの記録の verdict だけが書かれている | jex は一時ディレクトリを cwd とし、`<command…> questions.toml <記録の path> <evidence の path…>` で呼ぶ。記録・問いは切らず、evidence は `fitEvidence` の規則で合わせて 30,000 bytes 以内にする。jex exit 0/1 は stdout を検証して verdict を作り、exit 3 は `REVIEW_UNAVAILABLE` / dx exit 3、exit 2/4 は `UNDETERMINED` / dx exit 4。今の sha256 に結びついた合格 verdict は飛ばす |
 | 読むだけのコマンド | — | — | いつでも中断してよい |
 
 ## C3 CHANNELS
@@ -226,7 +226,7 @@ N はその記録に該当する verdict 以外の finding の件数。id のな
 
 ## C4 OUTCOMES
 
-- Fallbacks / handoffs: 判定できないことを空の成功にしない。push の結果が分からないときは、対象 branch を remote から fetch する。試した REV が `<branch>@<remote>` の祖先なら、受領を出して exit 0。祖先でなければ exit 3 `RACE`。fetch・remote の REV の解決・祖先の照合ができない場合だけ exit 3 `RESULT_UNKNOWN` を残す。Jev の結果が分からないときも exit 3。rebase と再試行は呼び出し側が行い、dx は行わない。
+- Fallbacks / handoffs: 判定できないことを空の成功にしない。push の結果が分からないときは、対象 branch を remote から fetch する。試した REV が `<branch>@<remote>` の祖先なら、受領を出して exit 0。祖先でなければ exit 3 `RACE`。fetch・remote の REV の解決・祖先の照合ができない場合だけ exit 3 `RESULT_UNKNOWN` を残す。jex exit 3 または結果不明は `REVIEW_UNAVAILABLE` / dx exit 3。jex exit 2/4、受け取った応答の形・criteria id の検証失敗、30,000 bytes の上限超過は `UNDETERMINED` / dx exit 4 とし、verdict は書かない。rebase と再試行は呼び出し側が行い、dx は行わない。
 
 | Outcome class | Exit / status | Output | Retry / next action |
 |---|---|---|---|
@@ -234,8 +234,10 @@ N はその記録に該当する verdict 以外の finding の件数。id のな
 | 新しい finding がある。review で不合格がある。fast-forward でない | 1 | check は新しい finding のみ（--all なら既存も含む）、review は finding と verdict を全件。fast-forward でなければ `NOT_FAST_FORWARD` | 記録を直すか、rebase してから流し直す |
 | push が pre-push / pre-receive hook に拒否された | 1 | stderr に `PUSH_REJECTED` と Git が出した拒否理由の最初の行 | hook や入力を直してから流し直す |
 | 使い方の誤り | 2 | stderr に使い方 | 引数を直す |
-| 一時的な失敗（lease の外れ・remote の ref のロック競合、remote や Jev の不達、時間切れ、照合後も結果が分からない） | 3 | stderr に `RACE`、`REMOTE_UNAVAILABLE`、`REVIEW_UNAVAILABLE`、`RESULT_UNKNOWN` | `RACE` は必要なら fetch と rebase をしてから流し直す。`RESULT_UNKNOWN` は受け入れを確認する |
+| 一時的な失敗（lease の外れ・remote の ref のロック競合、remote または jex の不達、時間切れ、照合後も結果が分からない） | 3 | stderr に `RACE`、`REMOTE_UNAVAILABLE`、`REVIEW_UNAVAILABLE`、`RESULT_UNKNOWN` | `RACE` は必要なら fetch と rebase をしてから流し直す。`RESULT_UNKNOWN` は受け入れを確認する |
 | 判定できない（REV が無い、`.dx/` が読めない・型が合わない、上限を超えた、I/O の失敗） | 4 | stderr に `UNDETERMINED:<理由>`。stdout は空 | 原因を直す |
+
+review の jex 終了コードは次のように dx の結果へ写す。jex exit 0/1 の stdout は、`model` と全 criteria id の `bits` を検証して verdict を作る。各 criteria の p は同じ id の bit の p、`pass` はすべて p ≥ 0.5、`by` は `process:jex/<model>`、reason は verdict の `reasons`（id → reason）に保存する。jex exit 2/4 は dx exit 4 `UNDETERMINED`、exit 3 は dx exit 3 `REVIEW_UNAVAILABLE`。model が `{na:true}`、bit の欠落、または不正な JSON 形は dx exit 4 で、verdict を書かない。jex exit 4 でも応答が届いた場合は stdout があり得るが、dx は verdict にしない。
 
 ## C5 EVOLUTION
 
@@ -264,7 +266,7 @@ remote = "origin"           # land の push 先
 branch = "alpha"            # 正規の branch
 
 [review]
-command = ["agx", "worker", "jev"]  # rubric を持つ type がある場合に必須。stdin JSON を受けて stdout JSON を返すコマンド
+command = ["jex"]              # rubric を持つ type がある場合に必須。jex の引数と path 契約で呼ぶ
 
 [limits]                    # 超えたら判定できない（終了コード 4）。黙って打ち切らない
 record_bytes     = 4194304
@@ -278,7 +280,7 @@ strict = false              # true なら、どの type にも当たらないフ
 ```
 
 - `name` と `[review] command` 以外の値は、すべて上の値が既定になる。
-- `[review] command` に既定値はない。rubric を持つ type が 1 つでもある repo では必須で、未指定なら `dx check` と `dx review` は `UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）` を出して終了コード 4 にする。rubric を持つ type が無ければ省略できる。
+- `[review] command` に既定値はない。rubric を持つ type が 1 つでもある repo では必須で、未指定なら `dx check` と `dx review` は `UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["jex"]）` を出して終了コード 4 にする。rubric を持つ type が無ければ省略できる。
 - `files.ignore` を指定すると既定全体を置き換える（足し合わせない）。`ignore = []` も指定できる。
 - 廃止済みの `limits.check_seconds` と `review.pass` は未知の項目として exit 4 にする。
 - review は、すべての問いの確率が 0.5 以上なら合格とする。
@@ -433,7 +435,7 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 | D5 | blob の管理は dx の外に置く | owner「blob は管理しなくていいだろ」 |
 | D6 | review（Jev）は dx の中心に置く | owner「dx は jev を利用しないの？？そこが肝なんじゃないの？？」 |
 | D7 | status の導出（証明依存グラフ）は、dx 本体ではなく research_record の `.dx/` の view に置く | 記録のグラフだけから決まる研究の意味なので、repo が持つ（2026-10-17、coordinator の提案。反対があれば改める） |
-| D9 | review は 3 つの filter の合成で行う: `rubric request <rubric.toml> <artifact>…`（要求の組み立て。抜粋、上限、UTF-8 を壊さない切り詰め）→ `agx jev`（Jev への運搬だけ。`[review] command`）→ `rubric bits`（応答を `{bits:[{id,p,reason}], refuted?}` に検証して出す）。`rubric` は dotfiles の小さな道具（tools/rubric）で、rubric の schema を持ち、Jev を呼ばず、記録も書かない。dx review が持つのは、判定する記録の選択（I-10）、verdict の結びつけと置き場、合否（各問いの確率が 0.5 以上）だけ。`rubric` が land したら、`src/review-request.ts` をこの合成に置き換えて消す。それまでは今の実装を使い続ける | owner が `agx jev judge` / `agx assess` を agx の越権として退けた後の分け方（2026-10-17、dotfiles-agt_g67e 経由） |
+| D9 | `dx review` は `[review] command`（例 `command = ["jex"]`）を `<command…> questions.toml <記録の path> <evidence の path…>` の形で呼ぶ。cwd は dx が作る一時ディレクトリで、rubric の criteria（最大 8 件）を `schema = 1` と `[[question]]`（`id`、`text`）からなる questions TOML にし、記録と evidence も repo 内の相対 path で一時ディレクトリに書く。記録と問いは切らず、evidence は `fitEvidence` の規則で合計 30,000 bytes 以内にする。jex の JSON stdout と終了コードを検証し、bits と exit 0/1 から verdict を作る。要求 JSON は dx で組み立てない。 | dotfiles に rubric 道具がなく作成予定もないため、持ち主の判断で jex 呼び出しに切り替えた（2026-10-19） |
 | D8 | 名前: `ls`、`check`、`review`、`land`、`view`、`.dx/`、type、`checks`、`immutable`、`links`、`[repo]`、`branch`、`[review]`、`[files]`、`sha256`、`by` | 既存の 3 つの repo と OKF の語にそろえる（Unix の副原則 3）。`.dx/` は、道具が持つ設定を dot ディレクトリに置く慣習（`.claude/`、`.githooks/`、`.cocoindex_code/`）に合わせ、repo の中身（records/、knowledge/）と分ける（owner、2026-10-17） |
 | D10 | 時間の上限は呼び出し側が持つ。schema と pass の設定は、使う人がいないので消した。旧設定の 2 項目は C5 に従って 0.1.x の間は警告して無視する | owner の簡素化依頼、coordinator の削除・移行決定（2026-10-17） |
 | D11 | 変わった記録は、既存の finding も含めてすべて無いことを求める（I-02） | soks-govern の L と retrospectives の gate が、どちらも「変えた記録は潔白に」を求めていたため（2026-10-17） |

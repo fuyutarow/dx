@@ -88,7 +88,7 @@ export async function repo(options: Parameters<typeof typeSource>[0] = {}, confi
   await jj(cwd, "git", "init", "--colocate");
   const reviewConfig =
     options.review !== undefined && !config.includes("[review]")
-      ? '\n[review]\ncommand = ["agx", "worker", "jev"]\n'
+      ? '\n[review]\ncommand = ["jex"]\n'
       : "";
   await write(cwd, "dx.toml", `[repo]\nname = "fixture"\n${config}${reviewConfig}`);
   await write(cwd, ".dx/note.ts", typeSource(options));

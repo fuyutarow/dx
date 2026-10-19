@@ -29,6 +29,17 @@ mise は Bun 1.4.3 に固定し、package.json の engines にも最低版を宣
 tsgo（`@typescript/native-preview`）は不要です。依存の固定版は package.json と bun.lock にあります。
 oxlint・oxfmt・oxlint-tsgolint は lint・整形用の開発依存として保持します。
 
+`.dx/*.ts` から SDK を使う repo は、`package.json` の依存に dx の release commit を指定できます。
+tag 名を package manager が解決できない場合は、tag ではなく release に対応する commit hash で固定します。
+
+```json
+{
+  "dependencies": {
+    "dx": "github:fuyutarow/dx#<release の commit>"
+  }
+}
+```
+
 ## 単体バイナリと mise
 
 公開済みの release は、利用する repo の `mise.toml` で版を固定して入れられます。
@@ -291,11 +302,17 @@ verdict 自身を含めたハッシュの自己参照を避け、本文は空白
 finding を stdout に出して exit 1 にします。現在のハッシュ・rubric に結びつく合格 verdict は再利用します。
 指定 REV と作業コピーの内容が異なると exit 4 で拒否します。
 
-`[review].command` に stdin JSON を渡します。既定値はありません。rubric を持つ type がある repo では必須で、未指定なら `dx check` と `dx review` は `UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）` を出して exit 4 になります。rubric を持つ type が無い repo では省略できます。たとえば `[review]` に `command = ["agx", "worker", "jev"]` と書きます。
-要求には `model: "jev-latest"` を必ず含めます。現在の Jev endpoint は model を省略すると HTTP 422 を返すためです。
-model のフィールドも要求全体の30,000バイトに含めます。
-rubric は次の TOML 形式です。criteria の順番が `p` と `bits` の順番になります。
-任意の `bit` を書く場合は、順番どおり 0 から連続させます（最大53問）。
+`[review].command` は `[command…]` の配列で、既定値はありません。rubric を持つ type がある repo では必須で、未指定なら `dx check` と `dx review` は `UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["jex"]）` を出して exit 4 になります。rubric を持つ type が無い repo では省略できます。たとえば `[review]` に `command = ["jex"]` と書きます。
+
+dx は rubric の `[[criteria]]` から最大 8 件の問いを作り、jex を次の引数で呼びます。jex の作業ディレクトリは dx が作る一時ディレクトリです。記録と evidence は repo 内の相対 path でその中に書きます。
+
+```text
+<command…> questions.toml <記録の path> <evidence の path…>
+```
+
+`questions.toml` は `schema = 1` と `[[question]]` の表（`id`、`text`）を持ちます。criteria が 8 件を超える場合、dx は jex を呼ばず exit 4 `UNDETERMINED:review: <rubric>: jex の問いは 8 つまで` を返します。
+
+rubric は次の TOML 形式です。
 
 ```toml
 rubric = "example/v1"
@@ -305,10 +322,9 @@ bit = 0
 question = "Does the record explain the conditions and outcome clearly?"
 ```
 
-要求全体を UTF-8 の 30,000 バイト以内に収めます。記録・問いは切らず、証拠だけを
-UTF-8 の文字境界で切り詰め、省略を明記します。最小要求が上限を超えると、問い合わせ前に exit 4 です。
-各 `answers[id].noul` と固定の閾値 0.5 を比較して bits と pass を作ります。
-verdict の `by` は `process:jev/<応答の model>` です。記録に `by` が無くても Jev を呼び、機械の判定者として verdict を保存します。記録に著者を補ったり、本文を変更したりはしません。
+記録と問いは切り詰めません。evidence は現在の `fitEvidence` の規則で合計 30,000 bytes 以内に収めます。収まらない場合は jex を呼ばず exit 4 にします。黙って入力を切り詰めません。
+
+jex は stdout に JSON 1 値を返します: `model`（文字列、または `{ "na": true, "why": string }`）、`bits`（`id`、`p`、`reason` の配列）、任意の `refuted`（`p`、`reason`）。exit 0/1 の stdout を検証し、criteria と同じ id の bit から各確率を読みます。すべての p が 0.5 以上なら合格です。verdict の `by` は `process:jex/<model>`、reason は `reasons`（id → reason）に保存します。jex exit 0 はすべて合格、exit 1 はいずれかが不合格、exit 3 は REVIEW_UNAVAILABLE / dx exit 3、exit 2 と 4 は UNDETERMINED / dx exit 4 です。model が `{na:true}`、criteria id の bit 欠落、JSON 形の不一致は dx exit 4 で、verdict を書きません。jex exit 4 でも応答が届いて検証に失敗した場合は stdout が出ますが、verdict は書きません。記録に `by` が無くても機械の判定者として verdict を保存し、記録の著者や本文は変更しません。
 
 `format` は組込み形式名のほか、`FormatAdapter` を受け取ります。
 `markdownFrontmatter` と `tomlFormat` を dx から import して拡張できます。
@@ -369,7 +385,7 @@ jj git fetch && jj rebase -r @- -d <branch>@<remote> && dx land @-
 
 `<branch>` と `<remote>` は設定値に置き換えます。再試行の上限は呼び出し側で決め、
 rebase の競合は書き手が解決します。`RESULT_UNKNOWN` では、まず fetch と祖先の照合で受け入れを確認します。
-Jev の不達・非0終了・120秒の時間切れ・応答不正も exit 3 です。
+jex の exit 3 と 120 秒の時間切れは `REVIEW_UNAVAILABLE` / dx exit 3 です。jex の exit 2/4 と応答の検証失敗は dx exit 4 です。
 
 上限は base/head それぞれに適用します。`records` は展開した記録数、`links_per_record` は展開後の
 link 数です。`record_bytes` はアダプタが読む 1 ファイルの UTF-8 バイト数で、複数記録を含む場合も
