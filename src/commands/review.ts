@@ -39,9 +39,18 @@ import {
 const jexResponseSchema = z.object({
   model: z.union([z.string().min(1), z.object({ na: z.literal(true), why: z.string() })]),
   bits: z.array(
-    z.object({ id: z.string().min(1), p: z.number().min(0).max(1), reason: z.string() }),
+    z.object({
+      id: z.string().min(1),
+      p: z.number().min(0).max(1),
+      reason: z.union([z.string(), z.object({ na: z.literal(true), why: z.string() })]),
+    }),
   ),
-  refuted: z.object({ p: z.number().min(0).max(1), reason: z.string() }).optional(),
+  refuted: z
+    .object({
+      p: z.number().min(0).max(1),
+      reason: z.union([z.string(), z.object({ na: z.literal(true), why: z.string() })]),
+    })
+    .optional(),
 });
 
 function tomlString(value: string) {
@@ -284,6 +293,11 @@ export async function review(
         .safeParse(p);
       if (!probabilities.success) return undetermined(`invalid jex probabilities: ${record.path}`);
       const passed = probabilities.data.map((value) => value >= REVIEW_PASS);
+      const reasons = Object.fromEntries(
+        answers
+          .filter((answer) => typeof answer.reason === "string")
+          .map((answer) => [answer.id, answer.reason]),
+      );
       const verdict = yield* validate(verdictSchema, {
         v: 1,
         id: record.id,
@@ -295,7 +309,7 @@ export async function review(
         bits: assembleBits(passed),
         p: probabilities.data,
         pass: passed.every(Boolean),
-        reasons: Object.fromEntries(answers.map((answer) => [answer.id, answer.reason])),
+        ...(Object.keys(reasons).length > 0 ? { reasons } : {}),
       });
       if (!reviewerAllowed(record.by, verdict.by))
         return undetermined(`review author must differ from record author: ${record.id}`);
