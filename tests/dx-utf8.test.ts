@@ -22,22 +22,24 @@ test("invalid UTF-8 in records and inputs becomes a format finding", async () =>
   await snapshot(cwd);
 
   const result = await checked(cwd, base, 1);
-  expect(result.findings).toContainEqual(
-    expect.objectContaining({
-      check: "format",
-      path: recordPath,
-      field: recordPath,
-      message: `invalid UTF-8 at byte ${recordBytes.indexOf(0xff)}`,
-    }),
-  );
-  expect(result.findings).toContainEqual(
-    expect.objectContaining({
-      check: "format",
-      path: inputPath,
-      field: inputPath,
-      message: "invalid UTF-8 at byte 2",
-    }),
-  );
+  expect(
+    result.findings.some(
+      (finding) =>
+        finding.check === "format" &&
+        finding.path === recordPath &&
+        finding.field === recordPath &&
+        finding.message === `invalid UTF-8 at byte ${recordBytes.indexOf(0xff)}`,
+    ),
+  ).toBe(true);
+  expect(
+    result.findings.some(
+      (finding) =>
+        finding.check === "format" &&
+        finding.path === inputPath &&
+        finding.field === inputPath &&
+        finding.message === "invalid UTF-8 at byte 2",
+    ),
+  ).toBe(true);
 });
 
 test("valid multibyte UTF-8 is read unchanged", async () => {
