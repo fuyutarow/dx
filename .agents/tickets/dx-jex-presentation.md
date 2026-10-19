@@ -44,3 +44,9 @@ refuted_by = "5 通りのどれでも p が jev の経路に近づかない、�
 - 上限は 10 分。書いてよいのは notes/jex-presentation/ と、/tmp の自分の作業ディレクトリだけ。ほかの repo、bookmark、push には触らない。commit しない。
 - Jev を呼ぶので、ネットワークが要る。呼び出しの数は 40 回を超えない。
 - 返却: 結論、results.json の path、未検証。
+
+## 前の回の返却を受けて（coordinator、2026-10-19 20:15。最新版）
+
+- jex は 0.2.4 を使う。0.2.4 は reason の形を変えた版（dotfiles 8268fd6a。reason は Jev の文か {na:true, why}）で、dx 0.1.5 を使う repo が実際に呼ぶのはこれである。p の求め方は変わっていない。
+- V0（agx worker jev の経路）は流さない。agx jev と agx worker jev は 20:06 に消えた（dotfiles の持ち主の決定）。V0 の値は、research-record-v2 が記録したものを使う: prediction は [0.76, 0.82, 0.80] と [0.78, 0.85, 0.81]（alpha 22038792 の docs/review-command-result.json と、19:42 の送り直し）。review-old の jev の値は、その記録にあれば使い、無ければ「無し」と書く。V0 の要求の形は、capture の中の 0.1.4 の要求（あれば）か、research-record-v2 の review-format.ts から読み取って、request_diff に書く。
+- V1〜V4 は jex 0.2.4 で流す。Jev の呼び出しは 30 回を超えない。
