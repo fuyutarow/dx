@@ -7,6 +7,7 @@ import * as zod from "zod";
 import * as neverthrow from "neverthrow";
 import { z } from "zod";
 import { typeSchema } from "./model.ts";
+import type { Config } from "./config.ts";
 
 // Policies share the host's API and fixed dependencies, including in a standalone
 // executable where import.meta.resolve cannot find packages on the filesystem.
@@ -24,6 +25,18 @@ plugin({
 export function matches(patterns: string | readonly string[], path: string): boolean {
   const values = typeof patterns === "string" ? [patterns] : patterns;
   return values.some((pattern) => new Bun.Glob(pattern).match(path));
+}
+/** Rule files: dx.toml, everything under .dx/, and [files] inputs. The one home for "what is policy". */
+export function isPolicyPath(path: string, inputs: readonly string[]): boolean {
+  return path === "dx.toml" || path.startsWith(".dx/") || matches(inputs, path);
+}
+export function reviewCommandRequirement(
+  types: readonly z.infer<typeof typeSchema>[],
+  config: Config,
+) {
+  if (types.some((type) => type.review !== undefined) && config.review.command === undefined)
+    return undetermined('policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）');
+  return ok(undefined);
 }
 export async function loadTypes(files: Readonly<Record<string, string>>) {
   return safeTry(async function* () {
@@ -112,6 +125,27 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
         return `policy: ${path}: ${error instanceof Error ? error.message : String(error)}`;
       },
     );
+    const frontmatterReview = z
+      .object({
+        default: z.array(
+          z
+            .object({
+              name: z.string(),
+              review: z.object({ place: z.string() }).passthrough().optional(),
+            })
+            .passthrough(),
+        ),
+      })
+      .safeParse(module);
+    if (frontmatterReview.success) {
+      const invalid = frontmatterReview.data.default.find(
+        (type) => type.review?.place === "frontmatter",
+      );
+      if (invalid !== undefined)
+        return undetermined(
+          `policy: ${invalid.name}: review.place = "frontmatter" は消えた。"file:<glob>" を使う`,
+        );
+    }
     const parsed = z.object({ default: z.array(typeSchema) }).safeParse(module);
     if (!parsed.success) return undetermined(`.dx/: ${parsed.error.message}`);
     const types = parsed.data.default;
@@ -122,8 +156,6 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
       if (type === undefined) continue;
       if (entries[index] !== `.dx/${type.name}.ts`)
         return undetermined(`type name must match file: ${entries[index]}`);
-      if (type.immutable && type.review?.place === "frontmatter")
-        return undetermined(`${type.name}: immutable types require file:<glob> review storage`);
       const missingLink = Object.values(type.links)
         .flatMap((link) => (typeof link.to === "string" ? [link.to] : link.to))
         .find((name) => !names.has(name));

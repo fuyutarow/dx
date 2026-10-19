@@ -10,13 +10,17 @@ bun src/main.ts --version
 bun src/main.ts -V
 bun src/main.ts --help
 bun src/main.ts ls @
-bun src/main.ts check --base alpha@origin @
-bun src/main.ts review @
-bun src/main.ts land @-
+jj commit records/20261017_foo.md -m "..."
+bun src/main.ts check @-
+bun src/main.ts review @-
+bun src/main.ts land @
+jj new
 bun src/main.ts view --list
 bun src/main.ts view index @
 mise run check
 ```
+
+`review` は verdict を作業コピー（`@`）に書くので、verdict を含む `@` を land します。land の後は `jj new` します。
 
 呼び出す cwd は対象 jj repo 内です。`dx` package の `bin` は `src/main.ts`、公開 API は
 `src/index.ts` にあります。ソース版には Bun 1.4.3 以上と jj と Git が PATH に必要です。
@@ -221,19 +225,17 @@ links は宣言したフィールドの id 文字列またはその配列から�
 循環を検査します。`to` は型名 1 つ、または許可する型名の空でない配列です。
 `acyclic` の既定は `true` です。引用のように互いに参照してよい関係は `acyclic: false` とします。
 実在・型はすべての内部 link を検査し、循環は `acyclic: true` の辺だけを集めたグラフで検査します。
-外部の URL や引用と内部の参照が混ざるフィールドには `match` を指定できます。
+候補の選択や id の変換が必要な場合は `values` を指定します。
 
 ```ts
 links: {
-  sources: { to: ["evi", "sok"], match: "^urn:uuid:(.+)$", acyclic: false },
+  sources: { to: ["evi", "sok"], acyclic: false },
 },
 ```
 
-`match` は JavaScript の正規表現の文字列です（Unicode モード、flags の指定なし）。
-候補ごとの最初の一致から capture group 1 を id として取り出し、一致しない候補は無視します。
-この例の参照先の id は接頭辞のない UUID です。参照先の id が `urn:uuid:` を含む場合は、
-`match: "^(urn:uuid:.+)$"` のように接頭辞も capture に含めます。
-`match` を省くと、候補の文字列全体を id とします。
+link の宣言は `{ to, values?, acyclic? }` です。廃止した `match` が残っていれば、
+型定義の読み込みで `UNDETERMINED:policy: <type>.links.<rel>: match は消えた。values を使う` を出して exit 4 にします。
+候補の選択や id の変換が必要な場合は `values` を指定します。
 
 `sources: [{ resource: "…" }]` のようなフィールドには、候補を取り出す純粋な同期関数
 `values: (fieldValue: unknown) => string[]` を指定します。たとえば、型定義で
@@ -245,21 +247,18 @@ links: {
     to: ["evi", "sok"],
     acyclic: false,
     values: value => sourceSchema.safeParse(value).data?.map(s => s.resource) ?? [],
-    match: "^(urn:uuid:.+)$",
   },
 },
 ```
 
 `values` を省くと従来どおり文字列または文字列配列を読みます。フィールドがない場合は呼びません。
-`values` の例外・文字列配列以外の返り値、壊れた正規表現、capture group 1 のない宣言、
-一致したのに空または未定義の id を取り出す宣言は、理由を出して exit 4 にします。
-`match` と `values` を省いた宣言は、従来のフィールドの形と id の検査を保ちます。
+`values` の例外・文字列配列以外の返り値、または空の id は、理由を出して exit 4 にします。
 
-`match` の適用後、`dx:<repo>/<id>` の repo 名を `[repo] name` と比較します。
+`dx:<repo>/<id>` の repo 名を `[repo] name` と比較します。
 異なる repo の参照は link から除き、参照先を検証しません。
 同じ repo の参照は `<id>` を内部 id として検査します（spec §10 R-5）。
 `dx:other/` のように形が不完全な値は、この除外の対象になりません。
-`dx ls` の `links` には抽出・正規化した内部 id だけが入り、元のフィールドは `fields` に残ります。
+`dx ls` の `links` には `values` 適用後の内部 id だけが入り、元のフィールドは `fields` に残ります。
 `limits.links_per_record` は、この処理後の link の件数に適用します。
 
 I-09 は比較範囲内の change ごとに確かめます。規則だけの change の後に記録だけの change が来る
@@ -270,10 +269,10 @@ inputs は規則の入力なので、その内容・追加・削除と `inputs` 
 type の match を参照します。構造検査には head の規則だけを使います。非祖先の REV 同士は比較差分を
 1 change として扱います。
 
-`review: { rubric: "rubrics/r.toml", place: "frontmatter" }` を宣言すると、新しい・変更した記録に
-spec C3 の verdict が必要です。rubric のパスは `.dx/` 相対（または `.dx/` 始まり）です。
-`place: "file:verdicts/*.jsonl"` では、JSON 1 値・JSON 配列・JSONL・TOML の verdict を読みます。
-immutable な type では `file:<glob>` が必須です。verdict には次の全条件を求めます。
+`review: { rubric: "rubrics/r.toml", place: "file:verdicts/*.jsonl" }` を宣言すると、新しい・変更した記録に
+spec C3 の verdict が必要です。`review.place` は `file:<glob>` だけを受け付けます。
+`frontmatter` は policy error で拒否します。rubric のパスは `.dx/` 相対（または `.dx/` 始まり）です。
+この場所から JSON 1 値・JSON 配列・JSONL・TOML の verdict を読みます。verdict には次の全条件を求めます。
 
 - `v:1`、id・記録 sha256・rubric パス・現在の rubric の全バイトの sha256 が一致する。
 - `pass:true` で、すべての `p` が 0.5 以上。
@@ -288,11 +287,11 @@ verdict 自身を含めたハッシュの自己参照を避け、本文は空白
 ## review の実行
 
 `dx review [REV]` は `<branch>@<remote>` を base とし、新しい記録と本文ハッシュが変わった
-記録だけを対象にします。frontmatter の verdict だけを変えた場合も I-06 と同じ対象に含めます。I-06 の未取得 verdict を除いて check の finding がある記録には要求を出さず、
+記録だけを対象にします。I-06 の未取得 verdict を除いて check の finding がある記録には要求を出さず、
 finding を stdout に出して exit 1 にします。現在のハッシュ・rubric に結びつく合格 verdict は再利用します。
 指定 REV と作業コピーの内容が異なると exit 4 で拒否します。
 
-`[review].command`（既定 `["agx", "jev"]`）に stdin JSON を渡します。
+`[review].command` に stdin JSON を渡します。既定値はありません。rubric を持つ type がある repo では必須で、未指定なら `dx check` と `dx review` は `UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）` を出して exit 4 になります。rubric を持つ type が無い repo では省略できます。たとえば `[review]` に `command = ["agx", "worker", "jev"]` と書きます。
 要求には `model: "jev-latest"` を必ず含めます。現在の Jev endpoint は model を省略すると HTTP 422 を返すためです。
 model のフィールドも要求全体の30,000バイトに含めます。
 rubric は次の TOML 形式です。criteria の順番が `p` と `bits` の順番になります。
@@ -332,7 +331,6 @@ format: {
 },
 ```
 
-frontmatter の書き戻しではハッシュ不変と verdict の round trip を再検証します。
 `file:<glob>` の `*` / `**` は URL エンコードした id に展開し、glob と一致するパスに書きます。
 ワイルドカードなしの共有ファイルも使えます。JSON/JSONL の出力は verdict の JSON 配列、
 TOML の出力は `[[verdicts]]` です。既存のほかの id の verdict は保存します。

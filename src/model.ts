@@ -1,6 +1,5 @@
 import type { Result } from "neverthrow";
 import { z } from "zod";
-import { attempt } from "./errors.ts";
 
 export const fieldsSchema = z.record(z.string(), z.unknown());
 export type Fields = z.infer<typeof fieldsSchema>;
@@ -82,13 +81,12 @@ export interface TypeDefinition {
   readonly immutable?: boolean;
   readonly checks?: readonly Check[];
   readonly treeChecks?: readonly TreeCheck[];
-  readonly review?: { readonly rubric: string; readonly place: string };
+  readonly review?: { readonly rubric: string; readonly place: `file:${string}` };
   readonly views?: Readonly<Record<string, View>>;
 }
 
 export interface LinkDefinition {
   readonly to: string | readonly string[];
-  readonly match?: string;
   readonly values?: (fieldValue: unknown) => readonly string[];
   readonly acyclic?: boolean;
 }
@@ -96,58 +94,67 @@ export interface LinkDefinition {
 // Callbacks are executable project policy. Their return values are checked separately.
 const callback = <T extends (...args: never[]) => unknown>() =>
   z.custom<T>((value) => typeof value === "function", "expected a function");
-const linkMatch = z.string().transform((source, ctx) => {
-  const compiled = attempt(() => new RegExp(source, "u"));
-  if (compiled.isErr()) {
-    ctx.addIssue({ code: "custom", message: `invalid links.match: ${compiled.error}` });
-    return z.NEVER;
-  }
-  // The empty alternative exposes every capture slot without needing a matching value.
-  const captures = new RegExp(`(?:${source})|`, "u").exec("");
-  if (captures === null || captures.length < 2) {
-    ctx.addIssue({ code: "custom", message: "links.match requires capture group 1" });
-    return z.NEVER;
-  }
-  return compiled.value;
-});
-export const typeSchema = z.object({
-  name: z.string().regex(/^[a-z][a-z0-9_-]*$/u),
-  match: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
-  format: z.union([
-    z.enum(["markdown-frontmatter", "toml"]),
-    z.object({
-      parse: callback<FormatAdapter["parse"]>(),
-      hash: callback<FormatAdapter["hash"]>(),
-      reviewText: callback<FormatAdapter["reviewText"]>(),
-      writeReview: callback<NonNullable<FormatAdapter["writeReview"]>>().optional(),
-      evidence: callback<NonNullable<FormatAdapter["evidence"]>>().optional(),
-    }),
-  ]),
-  id: callback<TypeDefinition["id"]>(),
-  filename: z.instanceof(RegExp).optional(),
-  schema: z.instanceof(z.ZodType),
-  links: z
-    .record(
-      z.string(),
-      z.object({
-        to: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
-        match: linkMatch.optional(),
-        values: callback<NonNullable<LinkDefinition["values"]>>().optional(),
-        acyclic: z.boolean().default(true),
-      }),
-    )
-    .default({}),
-  immutable: z.boolean().default(false),
-  checks: z.array(callback<Check>()).default([]),
-  treeChecks: z.array(callback<TreeCheck>()).default([]),
-  review: z
-    .object({
-      rubric: z.string().min(1),
-      place: z.string().regex(/^(?:frontmatter|file:.+)$/u),
+const rejectRemovedLinkMatch = (value: unknown) => {
+  const definition = z
+    .looseObject({
+      name: z.string(),
+      links: z.record(z.string(), z.unknown()),
     })
-    .optional(),
-  views: z.record(z.string(), callback<View>()).default({}),
-});
+    .safeParse(value);
+  if (definition.success) {
+    for (const [rel, declaration] of Object.entries(definition.data.links)) {
+      if (
+        typeof declaration === "object" &&
+        declaration !== null &&
+        Object.hasOwn(declaration, "match")
+      )
+        throw new Error(
+          `policy: ${definition.data.name}.links.${rel}: match は消えた。values を使う`,
+        );
+    }
+  }
+  return value;
+};
+export const typeSchema = z.preprocess(
+  rejectRemovedLinkMatch,
+  z.object({
+    name: z.string().regex(/^[a-z][a-z0-9_-]*$/u),
+    match: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
+    format: z.union([
+      z.enum(["markdown-frontmatter", "toml"]),
+      z.object({
+        parse: callback<FormatAdapter["parse"]>(),
+        hash: callback<FormatAdapter["hash"]>(),
+        reviewText: callback<FormatAdapter["reviewText"]>(),
+        writeReview: callback<NonNullable<FormatAdapter["writeReview"]>>().optional(),
+        evidence: callback<NonNullable<FormatAdapter["evidence"]>>().optional(),
+      }),
+    ]),
+    id: callback<TypeDefinition["id"]>(),
+    filename: z.instanceof(RegExp).optional(),
+    schema: z.instanceof(z.ZodType),
+    links: z
+      .record(
+        z.string(),
+        z.object({
+          to: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
+          values: callback<NonNullable<LinkDefinition["values"]>>().optional(),
+          acyclic: z.boolean().default(true),
+        }),
+      )
+      .default({}),
+    immutable: z.boolean().default(false),
+    checks: z.array(callback<Check>()).default([]),
+    treeChecks: z.array(callback<TreeCheck>()).default([]),
+    review: z
+      .object({
+        rubric: z.string().min(1),
+        place: z.string().regex(/^file:.+$/u),
+      })
+      .optional(),
+    views: z.record(z.string(), callback<View>()).default({}),
+  }),
+);
 export type LoadedType = z.infer<typeof typeSchema>;
 export const findingInputSchema = z
   .object({

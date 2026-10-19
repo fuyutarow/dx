@@ -233,7 +233,7 @@ test(
 test("configuration defaults match §6 exactly", () => {
   expect(value(readConfig('[repo]\nname="fixture"\n'))).toEqual({
     repo: { name: "fixture", remote: "origin", branch: "alpha" },
-    review: { command: ["agx", "jev"] },
+    review: {},
     limits: { record_bytes: 4194304, records: 200000, links_per_record: 10000 },
     files: {
       ignore: ["records/raw/**", "tools/**", "README.md", "**/node_modules/**"],

@@ -74,14 +74,14 @@
 | ID | 性質 | 確かめる場所 |
 |---|---|---|
 | I-01 | 受け入れた ⇔ remote の正規の branch から到達できる | land |
-| I-02 | 同じ規則 revision（既定は head、指定時は `--policy REV`）の設定・型定義・inputs で base と head の両方を数えて、新しい finding が無い。加えて、新しい記録と変わった記録は、自分に関わる finding（`id` が自分、または `ids` に自分を含むもの）を既存のものも含めて 1 つも持たない。複数記録に関わる finding は、その `ids` のどれか 1 つでも新しいか変わった記録なら new とする。さらに、head で記録を 1 つも生まないファイル（`dx.toml`、`.dx/`、inputs、読めなかった記録のファイルなど）は、bytes で判定する。`finding.path` がそのようなファイルを指し、base と head の木で bytes が違う、または片方にしか無いなら、base に同じ key があっても new とする。記録を生むファイルは、記録の sha256 で判定する（同じファイルの別の記録や、review のメタデータを変えても、触れていない記録の finding は既存のまま）。`--policy` を指定しても、比べる木は base と head であり、policy の revision ではない。記録の ID と、記録を生まないファイルの bytes の、どちらにも変更がなければ既存 finding は残してよい（2026-10-17 に強化。soks-govern の L と retrospectives の gate がどちらも「変えた記録は潔白に」を求めていたため。2026-10-18 に複数記録 finding の `ids` に適用を拡張。同日、記録を生まないファイルにも拡張。policy-rev のもとで、壊れた inputs を入れる commit が既存の finding として通る穴を塞ぐため） | check |
+| I-02 | (a) 同じ規則 revision（既定は head、指定時は `--policy REV`）で base と head を数えて、新しい key の finding が無い。(b) 変わった単位は、既存のものも含めて finding を持たない。単位とは、記録（sha256 で判定。`id` が自分、または `ids` に自分を含む finding）か、head で記録を生まないファイル（bytes で判定。`path` がそのファイルの finding）である。 | check |
 | I-03 | `immutable` の type の記録は、変わらず、消えない | check |
 | I-04 | links は宣言された type を指し、参照先がある。acyclic（既定 true）が true の辺だけで作るグラフは循環しない | check |
 | I-05 | id は重複せず、付け替えられない | check |
 | I-06 | rubric を持つ type の記録で、新しいものと変わったものはすべて、今の記録の sha256 と今の rubric の sha256 に結びついた合格の verdict を持つ。verdict の `by` は、記録の `by` と違う。記録に `by` が無いときは、作り手と判定者の違いを確かめられないので、`by` が `process:` で始まる（機械の判定者の）verdict だけを認める | check |
-| I-07 | `ls`、`check`、`view` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない | 各コマンド |
+| I-07 | `ls`、`check`、`view` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない。不正な UTF-8 の記録または inputs は読み替えず、`check: "format"` の finding にする | 各コマンド |
 | I-08 | 正規の branch は、check を通った commit への fast-forward でだけ動く | land |
-| I-09 | `.dx/`、`[files] inputs` に当たるファイル、または inputs 宣言を変える change は、ほかの記録を一緒に変えない。`check --policy` を明示した場合は検査しない | check |
+| I-09 | 規則のファイル（`dx.toml`、`.dx/` 以下、`[files] inputs` に当たるファイル）または inputs 宣言を変える change は、ほかの記録を一緒に変えない。`check --policy` を明示した場合は検査しない | check |
 | I-10 | review は、check の finding が無い記録にだけ Jev を呼ぶ。そのため、既存の finding を持つ旧い記録を変えるときは、先にその記録の finding をすべて消す必要がある（rubric を持つ type の場合。retrospectives で 2026-10-17 に実際に起きた） | review |
 
 | Story | 関わる禁止 | 守る invariant |
@@ -98,7 +98,7 @@
 - **規則を緩める change と、その緩みを使った記録を同時に入れる。** → I-09 で拒否する。
 - **verdict を取った後に本文を直す。** → sha256 が変わるので I-06 で拒否する。I-10 によって構造は先に通っているので、review を取り直すのは意味の変更のときに限られる。
 - **Jev が止まっている。** → rubric を持つ type の記録は入れられない（fail-closed）。review は終了コード 3 を返す。review なしで入れる抜け道は作らない。
-- **immutable な記録の frontmatter に verdict を書く。** → I-03 に反する。そのような type は `review.place = "file:<glob>"` で、verdict を別のファイルに置く。
+- **`review.place = "frontmatter"` を宣言する。** → policy error で拒否する。`review.place` は `"file:<glob>"` だけを受け付ける。
 - **immutable な記録の id を書き換える。** → I-03 と I-05 の両方の finding が出る。1 つの変更が 2 つの性質を破っているだけで、責務は重なっていない（finding の key は性質ごとに別）。
 
 ## 4. 3 システムのニーズと、その持ち主（移行で失わないことの検査）
@@ -144,8 +144,10 @@
 jj commit records/20261017_foo.md -m "..."
 dx check @-
 dx review @-
-dx land @-
+dx land @
 ```
+
+`dx review` は verdict を作業コピー（`@`）に書くので、verdict を含む `@` を land します。land の後は `jj new` します。
 
 `REV` の既定は `@`、`--base` の既定は `<branch>@<remote>`（例: `alpha@origin`）。
 既定の remote branch が無ければ、空の木 `root()` を使い、stderr に `base: remote branch absent; using root()` を 1 行出す。
@@ -262,7 +264,7 @@ remote = "origin"           # land の push 先
 branch = "alpha"            # 正規の branch
 
 [review]
-command = ["agx", "jev"]    # stdin に JSON の要求を 1 つ受け、stdout に JSON の答えを返すコマンド
+command = ["agx", "worker", "jev"]  # rubric を持つ type がある場合に必須。stdin JSON を受けて stdout JSON を返すコマンド
 
 [limits]                    # 超えたら判定できない（終了コード 4）。黙って打ち切らない
 record_bytes     = 4194304
@@ -275,7 +277,8 @@ inputs = []                 # 規則が読む入力の glob。ignore より優�
 strict = false              # true なら、どの type にも当たらないファイルを finding にする
 ```
 
-- `name` 以外の値は、すべて上の値が既定になる。
+- `name` と `[review] command` 以外の値は、すべて上の値が既定になる。
+- `[review] command` に既定値はない。rubric を持つ type が 1 つでもある repo では必須で、未指定なら `dx check` と `dx review` は `UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）` を出して終了コード 4 にする。rubric を持つ type が無ければ省略できる。
 - `files.ignore` を指定すると既定全体を置き換える（足し合わせない）。`ignore = []` も指定できる。
 - 廃止済みの `limits.check_seconds` と `review.pass` は未知の項目として exit 4 にする。
 - review は、すべての問いの確率が 0.5 以上なら合格とする。
@@ -314,15 +317,16 @@ export default defineType({
   immutable: false,                    // 一度入れたら変えてはいけないか
   checks: [undefinedCodes, timelineProblems, checkLink], // この type だけの検査（記録 → finding の関数）
   treeChecks: [checkLayout],             // 木全体の検査（木 → finding の関数、任意）
-  review: { rubric: "rubrics/retro-review-v4.toml", place: "frontmatter" },
+  review: { rubric: "rubrics/retro-review-v4.toml", place: "file:verdicts/*.json" },
   views: {},                           // dx view で出す計算（木 → JSONL の関数）
 });
 ```
 
-- `review.place` は、`"frontmatter"`（記録の frontmatter の `review:` に書く）か、`"file:<glob>"`（別のファイルに verdict として置く）のどちらか。immutable な type は `"file:<glob>"` を使う。
+- `review.place` は `"file:<glob>"` だけを受け付け、verdict を別のファイルに置く。`"frontmatter"` は使えない。`file:<glob>` は規則のファイル（`dx.toml`、`.dx/`、`[files] inputs`）に当たらないものとする。
 - すべての type に dx が必ずかける検査は、I-02〜I-06 と I-09。`.dx/` に書く必要はない。
 
-`links` の各宣言は `{ to, match?, values?, acyclic? }` とする。
+`links` の各宣言は `{ to, values?, acyclic? }` とする。廃止した `match` が宣言に残っていれば、
+型定義の読み込み時に `UNDETERMINED:policy: <type>.links.<rel>: match は消えた。values を使う` として exit 4 にする。
 `to` は宣言済みの型名の文字列、または宣言済みの型名の空でない配列。
 参照先はそのいずれかの型でなければならない。
 `acyclic` は boolean で、既定は `true` とする。
@@ -336,22 +340,15 @@ export default defineType({
 1. `values` を指定した場合、純粋な同期関数 `(fieldValue: unknown) => string[]` で候補を取り出す。
    例外または文字列配列以外の返り値は、理由を出して exit 4 にする。
    省略時は従来どおり、空でない文字列またはその配列を候補とし、異なる形は `I-04.links` の finding にする。
-2. `match` を指定した場合、候補ごとに正規表現を適用し、最初の一致の capture group 1 を id とする。
-   一致しない候補は link にしない。省略時は候補全体を id とする。
-   正規表現は JavaScript の Unicode モードで flags 指定なしとする。
-   構文エラーと capture group 1 のない宣言は、記録がなくても型定義の読み込みで exit 4 にする。
-   一致した候補の group 1 が未定義または空文字の場合も exit 4 にする。抽出する id は空にできない。
+2. 候補の文字列全体を id とする。空の id は許可しない。
 3. id が `dx:<name>/<id>`（name、id ともに空でなく、name は `/` を含まない）の形なら、
    name を `[repo] name` と比較する。異なる repo の参照は形だけを認識して link から除き、
    I-04 の実在・型・循環の検査をしない。同じ repo の参照は `<id>` を内部 id として検査する。
    この形に当たらない値は通常の内部 id として扱う。
 
-例: `sources: { to: ["evi", "sok"], match: "^urn:uuid:(.+)$", acyclic: false }` は、
-URL や引用を無視して裸の UUID を id とする。参照先の id が接頭辞を含むなら
-`match: "^(urn:uuid:.+)$"` を使う。オブジェクトの配列からの抽出は `values` が担う。
-`match` と `values` のない既存宣言は従来の候補と id の扱いを保ち、`dx:` の repo 判定は上記に従う。
+候補の選択や id の変換は `values` で行う。`dx:` の repo 判定は上記に従う。
 記録の `links` には抽出・正規化後の内部参照だけを入れ、元の値は `fields` に残す。
-`limits.links_per_record` は、この処理後の link 件数を数える（同じ参照の複数回の出現も数える）。
+`limits.links_per_record` は、`values` の適用後の link 件数を数える（同じ参照の複数回の出現も数える）。
 head の同じ宣言で base も評価し、参照先のない既存の supersedes も I-02 に従って既存扱いにする。
 
 `markdown-frontmatter` は、単一の YAML mapping を frontmatter として受け付ける。
@@ -360,7 +357,7 @@ head の同じ宣言で base も評価し、参照先のない既存の supersed
 `?` による複合キー、文字列でないキーは受け付けない。
 文字列の値に U+0085 または U+FEFF が含まれる場合も拒否する。escape を復号した値、
 sequence 内、入れ子、block scalar にも適用する。コメントや引用文字列内の `&`、`*`、`!`、`?` は
-構文として扱わない。文書先頭の BOM と LF/CRLF は従来どおり受け付ける。
+構文として扱わない。文書先頭の BOM は従来どおり受け付ける。frontmatter の区切りは `---\n` のみとし、frontmatter 内の CR は `format` finding にする（本文の CR は対象外）。
 
 これらは設定で緩和せず、`check: "format"`、`field: path` の finding にする。
 head の parser を base にも適用するため、同じバイト列の記録の format finding は I-02 の既存扱いになる。
@@ -439,6 +436,9 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 | D9 | review は 3 つの filter の合成で行う: `rubric request <rubric.toml> <artifact>…`（要求の組み立て。抜粋、上限、UTF-8 を壊さない切り詰め）→ `agx jev`（Jev への運搬だけ。`[review] command`）→ `rubric bits`（応答を `{bits:[{id,p,reason}], refuted?}` に検証して出す）。`rubric` は dotfiles の小さな道具（tools/rubric）で、rubric の schema を持ち、Jev を呼ばず、記録も書かない。dx review が持つのは、判定する記録の選択（I-10）、verdict の結びつけと置き場、合否（各問いの確率が 0.5 以上）だけ。`rubric` が land したら、`src/review-request.ts` をこの合成に置き換えて消す。それまでは今の実装を使い続ける | owner が `agx jev judge` / `agx assess` を agx の越権として退けた後の分け方（2026-10-17、dotfiles-agt_g67e 経由） |
 | D8 | 名前: `ls`、`check`、`review`、`land`、`view`、`.dx/`、type、`checks`、`immutable`、`links`、`[repo]`、`branch`、`[review]`、`[files]`、`sha256`、`by` | 既存の 3 つの repo と OKF の語にそろえる（Unix の副原則 3）。`.dx/` は、道具が持つ設定を dot ディレクトリに置く慣習（`.claude/`、`.githooks/`、`.cocoindex_code/`）に合わせ、repo の中身（records/、knowledge/）と分ける（owner、2026-10-17） |
 | D10 | 時間の上限は呼び出し側が持つ。schema と pass の設定は、使う人がいないので消した。旧設定の 2 項目は C5 に従って 0.1.x の間は警告して無視する | owner の簡素化依頼、coordinator の削除・移行決定（2026-10-17） |
+| D11 | 変わった記録は、既存の finding も含めてすべて無いことを求める（I-02） | soks-govern の L と retrospectives の gate が、どちらも「変えた記録は潔白に」を求めていたため（2026-10-17） |
+| D12 | 複数記録に関わる finding は、`ids` のどれか 1 つでも新しいか変わった記録なら new とする（I-02） | I-02 の新規・変更記録に対する規則を、複数記録 finding にも適用するため（2026-10-18） |
+| D13 | head で記録を生まないファイルも、bytes が変われば、その path の finding を new とする（I-02） | policy revision のもとで、壊れた inputs を入れる commit が既存 finding として通る穴を塞ぐため（2026-10-18） |
 
 ## 10. 残差
 
@@ -448,7 +448,7 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 | R-2 | 時刻と `by` は自己申告で、偽造できる | 今と同じ水準。必要になったら、署名つきの commit を land の条件に加える |
 | R-3 | finding の key が版をまたいで同じでないと、I-02 が誤る | key の形を契約にする（§5 C5） |
 | R-4 | run の、親プロセスを失ったときの復旧 | dx の外（D3） |
-| R-5 | repo をまたぐ参照 | §7 の抽出・match 後の `dx:<name>/<id>` を扱う。name が `[repo] name` と異なれば形だけを認識し I-04 から除く。同じなら id を内部参照として実在・型と、acyclic の宣言に従う循環を検査する。repo 外の参照先は解決しない |
+| R-5 | repo をまたぐ参照 | §7 の `dx:<name>/<id>` を扱う。name が `[repo] name` と異なれば形だけを認識し I-04 から除く。同じなら id を内部参照として実在・型と、acyclic の宣言に従う循環を検査する。repo 外の参照先は解決しない |
 | R-6 | 移行が正しいか | §8 の影運用で確かめる |
 | R-7 | 全記録を毎回検査する費用（soks 6,748 文書、research_record 3,132 fragment） | 試作 2、3 で測る。遅ければ base 側の読み出し結果を cache する |
 | R-8 | soks: review の要求の上限（30,000 バイト）を超える文書が 266 件（全 6,789 件の 3.9%）、100 KB を超えるものが 5 件ある（2026-10-17 に `wc -c knowledge/*.md` で計測） | 上限を超えた記録の review は、終了コード 4（判定できない）で止める。黙って切り詰めない。分割して review するか、その type には別の rubric を当てるかは、soks の `.dx/` で決める（未決） |

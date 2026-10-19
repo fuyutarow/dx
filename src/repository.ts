@@ -97,10 +97,17 @@ interface TreeEntry {
   readonly id: string;
 }
 
+export class BlobContents extends Map<string, string> {
+  constructor(readonly invalidUtf8 = new Map<string, number>()) {
+    super();
+  }
+}
+
 /** One command's immutable revision data; nothing is written to the repository. */
 export class RevisionReader {
   private readonly trees = new Map<string, readonly TreeEntry[]>();
   private readonly blobs = new Map<string, string>();
+  private readonly invalidBlobs = new Map<string, number>();
   private readonly git: { directory?: string } = {};
 
   constructor(
@@ -145,7 +152,7 @@ export class RevisionReader {
   }
 
   async read(entries: readonly TreeEntry[]) {
-    const { blobs, git, cwd, ms } = this;
+    const { blobs, invalidBlobs, git, cwd, ms } = this;
     return safeTry(async function* () {
       for (const entry of entries) {
         if (
@@ -156,7 +163,9 @@ export class RevisionReader {
             `unsupported or conflicted tree entry: ${entry.path} (${entry.kind})`,
           );
       }
-      const missing = [...new Set(entries.map((e) => e.id))].filter((id) => !blobs.has(id));
+      const missing = [...new Set(entries.map((e) => e.id))].filter(
+        (id) => !blobs.has(id) && !invalidBlobs.has(id),
+      );
       if (missing.length > 0) {
         git.directory ??= (yield* await jj(cwd, ["git", "root"], ms)).trim();
         const signal = AbortSignal.timeout(Math.max(1, Math.ceil(ms)));
@@ -178,20 +187,31 @@ export class RevisionReader {
         if (signal.aborted) return undetermined("git blob read timed out");
         if (exit !== 0) return undetermined(`git cat-file: ${stderr.trim()}`);
         const bytes = Buffer.from(output);
-        yield* cacheBlobs(bytes, missing, blobs);
+        yield* cacheBlobs(bytes, missing, blobs, invalidBlobs);
       }
-      const contents = new Map<string, string>();
-      for (const entry of entries)
+      const contents = new BlobContents();
+      for (const entry of entries) {
+        const invalid = invalidBlobs.get(entry.id);
+        if (invalid !== undefined) {
+          contents.invalidUtf8.set(entry.path, invalid);
+          continue;
+        }
         contents.set(
           entry.path,
           yield* requireValue(blobs.get(entry.id), "unread blob: " + entry.path),
         );
+      }
       return ok(contents);
     });
   }
 }
 
-function cacheBlobs(bytes: Buffer, missing: string[], blobs: Map<string, string>) {
+function cacheBlobs(
+  bytes: Buffer,
+  missing: string[],
+  blobs: Map<string, string>,
+  invalidBlobs: Map<string, number>,
+) {
   let offset = 0;
   for (const id of missing) {
     const end = bytes.indexOf(10, offset);
@@ -209,9 +229,62 @@ function cacheBlobs(bytes: Buffer, missing: string[], blobs: Map<string, string>
     offset = end + 1;
     if (size > bytes.length - offset - 1 || bytes[offset + size] !== 10)
       return undetermined(`truncated git blob: ${id}`);
-    blobs.set(id, bytes.subarray(offset, offset + size).toString("utf8"));
+    const blob = bytes.subarray(offset, offset + size);
+    const invalidAt = invalidUtf8At(blob);
+    if (invalidAt === undefined)
+      blobs.set(id, new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(blob));
+    else invalidBlobs.set(id, invalidAt);
     offset += size + 1;
   }
   if (offset !== bytes.length) return undetermined("unexpected git batch data");
   return ok(undefined);
+}
+
+/** Return the first byte that cannot begin a valid UTF-8 sequence. */
+function invalidUtf8At(bytes: Buffer): number | undefined {
+  const continuation = (index: number) => {
+    const byte = bytes[index];
+    return byte !== undefined && byte >= 0x80 && byte <= 0xbf;
+  };
+  for (let index = 0; index < bytes.length;) {
+    const first = bytes[index];
+    if (first === undefined) return undefined;
+    if (first <= 0x7f) {
+      index++;
+      continue;
+    }
+    if (first >= 0xc2 && first <= 0xdf) {
+      if (!continuation(index + 1)) return index;
+      index += 2;
+      continue;
+    }
+    if (first >= 0xe0 && first <= 0xef) {
+      const second = bytes[index + 1];
+      const validSecond =
+        second !== undefined &&
+        (first === 0xe0
+          ? second >= 0xa0 && second <= 0xbf
+          : first === 0xed
+            ? second >= 0x80 && second <= 0x9f
+            : second >= 0x80 && second <= 0xbf);
+      if (!validSecond || !continuation(index + 2)) return index;
+      index += 3;
+      continue;
+    }
+    if (first >= 0xf0 && first <= 0xf4) {
+      const second = bytes[index + 1];
+      const validSecond =
+        second !== undefined &&
+        (first === 0xf0
+          ? second >= 0x90 && second <= 0xbf
+          : first === 0xf4
+            ? second >= 0x80 && second <= 0x8f
+            : second >= 0x80 && second <= 0xbf);
+      if (!validSecond || !continuation(index + 2) || !continuation(index + 3)) return index;
+      index += 4;
+      continue;
+    }
+    return index;
+  }
+  return undefined;
 }

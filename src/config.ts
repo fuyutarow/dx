@@ -13,7 +13,7 @@ export const configSchema = z.strictObject({
   }),
   review: z
     .strictObject({
-      command: z.array(z.string().min(1)).min(1).default(["agx", "jev"]),
+      command: z.array(z.string().min(1)).min(1).optional(),
     })
     .prefault({}),
   limits: z

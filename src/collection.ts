@@ -4,8 +4,8 @@ import { ok, safeTry } from "neverthrow";
 import { z } from "zod";
 import { inputPatternsSchema, type Config } from "./config.ts";
 
-import { parseRecords, formatAdapter } from "./formats.ts";
-import { loadTypes, matches } from "./policy.ts";
+import { parseRecords, formatAdapter, formatFinding } from "./formats.ts";
+import { isPolicyPath, loadTypes, matches } from "./policy.ts";
 import { jj, RevisionReader } from "./repository.ts";
 import {
   type FindingInput,
@@ -60,7 +60,9 @@ export async function readSnapshot(
   types: readonly LoadedType[],
   ms: number,
   cache = snapshotCache(cwd, ms),
-  policyFiles?: ReadonlyMap<string, string>,
+  policyFiles?: ReadonlyMap<string, string> & {
+    readonly invalidUtf8?: ReadonlyMap<string, number>;
+  },
 ) {
   return safeTry(async function* () {
     const files: Record<string, string> = {};
@@ -68,6 +70,11 @@ export async function readSnapshot(
     const records: RecordModel[] = [];
     const sources = new Map<RecordModel, SourceFile>();
     const findings: FindingInput[] = [];
+    const invalidPolicyPaths = new Set<string>();
+    for (const [path, offset] of policyFiles?.invalidUtf8 ?? []) {
+      invalidPolicyPaths.add(path);
+      findings.push(formatFinding(path, `invalid UTF-8 at byte ${offset}`));
+    }
     const appendRecord = (file: SourceFile, type: LoadedType) =>
       safeTry(function* () {
         if (records.length >= config.limits.records) return undetermined("limits.records exceeded");
@@ -80,11 +87,7 @@ export async function readSnapshot(
     const tree = yield* await cache.reader.tree(rev);
     const fileIds = new Map(tree.map(({ path, id }) => [path, id]));
     const entries = tree.filter(({ path }) => {
-      if (
-        policyFiles !== undefined &&
-        (matches(config.files.inputs, path) || path === "dx.toml" || path.startsWith(".dx/"))
-      )
-        return false;
+      if (policyFiles !== undefined && isPolicyPath(path, config.files.inputs)) return false;
       const verdictPath = types.some(
         (t) =>
           t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
@@ -99,6 +102,12 @@ export async function readSnapshot(
     });
     const contents = yield* await cache.reader.read(entries);
     for (const { path, id: blobId } of entries) {
+      const invalidAt = contents.invalidUtf8.get(path);
+      if (invalidAt !== undefined && !invalidPolicyPaths.has(path)) {
+        findings.push(formatFinding(path, `invalid UTF-8 at byte ${invalidAt}`));
+        continue;
+      }
+      if (invalidPolicyPaths.has(path)) continue;
       const verdictPath = types.some(
         (t) =>
           t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
@@ -257,8 +266,10 @@ export async function isolationFindings(
         declarationChanged ||= JSON.stringify(beforeInputs) !== JSON.stringify(afterInputs);
         localInputs.push(...beforeInputs);
       }
-      const policyPath = (path: string) => path.startsWith(".dx/") || matches(localInputs, path);
+      const policyPath = (path: string) => isPolicyPath(path, localInputs);
       if (!declarationChanged && ![...change.paths].some((path) => policyPath(path))) continue;
+      const policyFiles = [...change.paths].filter(policyPath).toSorted();
+      const policyFileList = `${policyFiles.slice(0, 5).join(", ")}${policyFiles.length > 5 ? ", …" : ""}`;
       const candidates = [...change.paths].filter(
         (path) => !policyPath(path) && !ignored(config, path),
       );
@@ -273,7 +284,7 @@ export async function isolationFindings(
           check: "I-09.policy",
           path,
           field: path,
-          message: "policy and records changed together",
+          message: `policy and records changed together: policy files ${policyFileList}; 規則は dx.toml、.dx/ の下、[files] inputs。規則の変更は別の commit にする`,
         });
     }
     return ok(findings);
@@ -323,13 +334,12 @@ function makeRecord(file: SourceFile, type: LoadedType, config: Config, findings
         });
         continue;
       }
-      for (const candidate of candidates) {
+      for (const candidate of candidates)
         links.push(
-          ...(yield* linkTarget(candidate, declaration.match, config.repo.name)
+          ...(yield* linkTarget(candidate, config.repo.name)
             .map((to) => (to === undefined ? [] : [{ rel, to }]))
             .mapErr((reason) => `${path}: links.${rel}: ${reason}`)),
         );
-      }
     }
     if (links.length > config.limits.links_per_record)
       return undetermined(`limits.links_per_record exceeded: ${id}`);
@@ -366,16 +376,7 @@ function linkCandidates(raw: unknown, link: LoadedType["links"][string], locus: 
   });
 }
 
-function linkTarget(candidate: string, pattern: RegExp | undefined, repo: string) {
-  let id = candidate;
-  if (pattern !== undefined) {
-    const matched = pattern.exec(candidate);
-    if (matched === null) return ok(undefined);
-    const captured = matched[1];
-    if (captured === undefined || captured.length === 0)
-      return undetermined("links.match capture group 1 must produce a non-empty id");
-    id = captured;
-  }
+function linkTarget(id: string, repo: string) {
   if (id.length === 0) return undetermined("link id must be non-empty");
   const qualified = /^dx:([^/]+)\/(.+)$/u.exec(id);
   if (qualified === null) return ok(id);

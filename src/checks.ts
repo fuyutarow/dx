@@ -14,8 +14,41 @@ import {
   type RecordModel,
   type TreeContext,
 } from "./model.ts";
-import { matches } from "./policy.ts";
+import { isPolicyPath, matches } from "./policy.ts";
 import { sha256, stableJson } from "./formats.ts";
+import { inputPatternsSchema } from "./config.ts";
+
+function policyInputs(files: Readonly<Record<string, string>>): readonly string[] {
+  try {
+    const config = Bun.TOML.parse(files["dx.toml"] ?? "") as { files?: { inputs?: unknown } };
+    const parsed = inputPatternsSchema.safeParse(config.files?.inputs ?? []);
+    return parsed.success ? parsed.data : [];
+  } catch {
+    return [];
+  }
+}
+
+export function reviewPlacePolicy(
+  types: readonly LoadedType[],
+  files: Readonly<Record<string, string>>,
+  inputs?: readonly string[],
+) {
+  const declaredInputs = inputs ?? policyInputs(files);
+  for (const type of types) {
+    const place = type.review?.place;
+    if (
+      place?.startsWith("file:") === true &&
+      (place.slice(5).startsWith(".dx/") ||
+        Object.keys(files).some(
+          (path) => matches(place.slice(5), path) && isPolicyPath(path, declaredInputs),
+        ))
+    )
+      return undetermined(
+        `policy: ${type.name}: review.place は規則のファイル（dx.toml、.dx/、inputs）の外に置く`,
+      );
+  }
+  return ok(undefined);
+}
 
 export function context(snapshot: Snapshot, base: Snapshot): TreeContext {
   return Object.freeze({
@@ -187,7 +220,7 @@ export function reviews(base: Snapshot, head: Snapshot, types: readonly LoadedTy
       for (const record of head.records.filter(
         (r) =>
           r.type === type.name &&
-          reviewChanged(previous.get(r.id)?.[0], r, type) &&
+          reviewChanged(previous.get(r.id)?.[0], r) &&
           !hasPassingVerdict(r),
       )) {
         findings.push({
@@ -195,7 +228,8 @@ export function reviews(base: Snapshot, head: Snapshot, types: readonly LoadedTy
           id: record.id,
           path: record.path,
           field: "review",
-          message: "missing passing verdict bound to this record, rubric and another author",
+          message:
+            "missing passing verdict bound to this record, rubric and another author; dx review は verdict を作業コピーに書く。verdict を含む commit を land する（例: dx land @）",
         });
       }
     }
@@ -209,14 +243,11 @@ export function verdictChecker(head: Snapshot, type: LoadedType, rubricHash?: st
     const path = yield* rubricPath(type);
     const hash = rubricHash ?? sha256(yield* requireValue(head.files[path], "missing rubric"));
     const review = yield* requireValue(type.review, "missing review definition");
-    const raw =
-      review.place === "frontmatter"
-        ? undefined
-        : Object.entries(head.files)
-            .filter(([filePath]) => matches(review.place.slice(5), filePath))
-            .flatMap(([filePath, text]) => sidecarVerdicts(text, filePath));
+    const raw = Object.entries(head.files)
+      .filter(([filePath]) => matches(review.place.slice(5), filePath))
+      .flatMap(([filePath, text]) => sidecarVerdicts(text, filePath));
     return ok((record: RecordModel) =>
-      (raw ?? [record.fields.review]).some((value) => {
+      raw.some((value) => {
         const result = verdictSchema.safeParse(value);
         if (!result.success) return false;
         const v = result.data;
@@ -234,18 +265,9 @@ export function verdictChecker(head: Snapshot, type: LoadedType, rubricHash?: st
   });
 }
 
-/** Match the I-06 target set, including edits to frontmatter verdict metadata. */
-export function reviewChanged(
-  old: RecordModel | undefined,
-  record: RecordModel,
-  type: LoadedType,
-): boolean {
-  return (
-    old === undefined ||
-    old.sha256 !== record.sha256 ||
-    (type.review?.place === "frontmatter" &&
-      stableJson(old.fields.review) !== stableJson(record.fields.review))
-  );
+/** Match the I-06 target set when record content changes. */
+export function reviewChanged(old: RecordModel | undefined, record: RecordModel): boolean {
+  return old === undefined || old.sha256 !== record.sha256;
 }
 
 /** I-06: unknown record authors require a machine reviewer; known authors must differ. */
