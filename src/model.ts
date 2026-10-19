@@ -181,4 +181,5 @@ export const verdictSchema = z.object({
   bits: z.number().int().nonnegative(),
   p: z.array(z.number().min(0).max(1)).min(1),
   pass: z.boolean(),
+  reasons: z.record(z.string(), z.string()).optional(),
 });

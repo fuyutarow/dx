@@ -2,8 +2,9 @@ import { jsonOf } from "../../.dx-preset/zod.ts";
 import { resultOf, validate, requireValue, attemptAsync, undetermined } from "../errors.ts";
 
 import { ok, safeTry } from "neverthrow";
-import { lstat, mkdir, realpath } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { lstat, mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { z } from "zod";
 import { check } from "./check.ts";
 import {
@@ -20,6 +21,7 @@ import { REVIEW_PASS, type Config } from "../config.ts";
 import { formatAdapter, sha256, stableJson } from "../formats.ts";
 import {
   verdictSchema,
+  type Evidence,
   type FindingInput,
   type LoadedType,
   type RecordModel,
@@ -28,11 +30,88 @@ import {
 } from "../model.ts";
 import { matches, reviewCommandRequirement } from "../policy.ts";
 import {
+  REVIEW_INPUT_LIMIT_BYTES,
   assembleBits,
-  assembleRequest,
-  jevResponseSchema,
+  fitEvidence,
   parseRubric,
 } from "../review-request.ts";
+
+const jexResponseSchema = z.object({
+  model: z.union([z.string().min(1), z.object({ na: z.literal(true), why: z.string() })]),
+  bits: z.array(
+    z.object({ id: z.string().min(1), p: z.number().min(0).max(1), reason: z.string() }),
+  ),
+  refuted: z.object({ p: z.number().min(0).max(1), reason: z.string() }).optional(),
+});
+
+function tomlString(value: string) {
+  return JSON.stringify(value);
+}
+function questionFile(criteria: readonly { id: string; question: string }[]) {
+  return `schema = 1\n${criteria.map((row) => `\n[[question]]\nid = ${tomlString(row.id)}\ntext = ${tomlString(row.question)}\n`).join("")}`;
+}
+function temporaryPath(root: string, path: string) {
+  const target = resolve(root, path);
+  const rel = relative(root, target);
+  return !isAbsolute(path) && rel !== "" && rel !== ".." && !rel.startsWith(`..${sep}`)
+    ? ok(target)
+    : undetermined(`jex input path escapes temporary directory: ${path}`);
+}
+export async function runJex(
+  command: readonly string[],
+  recordPath: string,
+  recordText: string,
+  criteria: readonly { id: string; question: string }[],
+  evidence: readonly Evidence[],
+) {
+  return attemptAsync(async () => {
+    const root = await mkdtemp(join(tmpdir(), "dx-jex-review-"));
+    await using cleanup = {
+      async [Symbol.asyncDispose]() {
+        await rm(root, { recursive: true, force: true });
+      },
+    };
+    void cleanup;
+    const questions = questionFile(criteria);
+    const baseBytes = Buffer.byteLength(questions) + Buffer.byteLength(recordText);
+    if (baseBytes > REVIEW_INPUT_LIMIT_BYTES) return { kind: "undetermined" as const };
+    const supplied = evidence.filter((file) => file.content !== undefined);
+    const fitted = fitEvidence(supplied, REVIEW_INPUT_LIMIT_BYTES - baseBytes);
+    if (fitted === undefined) return { kind: "undetermined" as const };
+    const recordTarget = temporaryPath(root, recordPath);
+    if (recordTarget.isErr()) return { kind: "undetermined" as const };
+    await mkdir(dirname(recordTarget.value), { recursive: true });
+    await Bun.write(recordTarget.value, recordText);
+    await Bun.write(join(root, "questions.toml"), questions);
+    const evidencePaths: string[] = [];
+    const usedPaths = new Set([recordTarget.value, join(root, "questions.toml")]);
+    for (const file of fitted) {
+      if (file.content === undefined) continue;
+      const target = temporaryPath(root, file.locator);
+      if (target.isErr() || usedPaths.has(target.value)) return { kind: "undetermined" as const };
+      await mkdir(dirname(target.value), { recursive: true });
+      await Bun.write(target.value, file.content);
+      evidencePaths.push(file.locator);
+      usedPaths.add(target.value);
+    }
+    const signal = AbortSignal.timeout(120000);
+    const child = Bun.spawn({
+      cmd: [...command, "questions.toml", recordPath, ...evidencePaths],
+      cwd: root,
+      stdin: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
+      signal,
+      killSignal: "SIGKILL",
+    });
+    const [stdout, stderr, exit] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { kind: "result" as const, stdout, stderr, exit, timedOut: signal.aborted };
+  });
+}
 
 async function writablePath(cwd: string, path: string) {
   const target = resolve(cwd, path);
@@ -45,47 +124,6 @@ async function writablePath(cwd: string, path: string) {
       return undetermined(`review output uses symlink: ${path}`);
   }
   return ok(target);
-}
-export async function runReviewCommand(
-  cwd: string,
-  command: readonly string[],
-  request: unknown,
-  timeoutMs = 120000,
-) {
-  const result = await attemptAsync(async () => {
-    const signal = AbortSignal.timeout(timeoutMs);
-    const waiting = setTimeout(() => {
-      process.stderr.write("dx: waiting for jev…\n");
-    }, 2000);
-    const posted = await attemptAsync(async () => {
-      const child = Bun.spawn({
-        cmd: [...command],
-        cwd,
-        stdin: new Blob([JSON.stringify(request)]),
-        stdout: "pipe",
-        stderr: "pipe",
-        signal,
-        killSignal: "SIGKILL",
-      });
-      const [stdout, stderr, exit] = await Promise.all([
-        new Response(child.stdout).text(),
-        new Response(child.stderr).text(),
-        child.exited,
-      ]);
-      return { stdout, stderr, exit };
-    });
-    clearTimeout(waiting);
-    if (posted.isErr()) return { error: posted.error };
-    if (signal.aborted) return { error: `review command timed out after ${timeoutMs}ms` };
-    if (posted.value.exit !== 0)
-      return {
-        error: `review command exited ${posted.value.exit}: ${posted.value.stderr.slice(0, 16000)}`,
-      };
-    const parsed = jsonOf(jevResponseSchema).safeParse(posted.value.stdout);
-    if (!parsed.success) return { error: `invalid Jev response: ${parsed.error.message}` };
-    return { response: parsed.data };
-  });
-  return result.isOk() ? result.value : { error: result.error };
 }
 function outputPath(place: string, record: RecordModel) {
   const pattern = place.slice(5);
@@ -138,6 +176,8 @@ export async function review(
       const adapter = formatAdapter(type.format);
       const rubricText = yield* requireValue(head.files[yield* rubricPath(type)], "missing rubric");
       const rubric = yield* parseRubric(rubricText);
+      if (rubric.criteria.length > 8)
+        return undetermined(`${type.review.rubric}: jex の問いは 8 つまで`);
       const evidence = yield* validate(
         z.array(
           z.object({
@@ -150,11 +190,7 @@ export async function review(
         ),
         adapter.evidence?.(source, tree) ?? [],
       );
-      const request = yield* assembleRequest(
-        yield* resultOf(adapter.reviewText(source)),
-        rubric,
-        evidence,
-      );
+      const recordText = yield* resultOf(adapter.reviewText(source));
       const path = yield* outputPath(type.review.place, record);
       const target = yield* await writablePath(cwd, path);
       const original = await attemptAsync(() => Bun.file(target).text());
@@ -170,7 +206,7 @@ export async function review(
         return undetermined(`invalid existing sidecar verdicts: ${path}`);
       // Sidecar writes must also bind to the selected working-copy record.
       yield* await unchangedRecord(cwd, record, source, "differs from REV");
-      plans.push({ record, type, source, rubric, rubricText, request, path, target });
+      plans.push({ record, type, source, rubric, rubricText, evidence, recordText, path, target });
     }
     rows.push(...blocked);
     // A format failure has no model row, but is still an I-10 refusal.
@@ -189,22 +225,55 @@ export async function review(
     let exit: 0 | 1 | 3 = rows.length > 0 ? 1 : 0;
     const contents = new Map<string, string | undefined>();
     for (const plan of plans) {
-      const { record, type, source, rubric, rubricText, request, path, target } = plan;
-      const posted = await runReviewCommand(cwd, config.review.command ?? [], request);
-      const response = posted.response;
-      const p =
-        response === undefined ? [] : rubric.criteria.map((c) => response.answers[c.id]?.noul);
+      const { record, type, source, rubric, rubricText, evidence, recordText, path, target } = plan;
+      const posted = await runJex(
+        config.review.command ?? [],
+        record.path,
+        recordText,
+        rubric.criteria,
+        evidence,
+      );
+      if (posted.isErr()) {
+        exit = 3;
+        process.stderr.write(
+          `REVIEW_UNAVAILABLE: ${record.path}: ${posted.error.replaceAll("\n", " ")}\n`,
+        );
+        continue;
+      }
+      if (posted.value.kind === "undetermined")
+        return undetermined(
+          `review input exceeds 30000 bytes or has an invalid path: ${record.path}`,
+        );
+      const { stdout, stderr, exit: childExit, timedOut } = posted.value;
+      if (timedOut || childExit === 3) {
+        exit = 3;
+        process.stderr.write(
+          `REVIEW_UNAVAILABLE: ${record.path}: ${timedOut ? "jex timed out" : stderr.slice(0, 16000).replaceAll("\n", " ")}\n`,
+        );
+        continue;
+      }
+      if (childExit === 2 || childExit === 4)
+        return undetermined(
+          `jex exited ${childExit}: ${stderr.slice(0, 16000).replaceAll("\n", " ")}`,
+        );
+      if (childExit !== 0 && childExit !== 1)
+        return undetermined(`unexpected jex exit ${childExit}`);
+      const parsed = jsonOf(jexResponseSchema).safeParse(stdout);
+      if (!parsed.success) return undetermined(`invalid jex response: ${parsed.error.message}`);
+      const response = parsed.data;
+      if (typeof response.model !== "string")
+        return undetermined(`jex model unavailable: ${response.model.why}`);
+      const answers = rubric.criteria
+        .map((criterion) => response.bits.find((bit) => bit.id === criterion.id))
+        .filter((bit) => bit !== undefined);
+      if (answers.length !== rubric.criteria.length)
+        return undetermined(`jex omitted a criterion: ${record.path}`);
+      const p = answers.map((answer) => answer.p);
       const probabilities = z
         .array(z.number().min(0).max(1))
         .length(rubric.criteria.length)
         .safeParse(p);
-      if (response === undefined || !probabilities.success) {
-        exit = 3;
-        process.stderr.write(
-          `REVIEW_UNAVAILABLE: ${record.path}: ${(posted.error ?? "Jev omitted a criterion").replaceAll("\n", " ")}\n`,
-        );
-        continue;
-      }
+      if (!probabilities.success) return undetermined(`invalid jex probabilities: ${record.path}`);
       const passed = probabilities.data.map((value) => value >= REVIEW_PASS);
       const verdict = yield* validate(verdictSchema, {
         v: 1,
@@ -212,11 +281,12 @@ export async function review(
         sha256: record.sha256,
         rubric: type.review?.rubric,
         rubric_sha256: sha256(rubricText),
-        by: `process:jev/${response.model}`,
+        by: `process:jex/${response.model}`,
         at: Temporal.Now.instant().toString({ fractionalSecondDigits: 3 }),
         bits: assembleBits(passed),
         p: probabilities.data,
         pass: passed.every(Boolean),
+        reasons: Object.fromEntries(answers.map((answer) => [answer.id, answer.reason])),
       });
       if (!reviewerAllowed(record.by, verdict.by))
         return undetermined(`review author must differ from record author: ${record.id}`);
@@ -230,7 +300,7 @@ export async function review(
       await Bun.write(yield* await writablePath(cwd, path), output);
       contents.set(path, output);
       rows.push(verdict);
-      if (!verdict.pass && exit === 0) exit = 1;
+      if ((childExit === 1 || !verdict.pass) && exit === 0) exit = 1;
     }
     return ok({
       exit,
