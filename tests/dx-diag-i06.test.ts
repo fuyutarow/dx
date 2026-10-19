@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { checked, markdown, repo, write } from "./helpers.ts";
 
 test("I-06 missing verdict finding explains how to land the working-copy verdict", async () => {
-  const { cwd, base } = await repo({ review: "frontmatter" });
+  const { cwd, base } = await repo({ review: "file:verdicts/*.jsonl" });
   await write(cwd, "records/one.md", markdown("one"));
 
   const result = await checked(cwd, base, 1);

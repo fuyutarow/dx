@@ -5,7 +5,7 @@ const missingCommand =
   'UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）';
 
 test("rubric types require an explicit review command for check and review", async () => {
-  const { cwd, base } = await repo({ review: "frontmatter" });
+  const { cwd, base } = await repo({ review: "file:verdicts/*.jsonl" });
   await write(cwd, "dx.toml", '[repo]\nname = "fixture"\n');
   await snapshot(cwd);
 

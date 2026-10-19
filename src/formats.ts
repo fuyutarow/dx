@@ -102,6 +102,10 @@ export function parseRecords(path: string, text: string, format: TypeDefinition[
       const candidate = /^(?:\uFEFF)?---\r?\n([\s\S]*?)^---(?:\r?\n|$)/mu.exec(text);
       if (candidate?.[0].includes("\r") === true || candidate?.[1]?.includes("\r") === true)
         return undetermined("CR in frontmatter");
+      // Frontmatter has its own CR diagnostic; elsewhere only CRLF is accepted.
+      // oxlint-disable-next-line no-control-regex -- Detect the forbidden source character itself.
+      if (/\r(?!\n)/u.test(text))
+        return undetermined("document character U+000D is outside the accepted input domain");
       const parts = splitMarkdown(text);
       if (parts === undefined) return validate(z.array(z.never()), undefined);
       return ok([
@@ -115,8 +119,8 @@ export function parseRecords(path: string, text: string, format: TypeDefinition[
         },
       ]);
     }
-    // TOML keeps the document-wide source restriction; Markdown permits CR in
-    // its body and checks it only in the frontmatter region above.
+    // TOML keeps the document-wide source restriction; Markdown handles its
+    // frontmatter diagnostic above and rejects lone CR everywhere else.
     // oxlint-disable-next-line no-control-regex -- Detect the forbidden source character itself.
     if (/\r(?!\n)/u.test(text))
       return undetermined("document character U+000D is outside the accepted input domain");
