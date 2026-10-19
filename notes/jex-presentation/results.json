@@ -1,0 +1,1285 @@
+{
+  "proposition": "DX-JEX-PRESENTATION",
+  "status": "extension_finished",
+  "started_at": "2026-10-19T11:10:27.428Z",
+  "updated_at": "2026-10-19T11:15:31.522Z",
+  "jex_version": "0.2.4",
+  "rows": [
+    {
+      "variant": "V0",
+      "record": "prediction",
+      "run": 1,
+      "p": [
+        0.76,
+        0.82,
+        0.8
+      ],
+      "pass": true,
+      "status": "historical",
+      "source": "/home/fuyu/Workspace/research-record-v2/docs/review-command-result.json"
+    },
+    {
+      "variant": "V0",
+      "record": "prediction",
+      "run": 2,
+      "p": [
+        0.78,
+        0.85,
+        0.81
+      ],
+      "pass": true,
+      "status": "historical",
+      "source": "coordinator brief: 19:42 resend"
+    },
+    {
+      "variant": "V1",
+      "record": "prediction",
+      "run": 1,
+      "p": [
+        0.66,
+        0.61,
+        0.81
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V2",
+      "record": "prediction",
+      "run": 1,
+      "p": [
+        0.91,
+        0.53,
+        0.89
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V1",
+      "record": "review-old",
+      "run": 1,
+      "p": [
+        0.68,
+        0.48,
+        0.92
+      ],
+      "pass": false,
+      "status": "measured",
+      "exit": 1
+    },
+    {
+      "variant": "V3",
+      "record": "prediction",
+      "run": 1,
+      "p": [
+        0.58,
+        0.34,
+        0.84
+      ],
+      "pass": false,
+      "status": "measured",
+      "exit": 1
+    },
+    {
+      "variant": "V4",
+      "record": "prediction",
+      "run": 1,
+      "p": [
+        0.66,
+        0.73,
+        0.81
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V2",
+      "record": "review-old",
+      "run": 1,
+      "p": [
+        0.76,
+        0.59,
+        0.92
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V4",
+      "record": "review-old",
+      "run": 1,
+      "p": [
+        0.78,
+        0.53,
+        0.93
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V1",
+      "record": "prediction",
+      "run": 2,
+      "p": [
+        0.62,
+        0.63,
+        0.8
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V1",
+      "record": "review-old",
+      "run": 2,
+      "p": [
+        0.69,
+        0.47,
+        0.92
+      ],
+      "pass": false,
+      "status": "measured",
+      "exit": 1
+    },
+    {
+      "variant": "V2",
+      "record": "prediction",
+      "run": 2,
+      "p": [
+        0.91,
+        0.56,
+        0.9
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V2",
+      "record": "review-old",
+      "run": 2,
+      "p": [
+        0.76,
+        0.61,
+        0.92
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V3",
+      "record": "prediction",
+      "run": 2,
+      "p": [
+        0.64,
+        0.36,
+        0.85
+      ],
+      "pass": false,
+      "status": "measured",
+      "exit": 1
+    },
+    {
+      "variant": "V4",
+      "record": "prediction",
+      "run": 2,
+      "p": [
+        0.64,
+        0.66,
+        0.82
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V4",
+      "record": "review-old",
+      "run": 2,
+      "p": [
+        0.77,
+        0.61,
+        0.94
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V1",
+      "record": "prediction",
+      "run": 3,
+      "p": [
+        0.68,
+        0.63,
+        0.81
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V1",
+      "record": "review-old",
+      "run": 3,
+      "p": [
+        0.69,
+        0.5,
+        0.94
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V2",
+      "record": "prediction",
+      "run": 3,
+      "p": [
+        0.91,
+        0.62,
+        0.89
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V2",
+      "record": "review-old",
+      "run": 3,
+      "p": [
+        0.75,
+        0.62,
+        0.83
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V3",
+      "record": "prediction",
+      "run": 3,
+      "p": [
+        0.6,
+        0.39,
+        0.82
+      ],
+      "pass": false,
+      "status": "measured",
+      "exit": 1
+    },
+    {
+      "variant": "V4",
+      "record": "prediction",
+      "run": 3,
+      "p": [
+        0.59,
+        0.69,
+        0.81
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V4",
+      "record": "review-old",
+      "run": 3,
+      "p": [
+        0.79,
+        0.57,
+        0.94
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V6",
+      "record": "prediction",
+      "run": 1,
+      "p": [
+        0.91,
+        0.63,
+        0.86
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V5",
+      "record": "review-old",
+      "run": 1,
+      "p": [
+        0.79,
+        0.69,
+        0.88
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V5",
+      "record": "prediction",
+      "run": 1,
+      "p": [
+        0.7,
+        0.61,
+        0.79
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V5",
+      "record": "review-old",
+      "run": 2,
+      "p": [
+        0.76,
+        0.67,
+        0.87
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V5",
+      "record": "prediction",
+      "run": 2,
+      "p": [
+        0.74,
+        0.59,
+        0.8
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V6",
+      "record": "review-old",
+      "run": 1,
+      "p": [
+        0.81,
+        0.71,
+        0.84
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V6",
+      "record": "prediction",
+      "run": 2,
+      "p": [
+        0.91,
+        0.61,
+        0.85
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V6",
+      "record": "review-old",
+      "run": 2,
+      "p": [
+        0.82,
+        0.71,
+        0.88
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V5",
+      "record": "prediction",
+      "run": 3,
+      "p": [
+        0.71,
+        0.62,
+        0.8
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V6",
+      "record": "prediction",
+      "run": 3,
+      "p": [
+        0.9,
+        0.59,
+        0.85
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V5",
+      "record": "review-old",
+      "run": 3,
+      "p": [
+        0.78,
+        0.69,
+        0.88
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    },
+    {
+      "variant": "V6",
+      "record": "review-old",
+      "run": 3,
+      "p": [
+        0.79,
+        0.7,
+        0.83
+      ],
+      "pass": true,
+      "status": "measured",
+      "exit": 0
+    }
+  ],
+  "summary": [
+    {
+      "variant": "V0",
+      "record": "prediction",
+      "n": 2,
+      "mean": [
+        0.77,
+        0.835,
+        0.805
+      ],
+      "min": [
+        0.76,
+        0.82,
+        0.8
+      ],
+      "max": [
+        0.78,
+        0.85,
+        0.81
+      ],
+      "range": [
+        0.020000000000000018,
+        0.030000000000000027,
+        0.010000000000000009
+      ],
+      "source": "historical"
+    },
+    {
+      "variant": "V1",
+      "record": "prediction",
+      "n": 3,
+      "mean": [
+        0.6533333333333333,
+        0.6233333333333334,
+        0.8066666666666666
+      ],
+      "min": [
+        0.62,
+        0.61,
+        0.8
+      ],
+      "max": [
+        0.68,
+        0.63,
+        0.81
+      ],
+      "range": [
+        0.06000000000000005,
+        0.020000000000000018,
+        0.010000000000000009
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V2",
+      "record": "prediction",
+      "n": 3,
+      "mean": [
+        0.91,
+        0.57,
+        0.8933333333333334
+      ],
+      "min": [
+        0.91,
+        0.53,
+        0.89
+      ],
+      "max": [
+        0.91,
+        0.62,
+        0.9
+      ],
+      "range": [
+        0,
+        0.08999999999999997,
+        0.010000000000000009
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V1",
+      "record": "review-old",
+      "n": 3,
+      "mean": [
+        0.6866666666666666,
+        0.48333333333333334,
+        0.9266666666666667
+      ],
+      "min": [
+        0.68,
+        0.47,
+        0.92
+      ],
+      "max": [
+        0.69,
+        0.5,
+        0.94
+      ],
+      "range": [
+        0.009999999999999898,
+        0.030000000000000027,
+        0.019999999999999907
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V3",
+      "record": "prediction",
+      "n": 3,
+      "mean": [
+        0.6066666666666666,
+        0.3633333333333333,
+        0.8366666666666666
+      ],
+      "min": [
+        0.58,
+        0.34,
+        0.82
+      ],
+      "max": [
+        0.64,
+        0.39,
+        0.85
+      ],
+      "range": [
+        0.06000000000000005,
+        0.04999999999999999,
+        0.030000000000000027
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V4",
+      "record": "prediction",
+      "n": 3,
+      "mean": [
+        0.63,
+        0.6933333333333334,
+        0.8133333333333334
+      ],
+      "min": [
+        0.59,
+        0.66,
+        0.81
+      ],
+      "max": [
+        0.66,
+        0.73,
+        0.82
+      ],
+      "range": [
+        0.07000000000000006,
+        0.06999999999999995,
+        0.009999999999999898
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V2",
+      "record": "review-old",
+      "n": 3,
+      "mean": [
+        0.7566666666666667,
+        0.6066666666666666,
+        0.89
+      ],
+      "min": [
+        0.75,
+        0.59,
+        0.83
+      ],
+      "max": [
+        0.76,
+        0.62,
+        0.92
+      ],
+      "range": [
+        0.010000000000000009,
+        0.030000000000000027,
+        0.09000000000000008
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V4",
+      "record": "review-old",
+      "n": 3,
+      "mean": [
+        0.7799999999999999,
+        0.57,
+        0.9366666666666666
+      ],
+      "min": [
+        0.77,
+        0.53,
+        0.93
+      ],
+      "max": [
+        0.79,
+        0.61,
+        0.94
+      ],
+      "range": [
+        0.020000000000000018,
+        0.07999999999999996,
+        0.009999999999999898
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V6",
+      "record": "prediction",
+      "n": 3,
+      "mean": [
+        0.9066666666666667,
+        0.61,
+        0.8533333333333334
+      ],
+      "min": [
+        0.9,
+        0.59,
+        0.85
+      ],
+      "max": [
+        0.91,
+        0.63,
+        0.86
+      ],
+      "range": [
+        0.010000000000000009,
+        0.040000000000000036,
+        0.010000000000000009
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V5",
+      "record": "review-old",
+      "n": 3,
+      "mean": [
+        0.7766666666666667,
+        0.6833333333333332,
+        0.8766666666666666
+      ],
+      "min": [
+        0.76,
+        0.67,
+        0.87
+      ],
+      "max": [
+        0.79,
+        0.69,
+        0.88
+      ],
+      "range": [
+        0.030000000000000027,
+        0.019999999999999907,
+        0.010000000000000009
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V5",
+      "record": "prediction",
+      "n": 3,
+      "mean": [
+        0.7166666666666667,
+        0.6066666666666666,
+        0.7966666666666667
+      ],
+      "min": [
+        0.7,
+        0.59,
+        0.79
+      ],
+      "max": [
+        0.74,
+        0.62,
+        0.8
+      ],
+      "range": [
+        0.040000000000000036,
+        0.030000000000000027,
+        0.010000000000000009
+      ],
+      "source": "measured"
+    },
+    {
+      "variant": "V6",
+      "record": "review-old",
+      "n": 3,
+      "mean": [
+        0.8066666666666666,
+        0.7066666666666667,
+        0.85
+      ],
+      "min": [
+        0.79,
+        0.7,
+        0.83
+      ],
+      "max": [
+        0.82,
+        0.71,
+        0.88
+      ],
+      "range": [
+        0.029999999999999916,
+        0.010000000000000009,
+        0.050000000000000044
+      ],
+      "source": "measured"
+    }
+  ],
+  "comparisons": [
+    {
+      "variant": "V1",
+      "record": "prediction",
+      "p2_mean": 0.6233333333333334,
+      "p2_range": 0.020000000000000018,
+      "delta_from_V1": 0,
+      "max_within_range": 0.020000000000000018,
+      "absolute_delta_exceeds_ranges": false,
+      "closer_to_historical_V0": false
+    },
+    {
+      "variant": "V2",
+      "record": "prediction",
+      "p2_mean": 0.57,
+      "p2_range": 0.08999999999999997,
+      "delta_from_V1": -0.053333333333333455,
+      "max_within_range": 0.08999999999999997,
+      "absolute_delta_exceeds_ranges": false,
+      "closer_to_historical_V0": false
+    },
+    {
+      "variant": "V1",
+      "record": "review-old",
+      "p2_mean": 0.48333333333333334,
+      "p2_range": 0.030000000000000027,
+      "delta_from_V1": 0,
+      "max_within_range": 0.030000000000000027,
+      "absolute_delta_exceeds_ranges": false,
+      "closer_to_historical_V0": null
+    },
+    {
+      "variant": "V3",
+      "record": "prediction",
+      "p2_mean": 0.3633333333333333,
+      "p2_range": 0.04999999999999999,
+      "delta_from_V1": -0.2600000000000001,
+      "max_within_range": 0.04999999999999999,
+      "absolute_delta_exceeds_ranges": true,
+      "closer_to_historical_V0": false
+    },
+    {
+      "variant": "V4",
+      "record": "prediction",
+      "p2_mean": 0.6933333333333334,
+      "p2_range": 0.06999999999999995,
+      "delta_from_V1": 0.06999999999999995,
+      "max_within_range": 0.06999999999999995,
+      "absolute_delta_exceeds_ranges": false,
+      "closer_to_historical_V0": true
+    },
+    {
+      "variant": "V2",
+      "record": "review-old",
+      "p2_mean": 0.6066666666666666,
+      "p2_range": 0.030000000000000027,
+      "delta_from_V1": 0.12333333333333324,
+      "max_within_range": 0.030000000000000027,
+      "absolute_delta_exceeds_ranges": true,
+      "closer_to_historical_V0": null
+    },
+    {
+      "variant": "V4",
+      "record": "review-old",
+      "p2_mean": 0.57,
+      "p2_range": 0.07999999999999996,
+      "delta_from_V1": 0.08666666666666661,
+      "max_within_range": 0.07999999999999996,
+      "absolute_delta_exceeds_ranges": true,
+      "closer_to_historical_V0": null
+    }
+  ],
+  "request_diff": "- V0: state.record is the target JSON string; state.repository_evidence labels linked content with locator and status=linked repository record; state.hex_locators is present.\n- V1: state.files is an unlabelled-role array of path, sha256, size, content. Target and linked record have the same shape; content is JSON despite .toml paths.\n- V0 prefixes every question with Evaluate ONLY the supplied record and repository_evidence..., treats content as data, forbids external/session assumptions, and supplies explicit criteria.true/false strings.\n- V1 retains rubric question text and type=noul but omits that prefix and criteria.true/false. Both request model=jev-latest.\n- V2 changes record file contents to original TOML bytes (target and linked files); V3 removes only the linked file; V4 prefixes only the target-identification sentence to every question.\n- V5: V4 target sentence, exact V0 prefix, original question, はい: criteria.true, いいえ: criteria.false in five lines. V6: same questions, original TOML for all supplied records. Criteria/prefix are dx assembleRequest fixed strings, not rubric fields.",
+  "progress": {
+    "completed": 33,
+    "remaining": [],
+    "jev_calls": 33,
+    "five_minute_checkpoint": "not_due: all 21 calls finished before five minutes"
+  },
+  "protocol": {
+    "runs_per_cell": 3,
+    "planned_calls": 21,
+    "call_cap": 30,
+    "concurrency": 3,
+    "pass": "all three p >= 0.5 (dx REVIEW_PASS)",
+    "baseline": "historical 2 prediction runs; no review-old baseline",
+    "V2": "all supplied record files replaced with original TOML bytes; parsed key/value equality verified",
+    "threshold": "closer to historical V0 and absolute p2 mean change from V1 greater than max of the two within-cell p2 ranges; descriptive only, not a significance test",
+    "outcomes": {
+      "supported": "identify intervention as candidate explanation, qualify historical baseline confounds",
+      "refuted_or_unresolved": "report table and no single-factor attribution"
+    },
+    "total_calls_after_extension": 33,
+    "extension": {
+      "variants": [
+        "V5",
+        "V6"
+      ],
+      "calls": 12,
+      "review_old_wording": "prediction の V0 と問いの id は一致しないが、全問共通の汎用文を変更せず転用。問い本体は review-old の rubric のまま。",
+      "threshold": "V1/V4 との差を両セルの反復幅の最大と比較。V0 は歴史参照値で統計的有意差は主張しない。",
+      "confounds": "V5 は対象明示・前置き・true/false 文を合わせた介入。V6-V5 だけが記録符号化のみの介入。"
+    }
+  },
+  "evidence_disposition": "SCOPED: within-current-jex contrasts controlled; V0 historical and differs in state, instructions and criteria; no causal attribution to V0 difference alone",
+  "housekeeping": "No release or CHANGELOG change; one Jev invocation is one call; raw evidence in inputs.json, measurements.json, provenance.json",
+  "conclusion": [
+    "prediction の p2 は V5=0.607（幅0.030）、V6=0.610（幅0.040）で V0=0.835 に届かず、V1=0.623 からの差は各反復幅未満。V4=0.693 より下がった。",
+    "prediction の1・3問目は V0=0.770/0.805 に対し V5=0.717/0.797、V6=0.907/0.853。V5 は1問目が低下し、V6 は両方上昇して V0 から離れた。",
+    "review-old の p2 は V5=0.683（幅0.020）、V6=0.707（幅0.010）で V1=0.483 より幅を超えて改善。ただし review-old の V0 は無し。prediction の低下原因は未決着。"
+  ],
+  "p2_table": [
+    {
+      "variant": "V0",
+      "prediction": {
+        "p2": [
+          0.82,
+          0.85
+        ],
+        "mean": 0.835,
+        "min": 0.82,
+        "max": 0.85,
+        "range": 0.030000000000000027,
+        "n": 2
+      },
+      "review-old": null
+    },
+    {
+      "variant": "V1",
+      "prediction": {
+        "p2": [
+          0.61,
+          0.63,
+          0.63
+        ],
+        "mean": 0.6233333333333334,
+        "min": 0.61,
+        "max": 0.63,
+        "range": 0.020000000000000018,
+        "n": 3
+      },
+      "review-old": {
+        "p2": [
+          0.48,
+          0.47,
+          0.5
+        ],
+        "mean": 0.48333333333333334,
+        "min": 0.47,
+        "max": 0.5,
+        "range": 0.030000000000000027,
+        "n": 3
+      }
+    },
+    {
+      "variant": "V2",
+      "prediction": {
+        "p2": [
+          0.53,
+          0.56,
+          0.62
+        ],
+        "mean": 0.57,
+        "min": 0.53,
+        "max": 0.62,
+        "range": 0.08999999999999997,
+        "n": 3
+      },
+      "review-old": {
+        "p2": [
+          0.59,
+          0.61,
+          0.62
+        ],
+        "mean": 0.6066666666666666,
+        "min": 0.59,
+        "max": 0.62,
+        "range": 0.030000000000000027,
+        "n": 3
+      }
+    },
+    {
+      "variant": "V3",
+      "prediction": {
+        "p2": [
+          0.34,
+          0.36,
+          0.39
+        ],
+        "mean": 0.3633333333333333,
+        "min": 0.34,
+        "max": 0.39,
+        "range": 0.04999999999999999,
+        "n": 3
+      },
+      "review-old": null
+    },
+    {
+      "variant": "V4",
+      "prediction": {
+        "p2": [
+          0.73,
+          0.66,
+          0.69
+        ],
+        "mean": 0.6933333333333334,
+        "min": 0.66,
+        "max": 0.73,
+        "range": 0.06999999999999995,
+        "n": 3
+      },
+      "review-old": {
+        "p2": [
+          0.53,
+          0.61,
+          0.57
+        ],
+        "mean": 0.57,
+        "min": 0.53,
+        "max": 0.61,
+        "range": 0.07999999999999996,
+        "n": 3
+      }
+    },
+    {
+      "variant": "V5",
+      "prediction": {
+        "p2": [
+          0.61,
+          0.59,
+          0.62
+        ],
+        "mean": 0.6066666666666666,
+        "min": 0.59,
+        "max": 0.62,
+        "range": 0.030000000000000027,
+        "n": 3
+      },
+      "review-old": {
+        "p2": [
+          0.69,
+          0.67,
+          0.69
+        ],
+        "mean": 0.6833333333333332,
+        "min": 0.67,
+        "max": 0.69,
+        "range": 0.019999999999999907,
+        "n": 3
+      }
+    },
+    {
+      "variant": "V6",
+      "prediction": {
+        "p2": [
+          0.63,
+          0.61,
+          0.59
+        ],
+        "mean": 0.61,
+        "min": 0.59,
+        "max": 0.63,
+        "range": 0.040000000000000036,
+        "n": 3
+      },
+      "review-old": {
+        "p2": [
+          0.71,
+          0.71,
+          0.7
+        ],
+        "mean": 0.7066666666666667,
+        "min": 0.7,
+        "max": 0.71,
+        "range": 0.010000000000000009,
+        "n": 3
+      }
+    }
+  ],
+  "limitations": [
+    "V0 prediction は過去の 2 回のみ。3 回の今回実測ではない。2 回目は coordinator の提示値で、元の要求は未取得。",
+    "review-old の V0 は、指定された baseline 文書に無し。",
+    "V0 保存文書は dx 0.1.3 と記載。coordinator が V0 参照値として指定した値をそのまま使用。",
+    "V0 と V1 は state の形だけでなく、各問いの注意書きと criteria.true/false も異なる。今回の V4 は対象明示の効果だけを測り、この差全体を再現しない。",
+    "3 回の範囲による記述的比較。統計的有意差の検定はしていない。",
+    "V2 は対象および link 先の全記録を TOML 原文に置換。同じ key/value であることを検査したが、どちらの記録の符号化が寄与したかは分離していない。",
+    "V5/V6 は前置きと true/false 文を一緒に追加しており、それぞれの単独効果は未分離。review-old は prediction 保存要求の汎用文を変更せず転用。",
+    "V5/V6 と V1〜V4 は別の実測バッチ。表示されたモデル名は共通だが、サーバー内部の状態一致は保証できない。"
+  ],
+  "additional_experiment": {
+    "status": "completed",
+    "requested_variants": [
+      "V5",
+      "V6"
+    ],
+    "additional_calls": 12,
+    "remaining": [],
+    "evidence": [
+      {
+        "path": "/home/fuyu/Workspace/research-record-v2/.dx/rubrics/prediction-v1.toml",
+        "sha256": "428ea8ea742eda6aaa1deb611f52ec01f12b3644457d8d46783efaec47ab3a7d",
+        "text": "rubric = \"research-prediction/v1\"\n\n[[criteria]]\nbit = 0\nid = \"exclusive-outcomes\"\nquestion = \"Are pass_if and fail_if disjoint sets of observable results? This criterion is false if even one result satisfies both conditions. Read numerical comparisons literally: a result equal to a threshold satisfies both an equality success rule and a failure rule that includes that threshold. Check overlap independently of whether the prediction follows from its hypothesis.\"\n\n[[criteria]]\nbit = 1\nid = \"derived-prediction\"\nquestion = \"Does the prediction follow from the linked about hypothesis under the stated test conditions, with the same quantities and scope, rather than testing an unrelated claim?\"\n\n[[criteria]]\nbit = 2\nid = \"observable-conditions\"\nquestion = \"Do pass_if and fail_if each specify the measured quantity, test conditions and thresholds needed to decide that condition from observations? An explicitly inconclusive region is allowed.\"\n",
+        "criteria_fields": [
+          {
+            "id": "exclusive-outcomes",
+            "fields": [
+              "bit",
+              "id",
+              "question"
+            ]
+          },
+          {
+            "id": "derived-prediction",
+            "fields": [
+              "bit",
+              "id",
+              "question"
+            ]
+          },
+          {
+            "id": "observable-conditions",
+            "fields": [
+              "bit",
+              "id",
+              "question"
+            ]
+          }
+        ],
+        "has_criterion_true_or_false": false
+      },
+      {
+        "path": "/home/fuyu/Workspace/research-record-v2/.dx/rubrics/statement-v1.toml",
+        "sha256": "106427c27858c54d9ff95debb24804474a1bb0b2d1c70fff68ac419622f33314",
+        "text": "rubric = \"research-statement/v1\"\n\n[[criteria]]\nbit = 0\nid = \"warranted-claim\"\nquestion = \"For an observation, do the numbers and factual claims in text agree with the values explicitly reported in its linked evidence, with no stronger claim than those values support? Any contradiction of an explicit measured value fails this criterion even when run and scope match. If judging a prediction, does the outcome follow its frozen pass_if and fail_if? For a deduction, do the explicit premises support the conclusion without an unstated essential premise? For a definition or hypothesis, answer yes to this question.\"\n\n[[criteria]]\nbit = 1\nid = \"explicit-content\"\nquestion = \"Does the text state a definite claim or definition with an identifiable scope? For a definition, does the text agree with its structured definition payload? For a hypothesis revision, is the change from the linked previous hypothesis explicit and accurately described?\"\n\n[[criteria]]\nbit = 2\nid = \"falsifiable-hypothesis\"\nquestion = \"If mode is hypothesis, does the record specify an observable or mathematical counterexample that would refute its scoped claim, rather than protecting it from every possible outcome? For other modes, answer yes.\"\n",
+        "criteria_fields": [
+          {
+            "id": "warranted-claim",
+            "fields": [
+              "bit",
+              "id",
+              "question"
+            ]
+          },
+          {
+            "id": "explicit-content",
+            "fields": [
+              "bit",
+              "id",
+              "question"
+            ]
+          },
+          {
+            "id": "falsifiable-hypothesis",
+            "fields": [
+              "bit",
+              "id",
+              "question"
+            ]
+          }
+        ],
+        "has_criterion_true_or_false": false
+      }
+    ],
+    "historical_criteria_available": {
+      "exclusive-outcomes": {
+        "true": "This criterion alone is satisfied by the supplied record and linked evidence.",
+        "false": "This criterion alone is not satisfied by the supplied record and linked evidence."
+      },
+      "derived-prediction": {
+        "true": "This criterion alone is satisfied by the supplied record and linked evidence.",
+        "false": "This criterion alone is not satisfied by the supplied record and linked evidence."
+      },
+      "observable-conditions": {
+        "true": "This criterion alone is satisfied by the supplied record and linked evidence.",
+        "false": "This criterion alone is not satisfied by the supplied record and linked evidence."
+      }
+    },
+    "proposed_next": "V0 の保存要求にある criteria.true/false を両記録に使うことを許可した上で、12回を実行する。",
+    "observed_jex_version": "0.2.4",
+    "checked_at": "2026-10-19T11:13:24.762Z",
+    "previous_blocker_resolved": "coordinator authorizes saved V0 wording",
+    "criteria_origin": "88b0dfc2:src/review-request.ts assembleRequest fixed strings",
+    "review_old_fallback": "prediction generic prefix/true/false borrowed unchanged; IDs do not match",
+    "started_at": "2026-10-19T11:15:29.724Z",
+    "previous_blocker": "指定 rubric に true/false の文が無い。V0 保存要求にはあるが、そこから代用するには指定された方法の変更が必要。",
+    "five_minute_checkpoint": "not_due: completed before five minutes",
+    "call_cap": 12
+  },
+  "extension_comparisons": [
+    {
+      "variant": "V6",
+      "record": "prediction",
+      "mean": [
+        0.9066666666666667,
+        0.61,
+        0.8533333333333334
+      ],
+      "range": [
+        0.010000000000000009,
+        0.040000000000000036,
+        0.010000000000000009
+      ],
+      "p2_delta_from_V1": -0.01333333333333342,
+      "p2_delta_from_V4": -0.08333333333333337,
+      "p2_delta_exceeds_V1_and_self_ranges": false,
+      "p2_delta_exceeds_V4_and_self_ranges": true,
+      "delta_from_V0": [
+        0.13666666666666671,
+        -0.22499999999999998,
+        0.04833333333333334
+      ]
+    },
+    {
+      "variant": "V5",
+      "record": "review-old",
+      "mean": [
+        0.7766666666666667,
+        0.6833333333333332,
+        0.8766666666666666
+      ],
+      "range": [
+        0.030000000000000027,
+        0.019999999999999907,
+        0.010000000000000009
+      ],
+      "p2_delta_from_V1": 0.1999999999999999,
+      "p2_delta_from_V4": 0.11333333333333329,
+      "p2_delta_exceeds_V1_and_self_ranges": true,
+      "p2_delta_exceeds_V4_and_self_ranges": true,
+      "delta_from_V0": null
+    },
+    {
+      "variant": "V5",
+      "record": "prediction",
+      "mean": [
+        0.7166666666666667,
+        0.6066666666666666,
+        0.7966666666666667
+      ],
+      "range": [
+        0.040000000000000036,
+        0.030000000000000027,
+        0.010000000000000009
+      ],
+      "p2_delta_from_V1": -0.01666666666666683,
+      "p2_delta_from_V4": -0.08666666666666678,
+      "p2_delta_exceeds_V1_and_self_ranges": false,
+      "p2_delta_exceeds_V4_and_self_ranges": true,
+      "delta_from_V0": [
+        -0.053333333333333344,
+        -0.2283333333333334,
+        -0.008333333333333304
+      ]
+    },
+    {
+      "variant": "V6",
+      "record": "review-old",
+      "mean": [
+        0.8066666666666666,
+        0.7066666666666667,
+        0.85
+      ],
+      "range": [
+        0.029999999999999916,
+        0.010000000000000009,
+        0.050000000000000044
+      ],
+      "p2_delta_from_V1": 0.22333333333333333,
+      "p2_delta_from_V4": 0.13666666666666671,
+      "p2_delta_exceeds_V1_and_self_ranges": true,
+      "p2_delta_exceeds_V4_and_self_ranges": true,
+      "delta_from_V0": null
+    }
+  ],
+  "criteria_origin": "true/false と前置きは dx 0.1.4 の 88b0dfc2:src/review-request.ts assembleRequest 内の固定文。research-record-v2 review-format.ts は link 先の evidence を構成するだけ。",
+  "extension_pairwise": [
+    {
+      "record": "prediction",
+      "contrast": "V6-V5",
+      "mean_delta": [
+        0.19000000000000006,
+        0.0033333333333334103,
+        0.05666666666666664
+      ],
+      "max_within_ranges": [
+        0.040000000000000036,
+        0.040000000000000036,
+        0.010000000000000009
+      ],
+      "p2_delta_exceeds_ranges": false
+    },
+    {
+      "record": "review-old",
+      "contrast": "V6-V5",
+      "mean_delta": [
+        0.029999999999999916,
+        0.023333333333333428,
+        -0.026666666666666616
+      ],
+      "max_within_ranges": [
+        0.030000000000000027,
+        0.019999999999999907,
+        0.050000000000000044
+      ],
+      "p2_delta_exceeds_ranges": true
+    }
+  ]
+}

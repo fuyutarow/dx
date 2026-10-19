@@ -1,0 +1,479 @@
+[
+  {
+    "variant": "V1",
+    "record": "prediction",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V1/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.66,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.66}\"}},{\"id\":\"derived-prediction\",\"p\":0.61,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.61}\"}},{\"id\":\"observable-conditions\",\"p\":0.81,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.81}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:28.131Z"
+  },
+  {
+    "variant": "V2",
+    "record": "prediction",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V2/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.91,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.91}\"}},{\"id\":\"derived-prediction\",\"p\":0.53,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.53}\"}},{\"id\":\"observable-conditions\",\"p\":0.89,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.89}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:28.141Z"
+  },
+  {
+    "variant": "V1",
+    "record": "review-old",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V1/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.68,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.68}\"}},{\"id\":\"explicit-content\",\"p\":0.48,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.48}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.92,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.92}\"}}]}\n",
+    "stderr": "",
+    "exit": 1,
+    "finished_at": "2026-10-19T11:10:28.154Z"
+  },
+  {
+    "variant": "V3",
+    "record": "prediction",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V3/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.58,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.58}\"}},{\"id\":\"derived-prediction\",\"p\":0.34,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.34}\"}},{\"id\":\"observable-conditions\",\"p\":0.84,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.84}\"}}]}\n",
+    "stderr": "",
+    "exit": 1,
+    "finished_at": "2026-10-19T11:10:28.430Z"
+  },
+  {
+    "variant": "V4",
+    "record": "prediction",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V4/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.66,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.66}\"}},{\"id\":\"derived-prediction\",\"p\":0.73,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.73}\"}},{\"id\":\"observable-conditions\",\"p\":0.81,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.81}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:28.468Z"
+  },
+  {
+    "variant": "V2",
+    "record": "review-old",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V2/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.76,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.76}\"}},{\"id\":\"explicit-content\",\"p\":0.59,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.59}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.92,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.92}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:28.504Z"
+  },
+  {
+    "variant": "V4",
+    "record": "review-old",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V4/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.78,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.78}\"}},{\"id\":\"explicit-content\",\"p\":0.53,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.53}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.93,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.93}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:28.775Z"
+  },
+  {
+    "variant": "V1",
+    "record": "prediction",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V1/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.62,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.62}\"}},{\"id\":\"derived-prediction\",\"p\":0.63,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.63}\"}},{\"id\":\"observable-conditions\",\"p\":0.8,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.8}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:28.816Z"
+  },
+  {
+    "variant": "V1",
+    "record": "review-old",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V1/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.69,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.69}\"}},{\"id\":\"explicit-content\",\"p\":0.47,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.47}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.92,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.92}\"}}]}\n",
+    "stderr": "",
+    "exit": 1,
+    "finished_at": "2026-10-19T11:10:28.957Z"
+  },
+  {
+    "variant": "V2",
+    "record": "prediction",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V2/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.91,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.91}\"}},{\"id\":\"derived-prediction\",\"p\":0.56,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.56}\"}},{\"id\":\"observable-conditions\",\"p\":0.9,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.9}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:29.078Z"
+  },
+  {
+    "variant": "V2",
+    "record": "review-old",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V2/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.76,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.76}\"}},{\"id\":\"explicit-content\",\"p\":0.61,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.61}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.92,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.92}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:29.180Z"
+  },
+  {
+    "variant": "V3",
+    "record": "prediction",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V3/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.64,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.64}\"}},{\"id\":\"derived-prediction\",\"p\":0.36,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.36}\"}},{\"id\":\"observable-conditions\",\"p\":0.85,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.85}\"}}]}\n",
+    "stderr": "",
+    "exit": 1,
+    "finished_at": "2026-10-19T11:10:29.290Z"
+  },
+  {
+    "variant": "V4",
+    "record": "prediction",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V4/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.64,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.64}\"}},{\"id\":\"derived-prediction\",\"p\":0.66,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.66}\"}},{\"id\":\"observable-conditions\",\"p\":0.82,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.82}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:29.381Z"
+  },
+  {
+    "variant": "V4",
+    "record": "review-old",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V4/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.77,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.77}\"}},{\"id\":\"explicit-content\",\"p\":0.61,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.61}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.94,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.94}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:29.525Z"
+  },
+  {
+    "variant": "V1",
+    "record": "prediction",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V1/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.68,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.68}\"}},{\"id\":\"derived-prediction\",\"p\":0.63,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.63}\"}},{\"id\":\"observable-conditions\",\"p\":0.81,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.81}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:29.612Z"
+  },
+  {
+    "variant": "V1",
+    "record": "review-old",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V1/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.69,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.69}\"}},{\"id\":\"explicit-content\",\"p\":0.5,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.5}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.94,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.94}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:29.718Z"
+  },
+  {
+    "variant": "V2",
+    "record": "prediction",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V2/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.91,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.91}\"}},{\"id\":\"derived-prediction\",\"p\":0.62,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.62}\"}},{\"id\":\"observable-conditions\",\"p\":0.89,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.89}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:29.826Z"
+  },
+  {
+    "variant": "V2",
+    "record": "review-old",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V2/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.75,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.75}\"}},{\"id\":\"explicit-content\",\"p\":0.62,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.62}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.83,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.83}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:29.984Z"
+  },
+  {
+    "variant": "V3",
+    "record": "prediction",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V3/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.6,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.6}\"}},{\"id\":\"derived-prediction\",\"p\":0.39,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.39}\"}},{\"id\":\"observable-conditions\",\"p\":0.82,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.82}\"}}]}\n",
+    "stderr": "",
+    "exit": 1,
+    "finished_at": "2026-10-19T11:10:30.097Z"
+  },
+  {
+    "variant": "V4",
+    "record": "prediction",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V4/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.59,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.59}\"}},{\"id\":\"derived-prediction\",\"p\":0.69,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.69}\"}},{\"id\":\"observable-conditions\",\"p\":0.81,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.81}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:30.144Z"
+  },
+  {
+    "variant": "V4",
+    "record": "review-old",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-presentation-gyPCD9/V4/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.79,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.79}\"}},{\"id\":\"explicit-content\",\"p\":0.57,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.57}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.94,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.94}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:10:30.282Z"
+  },
+  {
+    "variant": "V6",
+    "record": "prediction",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V6/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.91,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.91}\"}},{\"id\":\"derived-prediction\",\"p\":0.63,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.63}\"}},{\"id\":\"observable-conditions\",\"p\":0.86,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.86}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:30.288Z"
+  },
+  {
+    "variant": "V5",
+    "record": "review-old",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V5/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.79,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.79}\"}},{\"id\":\"explicit-content\",\"p\":0.69,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.69}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.88,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.88}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:30.300Z"
+  },
+  {
+    "variant": "V5",
+    "record": "prediction",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V5/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.7,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.7}\"}},{\"id\":\"derived-prediction\",\"p\":0.61,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.61}\"}},{\"id\":\"observable-conditions\",\"p\":0.79,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.79}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:30.314Z"
+  },
+  {
+    "variant": "V5",
+    "record": "review-old",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V5/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.76,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.76}\"}},{\"id\":\"explicit-content\",\"p\":0.67,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.67}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.87,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.87}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:30.613Z"
+  },
+  {
+    "variant": "V5",
+    "record": "prediction",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V5/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.74,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.74}\"}},{\"id\":\"derived-prediction\",\"p\":0.59,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.59}\"}},{\"id\":\"observable-conditions\",\"p\":0.8,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.8}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:30.630Z"
+  },
+  {
+    "variant": "V6",
+    "record": "review-old",
+    "run": 1,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V6/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.81,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.81}\"}},{\"id\":\"explicit-content\",\"p\":0.71,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.71}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.84,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.84}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:30.635Z"
+  },
+  {
+    "variant": "V6",
+    "record": "prediction",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V6/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.91,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.91}\"}},{\"id\":\"derived-prediction\",\"p\":0.61,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.61}\"}},{\"id\":\"observable-conditions\",\"p\":0.85,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.85}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:30.949Z"
+  },
+  {
+    "variant": "V6",
+    "record": "review-old",
+    "run": 2,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V6/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.82,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.82}\"}},{\"id\":\"explicit-content\",\"p\":0.71,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.71}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.88,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.88}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:30.960Z"
+  },
+  {
+    "variant": "V5",
+    "record": "prediction",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V5/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.71,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.71}\"}},{\"id\":\"derived-prediction\",\"p\":0.62,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.62}\"}},{\"id\":\"observable-conditions\",\"p\":0.8,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.8}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:31.038Z"
+  },
+  {
+    "variant": "V6",
+    "record": "prediction",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V6/prediction",
+    "args": [
+      "questions.toml",
+      "records/predictions/review-prediction.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"exclusive-outcomes\",\"p\":0.9,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.9}\"}},{\"id\":\"derived-prediction\",\"p\":0.59,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.59}\"}},{\"id\":\"observable-conditions\",\"p\":0.85,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.85}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:31.380Z"
+  },
+  {
+    "variant": "V5",
+    "record": "review-old",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V5/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.78,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.78}\"}},{\"id\":\"explicit-content\",\"p\":0.69,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.69}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.88,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.88}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:31.394Z"
+  },
+  {
+    "variant": "V6",
+    "record": "review-old",
+    "run": 3,
+    "cwd": "/tmp/dx-jex-extension-9JVlln/V6/review-old",
+    "args": [
+      "questions.toml",
+      "records/statements/review-old.toml"
+    ],
+    "stdout": "{\"model\":\"jev-1.13.0\",\"bits\":[{\"id\":\"warranted-claim\",\"p\":0.79,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.79}\"}},{\"id\":\"explicit-content\",\"p\":0.7,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.7}\"}},{\"id\":\"falsifiable-hypothesis\",\"p\":0.83,\"reason\":{\"na\":true,\"why\":\"{\\\"type\\\":\\\"noul\\\",\\\"noul\\\":0.83}\"}}]}\n",
+    "stderr": "",
+    "exit": 0,
+    "finished_at": "2026-10-19T11:15:31.521Z"
+  }
+]
