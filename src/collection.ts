@@ -5,7 +5,7 @@ import { z } from "zod";
 import { inputPatternsSchema, type Config } from "./config.ts";
 
 import { parseRecords, formatAdapter } from "./formats.ts";
-import { loadTypes, matches } from "./policy.ts";
+import { isPolicyPath, loadTypes, matches } from "./policy.ts";
 import { jj, RevisionReader } from "./repository.ts";
 import {
   type FindingInput,
@@ -80,11 +80,7 @@ export async function readSnapshot(
     const tree = yield* await cache.reader.tree(rev);
     const fileIds = new Map(tree.map(({ path, id }) => [path, id]));
     const entries = tree.filter(({ path }) => {
-      if (
-        policyFiles !== undefined &&
-        (matches(config.files.inputs, path) || path === "dx.toml" || path.startsWith(".dx/"))
-      )
-        return false;
+      if (policyFiles !== undefined && isPolicyPath(path, config.files.inputs)) return false;
       const verdictPath = types.some(
         (t) =>
           t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
@@ -257,7 +253,7 @@ export async function isolationFindings(
         declarationChanged ||= JSON.stringify(beforeInputs) !== JSON.stringify(afterInputs);
         localInputs.push(...beforeInputs);
       }
-      const policyPath = (path: string) => path.startsWith(".dx/") || matches(localInputs, path);
+      const policyPath = (path: string) => isPolicyPath(path, localInputs);
       if (!declarationChanged && ![...change.paths].some((path) => policyPath(path))) continue;
       const candidates = [...change.paths].filter(
         (path) => !policyPath(path) && !ignored(config, path),

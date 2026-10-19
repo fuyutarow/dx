@@ -25,6 +25,10 @@ export function matches(patterns: string | readonly string[], path: string): boo
   const values = typeof patterns === "string" ? [patterns] : patterns;
   return values.some((pattern) => new Bun.Glob(pattern).match(path));
 }
+/** Rule files: dx.toml, everything under .dx/, and [files] inputs. The one home for "what is policy". */
+export function isPolicyPath(path: string, inputs: readonly string[]): boolean {
+  return path === "dx.toml" || path.startsWith(".dx/") || matches(inputs, path);
+}
 export async function loadTypes(files: Readonly<Record<string, string>>) {
   return safeTry(async function* () {
     const entries = Object.keys(files)
