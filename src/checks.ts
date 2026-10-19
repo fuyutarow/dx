@@ -19,13 +19,14 @@ import { sha256, stableJson } from "./formats.ts";
 import { inputPatternsSchema } from "./config.ts";
 
 function policyInputs(files: Readonly<Record<string, string>>): readonly string[] {
-  try {
-    const config = Bun.TOML.parse(files["dx.toml"] ?? "") as { files?: { inputs?: unknown } };
-    const parsed = inputPatternsSchema.safeParse(config.files?.inputs ?? []);
-    return parsed.success ? parsed.data : [];
-  } catch {
-    return [];
-  }
+  const config = attempt((): unknown => Bun.TOML.parse(files["dx.toml"] ?? ""));
+  if (config.isErr()) return [];
+  const parsedConfig = z
+    .object({ files: z.object({ inputs: z.unknown().optional() }).optional() })
+    .safeParse(config.value);
+  if (!parsedConfig.success) return [];
+  const parsed = inputPatternsSchema.safeParse(parsedConfig.data.files?.inputs ?? []);
+  return parsed.success ? parsed.data : [];
 }
 
 export function reviewPlacePolicy(
