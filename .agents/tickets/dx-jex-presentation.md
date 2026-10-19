@@ -2,8 +2,8 @@
 schema = 2
 name = "dx-jex-presentation"
 outcome = "同じ記録と同じ問いで、渡し方を変えた 5 通りの p を測り、jex の経路で 2 問目の p が下がる原因を、審査対象の指定・記録の見せ方・link 先の有無のどれかに切り分けた表を返す"
-writes = ["/tmp/claude-1000/-home-fuyu-Workspace-dx/839d6f3e-4be1-4ef7-be78-1f69f738c3c5/scratchpad/dx-jex-presentation/**"]
-verify = ["bun -e \"const t=await Bun.file('/tmp/claude-1000/-home-fuyu-Workspace-dx/839d6f3e-4be1-4ef7-be78-1f69f738c3c5/scratchpad/dx-jex-presentation/results.json').json(); if (!Array.isArray(t.rows) || t.rows.length < 5) process.exit(1)\""]
+writes = ["notes/jex-presentation/**"]
+verify = ["bun -e \"const t=await Bun.file('notes/jex-presentation/results.json').json(); if (!Array.isArray(t.rows) || t.rows.length < 5) process.exit(1)\""]
 timeout_s = 600
 premises = []
 
@@ -23,11 +23,11 @@ refuted_by = "5 通りのどれでも p が jev の経路に近づかない、�
   - 0.1.5 の経路（jex に `questions.toml records/predictions/review-prediction.toml records/statements/review-old.toml` を渡す）: [0.66, 0.49, 0.78] と [0.67, 0.59, 0.82]。2 問目（derived-prediction）が大きく下がる。
   - link 先を持たない仮説の記録（review-old）も、0.1.5 の経路で 2 問目（explicit-content）が 0.47〜0.48 になる。
 - jex の `--request` は、送らずに要求を出す。agx worker jev は、stdin の要求の JSON をそのまま Jev に送る。どちらも、このマシンで動く（本物の Jev に届く）。
-- dx 0.1.4 のバイナリ: /tmp/claude-1000/-home-fuyu-Workspace-dx/839d6f3e-4be1-4ef7-be78-1f69f738c3c5/scratchpad/rel14/bin/dx 。dx 0.1.5 の候補: 同じ場所の rel15/bin/dx 。
+- dx 0.1.4 のバイナリ: /tmp/claude-1000/-home-fuyu-Workspace-dx/839d6f3e-4be1-4ef7-be78-1f69f738c3c5/scratchpad/rel14/bin/dx 。dx 0.1.5（公開版、bin/dx の sha256 は 215d3d54…）: 同じ場所の rel15b/bin/dx 。
 
 ## やること
 
-結果は、すべて /tmp/claude-1000/-home-fuyu-Workspace-dx/839d6f3e-4be1-4ef7-be78-1f69f738c3c5/scratchpad/dx-jex-presentation/ に書く。どの repo にも書かない。
+結果は、すべて notes/jex-presentation/ に書く。dx の作業コピーの notes/jex-presentation/ だけに書く（作業用の写しや wrapper は、/tmp の自分のディレクトリに置いてよい）。ほかの repo には書かない。
 
 1. 次の 5 通りで、prediction と review-old の 2 件を、それぞれ 3 回ずつ review する（Jev の呼び出しは合わせて 30 回ほど）。
    - V0: 0.1.4 の経路。採った記録の repo/ を、scratch の写しの上で dx 0.1.4 に `[review] command = ["agx","worker","jev"]` で review させる。要求の JSON も保存する（stdin を写して agx worker jev に渡す小さな wrapper を、scratch に置いてよい）。
@@ -41,6 +41,6 @@ refuted_by = "5 通りのどれでも p が jev の経路に近づかない、�
 
 ## 共通の決まり
 
-- 上限は 10 分。書いてよいのは上の scratch のディレクトリだけ。どの repo にも、bookmark にも、push にも触らない。
+- 上限は 10 分。書いてよいのは notes/jex-presentation/ と、/tmp の自分の作業ディレクトリだけ。ほかの repo、bookmark、push には触らない。commit しない。
 - Jev を呼ぶので、ネットワークが要る。呼び出しの数は 40 回を超えない。
 - 返却: 結論、results.json の path、未検証。
