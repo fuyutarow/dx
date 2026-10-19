@@ -30,10 +30,8 @@ test("I-06 author policy accepts machines for unknown authors and still rejects 
     ["author", "human:reviewer", 0],
     ["process:jev/fake", "process:jev/fake", 1],
   ] satisfies readonly (readonly [string | undefined, string, 0 | 1])[];
-  for (const [place, [author, reviewer, expected]] of [
-    "frontmatter",
-    "file:verdicts/*.json",
-  ].flatMap((storage) => cases.map((row) => [storage, row] as const))) {
+  for (const [author, reviewer, expected] of cases) {
+    const place = "file:verdicts/*.json";
     const { cwd, base } = await repo({ review: place });
     const withoutAuthor = markdown("one").replace("by: author\n", "");
     const text =
@@ -58,12 +56,8 @@ test("I-06 author policy accepts machines for unknown authors and still rejects 
       p: [0.9],
       pass: true,
     };
-    const record =
-      place === "frontmatter"
-        ? text.replace("---\n", `---\nreview: ${JSON.stringify(verdict)}\n`)
-        : text;
-    await write(cwd, "records/one.md", record);
-    if (place !== "frontmatter") await write(cwd, "verdicts/one.json", JSON.stringify(verdict));
+    await write(cwd, "records/one.md", text);
+    await write(cwd, "verdicts/one.json", JSON.stringify(verdict));
     const result = await checked(cwd, base, expected);
     expect(result.findings.filter((f) => f.check === "I-06.verdict")).toHaveLength(expected);
   }

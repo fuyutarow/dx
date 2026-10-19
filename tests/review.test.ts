@@ -15,7 +15,6 @@ import { z } from "zod";
 
 import { expect, test } from "bun:test";
 
-import { parseRecords, recordSha256 } from "../src/formats.ts";
 import { assembleRequest, capEvidence, parseRubric } from "../src/review-request.ts";
 
 const rubric =
@@ -30,7 +29,7 @@ async function fixture(
   } = {},
 ) {
   const { cwd } = await repo({
-    review: options.place ?? "frontmatter",
+    review: options.place ?? "file:verdicts/*.json",
     ...(options.format === undefined ? {} : { format: options.format }),
   });
   const command = options.command ?? [process.execPath, "fake.ts"];
@@ -70,20 +69,17 @@ async function review(cwd: string, rev?: string) {
   await snapshot(cwd);
   return dx(cwd, "review", ...(rev === undefined ? [] : [rev]));
 }
-test("passing frontmatter verdict preserves hash, satisfies I-06 and is skipped on retry", async () => {
+test("passing sidecar verdict satisfies I-06 and is skipped on retry", async () => {
   const { cwd } = await fixture();
   const text = markdown("one");
   await write(cwd, "records/one.md", text);
-  const before = rows((await dx(cwd, "ls", await snapshot(cwd))).stdout)[0]?.sha256;
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(0);
   const verdict = rows(result.stdout)[0];
   expect(verdict?.pass).toBe(true);
   expect(verdict?.by).toBe("process:jev/fake");
-  const output = await Bun.file(`${cwd}/records/one.md`).text();
-  const parsed = value(parseRecords("records/one.md", output, "markdown-frontmatter"))[0];
-  expect(parsed).toBeDefined();
-  if (parsed !== undefined) expect(recordSha256(parsed)).toBe(String(before));
+  expect(await Bun.file(`${cwd}/records/one.md`).text()).toBe(text);
+  expect(await Bun.file(`${cwd}/verdicts/one.json`).exists()).toBe(true);
   await snapshot(cwd);
   expect((await dx(cwd, "check")).exit).toBe(0);
   expect((await review(cwd)).stdout).toBe("");
@@ -295,8 +291,8 @@ test("partial verdicts survive a later unavailable response and retry skips them
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(3);
   expect(rows(result.stdout).map((r) => r.id)).toEqual(["a"]);
-  expect(await Bun.file(`${cwd}/records/a.md`).text()).toContain("review:");
-  expect(await Bun.file(`${cwd}/records/b.md`).text()).not.toContain("review:");
+  expect(await Bun.file(`${cwd}/verdicts/a.json`).exists()).toBe(true);
+  expect(await Bun.file(`${cwd}/verdicts/b.json`).exists()).toBe(false);
   const retry = await review(cwd);
   expect(retry.exit, retry.stderr).toBe(0);
   expect(rows(retry.stdout).map((r) => r.id)).toEqual(["b"]);
@@ -332,22 +328,6 @@ test("new malformed review records block I-10; unchanged malformed records are o
   const unchanged = await review(cwd);
   expect(unchanged.exit, unchanged.stderr).toBe(0);
   expect(unchanged.stdout).toBe("");
-}, 60000);
-test("frontmatter verdict edits use the same target selection as I-06", async () => {
-  const { cwd } = await fixture();
-  await write(cwd, "records/one.md", markdown("one"));
-  expect((await review(cwd)).exit).toBe(0);
-  const base = await advance(cwd);
-  await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
-  await jj(cwd, "git", "import");
-  const text = await Bun.file(`${cwd}/records/one.md`).text();
-  await write(cwd, "records/one.md", text.replace('"pass":true', '"pass":false'));
-  const result = await review(cwd);
-  expect(result.exit, result.stderr).toBe(0);
-  expect(rows(result.stdout)).toHaveLength(1);
-  expect(await Bun.file(`${cwd}/calls`).text()).toBe("2");
-  await snapshot(cwd);
-  expect((await dx(cwd, "check")).exit).toBe(0);
 }, 60000);
 test("offline Jev fixture accepts the successful receipt and rejects its missing-model variant", async () => {
   const { runReviewCommand } = await import("../src/commands/review.ts");

@@ -187,7 +187,7 @@ export function reviews(base: Snapshot, head: Snapshot, types: readonly LoadedTy
       for (const record of head.records.filter(
         (r) =>
           r.type === type.name &&
-          reviewChanged(previous.get(r.id)?.[0], r, type) &&
+          reviewChanged(previous.get(r.id)?.[0], r) &&
           !hasPassingVerdict(r),
       )) {
         findings.push({
@@ -209,14 +209,11 @@ export function verdictChecker(head: Snapshot, type: LoadedType, rubricHash?: st
     const path = yield* rubricPath(type);
     const hash = rubricHash ?? sha256(yield* requireValue(head.files[path], "missing rubric"));
     const review = yield* requireValue(type.review, "missing review definition");
-    const raw =
-      review.place === "frontmatter"
-        ? undefined
-        : Object.entries(head.files)
-            .filter(([filePath]) => matches(review.place.slice(5), filePath))
-            .flatMap(([filePath, text]) => sidecarVerdicts(text, filePath));
+    const raw = Object.entries(head.files)
+      .filter(([filePath]) => matches(review.place.slice(5), filePath))
+      .flatMap(([filePath, text]) => sidecarVerdicts(text, filePath));
     return ok((record: RecordModel) =>
-      (raw ?? [record.fields.review]).some((value) => {
+      raw.some((value) => {
         const result = verdictSchema.safeParse(value);
         if (!result.success) return false;
         const v = result.data;
@@ -234,18 +231,9 @@ export function verdictChecker(head: Snapshot, type: LoadedType, rubricHash?: st
   });
 }
 
-/** Match the I-06 target set, including edits to frontmatter verdict metadata. */
-export function reviewChanged(
-  old: RecordModel | undefined,
-  record: RecordModel,
-  type: LoadedType,
-): boolean {
-  return (
-    old === undefined ||
-    old.sha256 !== record.sha256 ||
-    (type.review?.place === "frontmatter" &&
-      stableJson(old.fields.review) !== stableJson(record.fields.review))
-  );
+/** Match the I-06 target set when record content changes. */
+export function reviewChanged(old: RecordModel | undefined, record: RecordModel): boolean {
+  return old === undefined || old.sha256 !== record.sha256;
 }
 
 /** I-06: unknown record authors require a machine reviewer; known authors must differ. */

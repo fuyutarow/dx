@@ -98,7 +98,7 @@
 - **規則を緩める change と、その緩みを使った記録を同時に入れる。** → I-09 で拒否する。
 - **verdict を取った後に本文を直す。** → sha256 が変わるので I-06 で拒否する。I-10 によって構造は先に通っているので、review を取り直すのは意味の変更のときに限られる。
 - **Jev が止まっている。** → rubric を持つ type の記録は入れられない（fail-closed）。review は終了コード 3 を返す。review なしで入れる抜け道は作らない。
-- **immutable な記録の frontmatter に verdict を書く。** → I-03 に反する。そのような type は `review.place = "file:<glob>"` で、verdict を別のファイルに置く。
+- **`review.place = "frontmatter"` を宣言する。** → policy error で拒否する。`review.place` は `"file:<glob>"` だけを受け付ける。
 - **immutable な記録の id を書き換える。** → I-03 と I-05 の両方の finding が出る。1 つの変更が 2 つの性質を破っているだけで、責務は重なっていない（finding の key は性質ごとに別）。
 
 ## 4. 3 システムのニーズと、その持ち主（移行で失わないことの検査）
@@ -314,12 +314,12 @@ export default defineType({
   immutable: false,                    // 一度入れたら変えてはいけないか
   checks: [undefinedCodes, timelineProblems, checkLink], // この type だけの検査（記録 → finding の関数）
   treeChecks: [checkLayout],             // 木全体の検査（木 → finding の関数、任意）
-  review: { rubric: "rubrics/retro-review-v4.toml", place: "frontmatter" },
+  review: { rubric: "rubrics/retro-review-v4.toml", place: "file:verdicts/*.json" },
   views: {},                           // dx view で出す計算（木 → JSONL の関数）
 });
 ```
 
-- `review.place` は、`"frontmatter"`（記録の frontmatter の `review:` に書く）か、`"file:<glob>"`（別のファイルに verdict として置く）のどちらか。immutable な type は `"file:<glob>"` を使う。
+- `review.place` は `"file:<glob>"` だけを受け付け、verdict を別のファイルに置く。`"frontmatter"` は使えない。
 - すべての type に dx が必ずかける検査は、I-02〜I-06 と I-09。`.dx/` に書く必要はない。
 
 `links` の各宣言は `{ to, match?, values?, acyclic? }` とする。

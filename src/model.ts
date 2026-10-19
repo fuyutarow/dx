@@ -82,7 +82,7 @@ export interface TypeDefinition {
   readonly immutable?: boolean;
   readonly checks?: readonly Check[];
   readonly treeChecks?: readonly TreeCheck[];
-  readonly review?: { readonly rubric: string; readonly place: string };
+  readonly review?: { readonly rubric: string; readonly place: `file:${string}` };
   readonly views?: Readonly<Record<string, View>>;
 }
 
@@ -143,7 +143,7 @@ export const typeSchema = z.object({
   review: z
     .object({
       rubric: z.string().min(1),
-      place: z.string().regex(/^(?:frontmatter|file:.+)$/u),
+      place: z.string().regex(/^file:.+$/u),
     })
     .optional(),
   views: z.record(z.string(), callback<View>()).default({}),

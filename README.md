@@ -270,10 +270,10 @@ inputs は規則の入力なので、その内容・追加・削除と `inputs` 
 type の match を参照します。構造検査には head の規則だけを使います。非祖先の REV 同士は比較差分を
 1 change として扱います。
 
-`review: { rubric: "rubrics/r.toml", place: "frontmatter" }` を宣言すると、新しい・変更した記録に
-spec C3 の verdict が必要です。rubric のパスは `.dx/` 相対（または `.dx/` 始まり）です。
-`place: "file:verdicts/*.jsonl"` では、JSON 1 値・JSON 配列・JSONL・TOML の verdict を読みます。
-immutable な type では `file:<glob>` が必須です。verdict には次の全条件を求めます。
+`review: { rubric: "rubrics/r.toml", place: "file:verdicts/*.jsonl" }` を宣言すると、新しい・変更した記録に
+spec C3 の verdict が必要です。`review.place` は `file:<glob>` だけを受け付けます。
+`frontmatter` は policy error で拒否します。rubric のパスは `.dx/` 相対（または `.dx/` 始まり）です。
+この場所から JSON 1 値・JSON 配列・JSONL・TOML の verdict を読みます。verdict には次の全条件を求めます。
 
 - `v:1`、id・記録 sha256・rubric パス・現在の rubric の全バイトの sha256 が一致する。
 - `pass:true` で、すべての `p` が 0.5 以上。
@@ -288,7 +288,7 @@ verdict 自身を含めたハッシュの自己参照を避け、本文は空白
 ## review の実行
 
 `dx review [REV]` は `<branch>@<remote>` を base とし、新しい記録と本文ハッシュが変わった
-記録だけを対象にします。frontmatter の verdict だけを変えた場合も I-06 と同じ対象に含めます。I-06 の未取得 verdict を除いて check の finding がある記録には要求を出さず、
+記録だけを対象にします。I-06 の未取得 verdict を除いて check の finding がある記録には要求を出さず、
 finding を stdout に出して exit 1 にします。現在のハッシュ・rubric に結びつく合格 verdict は再利用します。
 指定 REV と作業コピーの内容が異なると exit 4 で拒否します。
 
@@ -332,7 +332,6 @@ format: {
 },
 ```
 
-frontmatter の書き戻しではハッシュ不変と verdict の round trip を再検証します。
 `file:<glob>` の `*` / `**` は URL エンコードした id に展開し、glob と一致するパスに書きます。
 ワイルドカードなしの共有ファイルも使えます。JSON/JSONL の出力は verdict の JSON 配列、
 TOML の出力は `[[verdicts]]` です。既存のほかの id の verdict は保存します。

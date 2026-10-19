@@ -112,6 +112,27 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
         return `policy: ${path}: ${error instanceof Error ? error.message : String(error)}`;
       },
     );
+    const frontmatterReview = z
+      .object({
+        default: z.array(
+          z
+            .object({
+              name: z.string(),
+              review: z.object({ place: z.string() }).passthrough().optional(),
+            })
+            .passthrough(),
+        ),
+      })
+      .safeParse(module);
+    if (frontmatterReview.success) {
+      const invalid = frontmatterReview.data.default.find(
+        (type) => type.review?.place === "frontmatter",
+      );
+      if (invalid !== undefined)
+        return undetermined(
+          `policy: ${invalid.name}: review.place = "frontmatter" は消えた。"file:<glob>" を使う`,
+        );
+    }
     const parsed = z.object({ default: z.array(typeSchema) }).safeParse(module);
     if (!parsed.success) return undetermined(`.dx/: ${parsed.error.message}`);
     const types = parsed.data.default;
@@ -122,8 +143,6 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
       if (type === undefined) continue;
       if (entries[index] !== `.dx/${type.name}.ts`)
         return undetermined(`type name must match file: ${entries[index]}`);
-      if (type.immutable && type.review?.place === "frontmatter")
-        return undetermined(`${type.name}: immutable types require file:<glob> review storage`);
       const missingLink = Object.values(type.links)
         .flatMap((link) => (typeof link.to === "string" ? [link.to] : link.to))
         .find((name) => !names.has(name));

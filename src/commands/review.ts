@@ -17,14 +17,13 @@ import {
 import type { Snapshot } from "../collection.ts";
 import { REVIEW_PASS, type Config } from "../config.ts";
 
-import { parseRecords, formatAdapter, sha256, stableJson } from "../formats.ts";
+import { formatAdapter, sha256, stableJson } from "../formats.ts";
 import {
   verdictSchema,
   type FindingInput,
   type LoadedType,
   type RecordModel,
   type SourceFile,
-  type FormatAdapter,
   type Verdict,
 } from "../model.ts";
 import { matches } from "../policy.ts";
@@ -119,8 +118,7 @@ export async function review(
     // Preflight every immutable request before starting external work.
     for (const record of head.records) {
       const type = types.find((t) => t.name === record.type);
-      if (type?.review === undefined || !reviewChanged(previous.get(record.id), record, type))
-        continue;
+      if (type?.review === undefined || !reviewChanged(previous.get(record.id), record)) continue;
       const problems = findings.filter(
         (f) => f.path === record.path || f.id === record.id || f.ids?.includes(record.id) === true,
       );
@@ -136,8 +134,6 @@ export async function review(
       if (passing.get(type.name)?.(record) === true) continue;
       const source = yield* requireValue(head.sources.get(record), "missing review source");
       const adapter = formatAdapter(type.format);
-      if (type.review.place === "frontmatter" && adapter.writeReview === undefined)
-        return undetermined(`format does not support frontmatter review: ${type.name}`);
       const rubricText = yield* requireValue(head.files[yield* rubricPath(type)], "missing rubric");
       const rubric = yield* parseRubric(rubricText);
       const evidence = yield* validate(
@@ -157,17 +153,13 @@ export async function review(
         rubric,
         evidence,
       );
-      const path =
-        type.review.place === "frontmatter"
-          ? record.path
-          : yield* outputPath(type.review.place, record);
+      const path = yield* outputPath(type.review.place, record);
       const target = yield* await writablePath(cwd, path);
       const original = await attemptAsync(() => Bun.file(target).text());
       const expected = head.files[path];
       if ((original.isOk() ? original.value : undefined) !== expected)
         return undetermined(`working copy differs from REV: ${path}`);
       if (
-        type.review.place !== "frontmatter" &&
         expected !== undefined &&
         expected.trim() !== "" &&
         (sidecarVerdicts(expected, path).length === 0 ||
@@ -175,10 +167,8 @@ export async function review(
       )
         return undetermined(`invalid existing sidecar verdicts: ${path}`);
       // Sidecar writes must also bind to the selected working-copy record.
-      if (type.review.place !== "frontmatter") {
-        yield* await unchangedRecord(cwd, record, source, "differs from REV");
-      }
-      plans.push({ record, type, source, adapter, rubric, rubricText, request, path, target });
+      yield* await unchangedRecord(cwd, record, source, "differs from REV");
+      plans.push({ record, type, source, rubric, rubricText, request, path, target });
     }
     rows.push(...blocked);
     // A format failure has no model row, but is still an I-10 refusal.
@@ -197,7 +187,7 @@ export async function review(
     let exit: 0 | 1 | 3 = rows.length > 0 ? 1 : 0;
     const contents = new Map<string, string | undefined>();
     for (const plan of plans) {
-      const { record, type, source, adapter, rubric, rubricText, request, path, target } = plan;
+      const { record, type, source, rubric, rubricText, request, path, target } = plan;
       const posted = await runReviewCommand(cwd, config.review.command, request);
       const response = posted.response;
       const p =
@@ -232,16 +222,7 @@ export async function review(
       const actual = await attemptAsync(() => Bun.file(target).text());
       if ((actual.isOk() ? actual.value : undefined) !== expected)
         return undetermined(`working copy changed during review: ${path}`);
-      const output = yield* await reviewContent(
-        cwd,
-        record,
-        type,
-        source,
-        adapter,
-        verdict,
-        path,
-        expected,
-      );
+      const output = yield* await reviewContent(cwd, record, source, verdict, path, expected);
       await mkdir(dirname(target), { recursive: true });
       await realpath(dirname(target)); // Surface I/O errors before the write.
       await Bun.write(yield* await writablePath(cwd, path), output);
@@ -275,42 +256,21 @@ async function unchangedRecord(
 async function reviewContent(
   cwd: string,
   record: RecordModel,
-  type: LoadedType,
   source: SourceFile,
-  adapter: FormatAdapter,
   verdict: Verdict,
   path: string,
   expected: string | undefined,
 ) {
   return safeTry(async function* () {
     let output: string;
-    if (type.review?.place === "frontmatter") {
-      const currentSource = yield* requireValue(
-        (yield* parseRecords(path, expected ?? "", adapter))[source.index],
-        "review source disappeared",
-      );
-      output = yield* resultOf(
-        yield* requireValue(adapter.writeReview?.(currentSource, verdict), "missing review writer"),
-      );
-      const updated = yield* requireValue(
-        (yield* parseRecords(path, output, adapter))[source.index],
-        "review round trip failed",
-      );
-      if (
-        adapter.hash(updated) !== record.sha256 ||
-        stableJson(updated.fields.review) !== stableJson(verdict)
-      )
-        return undetermined("review writer changed record hash or verdict");
-    } else {
-      if ((await Bun.file(yield* await writablePath(cwd, record.path)).text()) !== source.text)
-        return undetermined(`working copy changed during review: ${record.path}`);
-      const existing = expected === undefined ? [] : sidecarVerdicts(expected, path);
-      const verdicts = [
-        ...existing.filter((v) => !z.object({ id: z.literal(record.id) }).safeParse(v).success),
-        verdict,
-      ];
-      output = yield* serializeVerdicts(path, verdicts);
-    }
+    if ((await Bun.file(yield* await writablePath(cwd, record.path)).text()) !== source.text)
+      return undetermined(`working copy changed during review: ${record.path}`);
+    const existing = expected === undefined ? [] : sidecarVerdicts(expected, path);
+    const verdicts = [
+      ...existing.filter((v) => !z.object({ id: z.literal(record.id) }).safeParse(v).success),
+      verdict,
+    ];
+    output = yield* serializeVerdicts(path, verdicts);
 
     return ok(output);
   });
