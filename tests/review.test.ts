@@ -202,6 +202,21 @@ test("sidecar glob, shared JSON and TOML storage satisfy I-06 and retries", asyn
     const result = await review(cwd);
     expect(result.exit, result.stderr).toBe(0);
     expect(rows(result.stdout)).toHaveLength(2);
+    if (place === "file:verdicts/all.toml") {
+      const stored = decode(
+        z.object({
+          verdicts: z.array(
+            z.object({ id: z.string(), reasons: z.record(z.string(), z.string()) }),
+          ),
+        }),
+        JSON.stringify(Bun.TOML.parse(await Bun.file(`${cwd}/verdicts/all.toml`).text())),
+      );
+      expect(stored.verdicts.map((verdict) => verdict.id).toSorted()).toEqual(["one", "two"]);
+      expect(stored.verdicts.map((verdict) => verdict.reasons.quality)).toEqual([
+        "fake reason for quality",
+        "fake reason for quality",
+      ]);
+    }
     await snapshot(cwd);
     const checked = await dx(cwd, "check");
     expect(checked.exit, `${checked.stderr}${checked.stdout}`).toBe(0);
