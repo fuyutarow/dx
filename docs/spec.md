@@ -453,7 +453,7 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 | D11 | 変わった記録は、既存の finding も含めてすべて無いことを求める（I-02） | soks-govern の L と retrospectives の gate が、どちらも「変えた記録は潔白に」を求めていたため（2026-10-17） |
 | D12 | 複数記録に関わる finding は、`ids` のどれか 1 つでも新しいか変わった記録なら new とする（I-02） | I-02 の新規・変更記録に対する規則を、複数記録 finding にも適用するため（2026-10-18） |
 | D13 | head で記録を生まないファイルも、bytes が変われば、その path の finding を new とする（I-02） | policy revision のもとで、壊れた inputs を入れる commit が既存 finding として通る穴を塞ぐため（2026-10-18） |
-| D14 | dx は Homebrew で配布する。共通 fuyutarow/homebrew-tap の alpha にある Formula/dx.rb が公開 archive 4本（darwin/linux × arm64/x64）の SHA-256 を持つ。配布担当者が公開 archive を download/hash して Formula だけを SHA 条件付きで commit して公開し、brew update・brew upgrade fuyutarow/tap/dx と consumer の PATH 経由の dx --version の一致を確かめるまで release 完了としない。mise の dx 宣言と bun global install は使わない | owner の Homebrew 決定を agx coordinator が伝達、2026-10-25。以前の mise 宣言方針を置換。手順は README の release:finish |
+| D14 | dx は Homebrew で配布する。共通 fuyutarow/homebrew-tap の alpha にある Formula/dx.rb が公開 archive 4本（darwin/linux × arm64/x64）の SHA-256 を持つ。配布担当者が公開 archive を download/hash して Formula だけを SHA 条件付きで commit して公開し、brew update・brew upgrade fuyutarow/tap/dx と consumer の PATH 経由の dx --version の一致を確かめ、最後に共通 tap の update-formulas.yml を tool=dx で起動するまで release 完了としない。mise の dx 宣言と bun global install は使わない | owner の Homebrew 決定を agx coordinator が伝達、2026-10-25。以前の mise 宣言方針を置換。手順は README の release:finish |
 
 ## 10. 残差
 

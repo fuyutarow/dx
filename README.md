@@ -91,9 +91,17 @@ dx repo の作業中の変更を commit/push することはありません。
 consumer ごとに PATH が選ぶ dx の実体が Homebrew の `bin/dx` と同じであり、
 `dx --version` が指定版を返すことを確認するまで release 完了とはしません。
 古い mise/shim を選ぶ場合も、同じ版文字列が出ていても失敗です。
-導入 receipt の tap も検査します。旧 fuyutarow/dx tap からの切替は
-`brew reinstall fuyutarow/tap/dx` で行い、不要になった旧 tap は撤去できます。
+導入 receipt の tap が `fuyutarow/tap` であることも検査します。
 brew の install/upgrade に伴う他の依存先の再インストールや自動 cleanup は抑止します。
+
+最後に、配布担当者が共通 tap の更新 workflow を起動します。`release:finish` は
+consumer 検証後に次のコマンドを実行し、起動に失敗したら release 未完了として返します。
+
+```sh
+gh workflow run update-formulas.yml -R fuyutarow/homebrew-tap -f tool=dx
+```
+
+workflow の起動成功と、非同期で実行される workflow の完了は区別します。
 
 consumer は親ディレクトリ直下の記録 repo と既知の利用側から列挙します。
 外部の consumer は `--consumer DIR` を必要な数だけ追加します。

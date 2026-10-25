@@ -198,16 +198,23 @@ export async function finishRelease(
       assets.push({ platform, id: asset.id, sha256 });
     }
     const formula = yield* renderFormula(version, assets);
+    const workflow = [
+      "gh",
+      "workflow",
+      "run",
+      "update-formulas.yml",
+      "-R",
+      tapRepo,
+      "-f",
+      "tool=dx",
+    ];
     if (options.dryRun === true)
       return ok({
         version,
         consumers: roots,
         dryRun: true,
         formula,
-        commands: [
-          ["brew", "update"],
-          ["brew", "upgrade", formulaName],
-        ],
+        commands: [["brew", "update"], ["brew", "upgrade", formulaName], workflow],
       });
     progress("FORMULA: scoped commit and push");
     yield* await updateFormula(repo, formula, runner);
@@ -249,7 +256,18 @@ export async function finishRelease(
           `consumer ${root} returned ${JSON.stringify(output.trim())}, expected dx ${version}`,
         );
     }
-    return ok({ version, consumers: roots, dryRun: false, tapRepo, formula: formulaPath, install });
+    progress("FORMULA_WORKFLOW: update-formulas.yml tool=dx");
+    const dispatch = (yield* await command(runner, workflow, repo)).trim();
+    if (dispatch !== "") progress(dispatch);
+    return ok({
+      version,
+      consumers: roots,
+      dryRun: false,
+      tapRepo,
+      formula: formulaPath,
+      install,
+      workflow: { command: workflow, dispatch },
+    });
   });
 }
 

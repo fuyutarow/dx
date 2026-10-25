@@ -18,6 +18,7 @@ async function fixture(
     stale?: boolean;
     installed?: boolean;
     oldTap?: boolean;
+    workflowFailure?: boolean;
   } = {},
 ) {
   const root = await temporaryDirectory("dx-brew-finish-");
@@ -49,6 +50,10 @@ async function fixture(
   let published = false;
   const runner: FinishRunner = async (cmd) => {
     calls.push([...cmd]);
+    if (cmd[0] === "gh" && cmd[1] === "workflow")
+      return scenario.workflowFailure === true
+        ? done("", 1, "workflow dispatch failed")
+        : done("https://github.com/fuyutarow/homebrew-tap/actions/runs/42\n");
     if (cmd[0] === "gh" && cmd[1] === "api" && cmd[2]?.endsWith("/releases/latest") === true)
       return done(
         JSON.stringify({
@@ -141,6 +146,16 @@ test("hashes four published archives, commits only the common-tap formula, upgra
   );
   expect(f.calls).toContainEqual(["brew", "upgrade", "fuyutarow/tap/dx"]);
   expect(f.calls).toContainEqual(["dx", "--version"]);
+  expect(f.calls.at(-1)).toEqual([
+    "gh",
+    "workflow",
+    "run",
+    "update-formulas.yml",
+    "-R",
+    "fuyutarow/homebrew-tap",
+    "-f",
+    "tool=dx",
+  ]);
 });
 
 test("missing archives and checksum mismatches cannot publish a formula or touch brew", async () => {
@@ -161,12 +176,17 @@ test("formula publication, brew, version and equal-version PATH shadows fail clo
     { shadow: true },
     { oldTap: true },
     { conflict: true },
+    { workflowFailure: true },
   ]) {
     const f = await fixture(scenario);
     const result = await f.invoke();
     expect(result.isErr()).toBe(true);
     if (scenario.unpublished === true || scenario.conflict === true)
       expect(f.calls.some((cmd) => cmd[0] === "brew")).toBe(false);
+    if (scenario.workflowFailure === true) {
+      expect(f.calls.filter((cmd) => cmd[0] === "dx")).toHaveLength(2);
+      expect(result.isErr() && result.error).toContain("workflow dispatch failed");
+    } else expect(f.calls.some((cmd) => cmd[1] === "workflow")).toBe(false);
   }
 });
 
@@ -185,7 +205,9 @@ test("preview does not publish or change the dx checkout, and local edits stay l
   const preview = await f.invoke(true);
   expect(preview.isOk()).toBe(true);
   expect(await Bun.file(join(f.repo, "Formula/dx.rb")).exists()).toBe(false);
-  expect(f.calls.some((cmd) => cmd.includes("PUT") || cmd[0] === "brew")).toBe(false);
+  expect(
+    f.calls.some((cmd) => cmd.includes("PUT") || cmd[0] === "brew" || cmd[1] === "workflow"),
+  ).toBe(false);
   expect((await f.invoke()).isOk()).toBe(true);
   expect(await Bun.file(join(f.repo, "src/local.ts")).text()).toBe("unreleased local work");
 });
