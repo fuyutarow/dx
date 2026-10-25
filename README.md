@@ -41,45 +41,72 @@ tag 名を package manager が解決できない場合は、tag ではなく rel
 }
 ```
 
-## 単体バイナリと mise
+## 単体バイナリと Homebrew
 
-公開済みの release は、利用する repo の `mise.toml` で版を固定して入れられます。
-以下は version 0.1.0 を公開した後の例です。
-
-```toml
-[tools]
-"github:fuyutarow/dx" = { version = "0.1.0", bin_path = "bin" }
-```
+dx は Homebrew で入れ、常に最新 release を使います。Formula の正本はこの repo の
+`Formula/dx.rb` です。前の mise による dx 配布方針は Homebrew 方針に置き換わりました。
+repo ごとの mise 宣言・lock や bun global install では dx を管理しません。
+Bun 等の開発用 toolchain と repo の task 実行には引き続き mise を使えます。
 
 ```sh
-mise install
-mise exec -- dx -V
+brew tap fuyutarow/dx https://github.com/fuyutarow/dx
+brew install dx
+dx -V
 ```
 
-単体版は Bun のインストールが不要です。jj と Git は引き続き PATH に必要です。
-revision 内の `.dx/*.ts` と helper は、単体版に含まれる Bun でメモリ内に bundle し、
-動的 import します。`dx`・`zod`・`neverthrow` は単体版に含まれる固定版を共有します。
+`fuyutarow/dx` は private repository です。tap の clone と release asset の取得には、
+repo を読む GitHub 認証が必要です。Formula の download strategy は Homebrew の既存の
+認証（`gh auth`、`HOMEBREW_GITHUB_API_TOKEN` 等）を使い、API asset を取得します。
+認証値を Formula や repo の設定に書きません。認証のない新規 CI でインストールできるとは
+主張しません。導入済み cache の版確認は、新規 download の成功を示しません。
 
-配布物を作る場合は、依存をインストールしたこの repo で実行します。
+単体版は Bun のインストールが不要です。Git と jj は Formula の runtime dependency です。
+revision 内の `.dx/*.ts` と helper は、単体版に含まれる Bun でメモリ内に bundle し、
+動的 import します。`dx`・`zod`・`neverthrow` は単体版の固定版を共有します。
+
+配布物のビルド:
 
 ```sh
 mise run setup
 mise run release:build
 ```
 
-`bun build --compile` で Linux x64 と macOS arm64 をビルドし、package.json の version から
-`dist/dx-<version>-linux-x64.tar.gz` と `dist/dx-<version>-darwin-arm64.tar.gz` を作ります。
-各アーカイブは実行可能な `bin/dx` だけを含みます。作成には tar と、cross compile 用の
-Bun runtime を取得するネットワーク接続が必要です。tag と GitHub release は作りません。
-version の実装上の正本は package.json で、CLI と asset 名の両方が参照します。
+`bun build --compile` で darwin / linux × arm64 / x64 の4本をビルドします。
+asset は `dist/dx-<version>-<os>-<arch>.tar.gz` で、中身は `bin/dx` です。
+version の実装上の正本は package.json です。ビルドだけでは tag や release を作りません。
+cross compile 用の Bun runtime を取得するネットワーク接続と tar が必要です。
 
-[mise github backend の選択規則](https://mise.jdx.dev/dev-tools/backends/github.html#how-mise-picks-an-asset)
-に従い、repo 名・OS・arch を asset 名に入れています。プラットフォーム別の asset 指定は不要です。
-`bin_path` はアーカイブ内の実行ファイルの場所を明示します。
-[Bun の単体実行ファイル](https://bun.com/docs/bundler/executables)を使います。
+4本の archive を release に公開した後、配布担当者が最終段を実行します。
 
-`tests/release.test.ts` はビルド元を削除し、Git と jj だけを含む PATH で `-V` と `check` を実行して、
-ソース版との出力・終了コード・stdout の SHA-256 の一致を検証します。
+```sh
+mise run release:finish -- 0.1.7
+```
+
+`0.1.7` は明示版の例です。`scripts/release-finish.ts` は最新の stable release と
+4本の asset を確認し、公開 archive を実際に download して SHA-256 と size を照合します。
+その結果で Formula を生成し、`Formula/dx.rb` だけを repo の commit gate で commit/push します。
+無関係な変更のある作業コピーでは止まります。必要なら `--repo <clean workspace>` を使います。
+以前の試行で Formula が公開済みなら、同じ内容で commit を繰り返しません。
+
+公開 Formula の内容を確認してから tap を追加し、`brew update` と `brew upgrade dx`
+（未導入なら `brew install dx`）、`brew test fuyutarow/dx/dx` を実行します。
+consumer ごとに PATH が選ぶ dx の実体が Homebrew の `bin/dx` と同じであり、
+`dx -V` が指定版を返すことを確認するまで release 完了とはしません。
+古い mise/shim を選ぶ場合も、同じ版文字列が出ていても失敗です。
+brew の install/upgrade に伴う他の依存先の再インストールや自動 cleanup は抑止します。
+
+consumer は親ディレクトリ直下の記録 repo と既知の利用側から列挙します。
+外部の consumer は `--consumer DIR` を必要な数だけ追加します。
+`--workspace DIR` は列挙する親ディレクトリを指定します。
+`--dry-run` は公開 asset の download/hash と Formula の計画までで、repo・brew・machine を変更しません。
+
+stdout の `PLAN` と `RELEASE_COMPLETE` は区別します。進捗と失敗は stderr、
+前提・公開・install・PATH 検証の失敗は非0で返します。
+公開済み Formula を自動で巻き戻しません。失敗箇所を修復して最終段だけを再実行します。
+新しい release や tag を重複して作る復旧手順ではありません。
+
+Formula の `test do` は `dx -V` を検査します。`tests/release.test.ts` は
+ソース版との検査結果の一致と、Bun のない PATH での standalone 実行を確認します。
 
 lint は dotfiles の TypeScript 標準プリセットの写しを使います。`.oxlintrc.json` と、
 `.dx-preset/` の `house-plugin.js`・`lint-oxlint.ts`・`zod.ts` をこの repo で管理し、

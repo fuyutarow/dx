@@ -2,6 +2,7 @@ import { cli } from "cleye";
 import { mkdir, mkdtemp, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { version } from "../package.json" with { type: "json" };
+import { releasePlatforms } from "./release-platforms.ts";
 
 // Human/agent consumer: progress and one asset path/size receipt per platform.
 function usage(message: string): never {
@@ -34,7 +35,7 @@ async function main(): Promise<void> {
 }
 
 async function build(root: string, dist: string, staging: string): Promise<void> {
-  for (const platform of ["linux-x64", "darwin-arm64"]) {
+  for (const platform of releasePlatforms) {
     const directory = join(staging, platform);
     await mkdir(join(directory, "bin"), { recursive: true });
     const archive = join(dist, `dx-${version}-${platform}.tar.gz`);

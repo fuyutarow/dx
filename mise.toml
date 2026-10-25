@@ -30,8 +30,12 @@ depends = ["lint:ts"]
 run = "bun check && bun check scripts"
 
 [tasks."release:build"]
-description = "Build standalone Linux x64 and macOS arm64 release archives"
+description = "Build standalone darwin/linux arm64/x64 release archives"
 run = "bun scripts/release-build.ts"
+
+[tasks."release:finish"]
+description = "Publish the Homebrew formula, upgrade dx and verify consumer PATH"
+run = "bun scripts/release-finish.ts"
 
 [tasks.test]
 alias = "t"
