@@ -73,6 +73,13 @@ async function fixture(
       );
     if (cmd[0] === "brew" && cmd[1] === "update" && scenario.brewFailure === true)
       return done("", 1, "update failed");
+    // A second tap may also define dx: every formula action must name our tap.
+    if (
+      cmd[0] === "brew" &&
+      ["list", "upgrade", "install", "test"].includes(cmd[1] ?? "") &&
+      cmd.at(-1) !== "fuyutarow/dx/dx"
+    )
+      return done("", 1, "ambiguous formula dx");
     if (cmd[0] === "brew" && cmd[1] === "list")
       return scenario.installed === false ? done("", 1) : done("dx 0.1.6\n");
     if (cmd[0] === "brew" && cmd[1] === "--prefix") return done(prefix + "\n");
@@ -116,7 +123,7 @@ test("hashes four published archives, publishes only the formula, upgrades and c
   expect(f.calls.findIndex((cmd) => cmd[0] === "mise")).toBeLessThan(
     f.calls.findIndex((cmd) => cmd[0] === "brew"),
   );
-  expect(f.calls).toContainEqual(["brew", "upgrade", "dx"]);
+  expect(f.calls).toContainEqual(["brew", "upgrade", "fuyutarow/dx/dx"]);
 });
 
 test("missing archives and checksum mismatches cannot publish a formula or touch brew", async () => {
@@ -149,7 +156,7 @@ test("first installation and retry after machine failure do not create another f
   f.scenario.brewFailure = false;
   expect((await f.invoke()).isOk()).toBe(true);
   expect(f.calls.filter((cmd) => cmd[0] === "mise")).toHaveLength(1);
-  expect(f.calls).toContainEqual(["brew", "install", "dx"]);
+  expect(f.calls).toContainEqual(["brew", "install", "fuyutarow/dx/dx"]);
 });
 
 test("dirty release workspaces refuse publication and preview remains nonmutating", async () => {

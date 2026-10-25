@@ -12,7 +12,11 @@ export type FinishRunner = (
   cwd: string,
 ) => Promise<{ exit: number; stdout: string; stderr: string }>;
 export const run: FinishRunner = async (cmd, cwd) => {
-  const signal = AbortSignal.timeout(cmd[0] === "brew" ? 600000 : 120000);
+  // A scoped formula commit runs the repository gate before it can publish.
+  let timeout = 120000;
+  if (cmd[0] === "brew") timeout = 600000;
+  if (cmd[0] === "mise") timeout = 1200000;
+  const signal = AbortSignal.timeout(timeout);
   const child = Bun.spawn({
     cmd,
     cwd,
@@ -215,7 +219,7 @@ export async function finishRelease(
         consumers: roots,
         dryRun: true,
         formula,
-        commands: [tap, ["brew", "update"], ["brew", "upgrade", "dx"]],
+        commands: [tap, ["brew", "update"], ["brew", "upgrade", "fuyutarow/dx/dx"]],
       });
     progress("FORMULA: scoped commit and push");
     yield* await updateFormula(repo, formula, runner);
@@ -223,7 +227,7 @@ export async function finishRelease(
     progress("BREW_UPDATE");
     yield* await command(runner, ["brew", "update"], repo);
     const installed = yield* ResultAsync.fromPromise(
-      runner(["brew", "list", "--formula", "--versions", "dx"], repo),
+      runner(["brew", "list", "--formula", "--versions", "fuyutarow/dx/dx"], repo),
       String,
     );
     if (
@@ -231,7 +235,10 @@ export async function finishRelease(
       !(installed.exit === 1 && installed.stdout.trim() === "" && installed.stderr.trim() === "")
     )
       return err("cannot inspect the installed Homebrew dx");
-    const install = installed.exit === 0 ? ["brew", "upgrade", "dx"] : ["brew", "install", "dx"];
+    const install =
+      installed.exit === 0
+        ? ["brew", "upgrade", "fuyutarow/dx/dx"]
+        : ["brew", "install", "fuyutarow/dx/dx"];
     progress(`BREW_INSTALL: ${install.join(" ")}`);
     yield* await command(runner, install, repo);
     yield* await command(runner, ["brew", "test", "fuyutarow/dx/dx"], repo);

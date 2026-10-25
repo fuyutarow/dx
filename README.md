@@ -50,7 +50,7 @@ Bun 等の開発用 toolchain と repo の task 実行には引き続き mise �
 
 ```sh
 brew tap fuyutarow/dx https://github.com/fuyutarow/dx
-brew install dx
+brew install fuyutarow/dx/dx
 dx -V
 ```
 
@@ -88,8 +88,8 @@ mise run release:finish -- 0.1.7
 無関係な変更のある作業コピーでは止まります。必要なら `--repo <clean workspace>` を使います。
 以前の試行で Formula が公開済みなら、同じ内容で commit を繰り返しません。
 
-公開 Formula の内容を確認してから tap を追加し、`brew update` と `brew upgrade dx`
-（未導入なら `brew install dx`）、`brew test fuyutarow/dx/dx` を実行します。
+公開 Formula の内容を確認してから tap を追加し、`brew update` と `brew upgrade fuyutarow/dx/dx`
+（未導入なら `brew install fuyutarow/dx/dx`）、`brew test fuyutarow/dx/dx` を実行します。
 consumer ごとに PATH が選ぶ dx の実体が Homebrew の `bin/dx` と同じであり、
 `dx -V` が指定版を返すことを確認するまで release 完了とはしません。
 古い mise/shim を選ぶ場合も、同じ版文字列が出ていても失敗です。
