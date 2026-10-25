@@ -13,7 +13,7 @@ function variant(version: string, os: string, arch: string, assets: readonly For
   const asset = assets.find((item) => item.platform === `${os}-${arch}`);
   if (asset === undefined) return err(`missing ${os}-${arch} release archive`);
   return ok(
-    `    on_${arch === "arm64" ? "arm" : "intel"} do\n      # dx-${version}-${os}-${arch}.tar.gz\n      url "https://api.github.com/repos/fuyutarow/dx/releases/assets/${asset.id}",\n          using: DxGitHubReleaseDownloadStrategy\n      sha256 "${asset.sha256}"\n    end`,
+    `    on_${arch === "arm64" ? "arm" : "intel"} do\n      # dx-${version}-${os}-${arch}.tar.gz\n      url "https://github.com/fuyutarow/dx/releases/download/v${version}/dx-${version}-${os}-${arch}.tar.gz"\n      sha256 "${asset.sha256}"\n    end`,
   );
 }
 
@@ -39,21 +39,7 @@ export function renderFormula(version: string, assets: readonly FormulaAsset[]) 
         `  on_${os === "darwin" ? "macos" : "linux"} do\n${variants.join("\n\n")}\n  end`,
       );
     }
-    return ok(`require "download_strategy"
-require "utils/github"
-
-# Keep authentication out of the formula URL/specs and use Homebrew's existing credentials.
-class DxGitHubReleaseDownloadStrategy < CurlDownloadStrategy
-  def initialize(url, name, version, **meta)
-    super
-    token = GitHub::API.credentials
-    raise CurlDownloadStrategyError.new(url, "Authenticate gh or set HOMEBREW_GITHUB_API_TOKEN") if token.nil?
-
-    @meta[:headers] = ["Accept: application/octet-stream", "Authorization: token #{token}"]
-  end
-end
-
-class Dx < Formula
+    return ok(`class Dx < Formula
   desc "Revision-based record checks and views for jj repositories"
   homepage "https://github.com/fuyutarow/dx"
   version "${version}"
@@ -64,8 +50,13 @@ class Dx < Formula
 ${blocks.join("\n\n")}
 
   def install
-    # Homebrew strips the single top-level bin/ directory when staging these archives.
-    bin.install "dx"
+    executables = Dir["*"].select { |path| File.file?(path) && File.executable?(path) }
+    if executables.empty?
+      executables = Dir["bin/*"].select { |path| File.file?(path) && File.executable?(path) }
+    end
+    raise "no executables found in archive" if executables.empty?
+
+    bin.install executables
   end
 
   test do

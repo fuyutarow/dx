@@ -124,7 +124,13 @@ test("hashes four published archives, commits only the common-tap formula, upgra
   const formula = f.formula();
   for (const platform of releasePlatforms) expect(formula).toContain(`dx-0.1.7-${platform}.tar.gz`);
   expect(formula).toContain('assert_equal "dx #{version}"');
-  expect(formula).toContain("GitHub::API.credentials");
+  expect(formula).not.toContain("GitHub::API.credentials");
+  expect(formula).not.toContain("Authorization:");
+  expect(formula).not.toContain("DownloadStrategy");
+  for (const platform of releasePlatforms)
+    expect(formula).toContain(
+      `https://github.com/fuyutarow/dx/releases/download/v0.1.7/dx-0.1.7-${platform}.tar.gz`,
+    );
   expect(formula).not.toContain("ghp_");
   expect(f.calls.filter((cmd) => cmd.includes("PUT"))).toHaveLength(1);
   expect(f.calls.some((cmd) => cmd[0] === "git" || cmd[0] === "mise")).toBe(false);

@@ -52,12 +52,10 @@ Bun 等の開発用 toolchain と repo の task 実行には引き続き mise �
 brew install fuyutarow/tap/dx
 ```
 
-`fuyutarow/dx` は private repository です。release asset の取得には、
-repo を読む GitHub 認証が必要です。Formula の download strategy は Homebrew の既存の
-認証（`gh auth`、`HOMEBREW_GITHUB_API_TOKEN` 等）を使い、API asset を取得します。
-Homebrew が gh の認証を引けない環境では、HOMEBREW_GITHUB_API_TOKEN を brew の環境に渡します。
-認証値を Formula や repo の設定に書きません。認証のない新規 CI でインストールできるとは
-主張しません。導入済み cache の版確認は、新規 download の成功を示しません。
+共通 tap と `fuyutarow/dx` は public repository です。Formula は公開 release archive の
+URL と SHA-256 を持ち、導入に GitHub token を要求しません。
+配布担当者が tap に commit する際の GitHub 書込認証は、導入する側には不要です。
+導入済み cache の版確認は、新規 download の成功を示しません。
 
 単体版は Bun のインストールが不要です。Git と jj は Formula の runtime dependency です。
 revision 内の `.dx/*.ts` と helper は、単体版に含まれる Bun でメモリ内に bundle し、
