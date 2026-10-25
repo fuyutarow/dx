@@ -43,20 +43,19 @@ tag 名を package manager が解決できない場合は、tag ではなく rel
 
 ## 単体バイナリと Homebrew
 
-dx は Homebrew で入れ、常に最新 release を使います。Formula の正本はこの repo の
-`Formula/dx.rb` です。前の mise による dx 配布方針は Homebrew 方針に置き換わりました。
+dx は Homebrew で入れ、常に最新 release を使います。Formula の正本は共通 tap [`fuyutarow/homebrew-tap`](https://github.com/fuyutarow/homebrew-tap)
+の `alpha` branch にある `Formula/dx.rb` です。前の mise による dx 配布方針は Homebrew 方針に置き換わりました。
 repo ごとの mise 宣言・lock や bun global install では dx を管理しません。
 Bun 等の開発用 toolchain と repo の task 実行には引き続き mise を使えます。
 
 ```sh
-brew tap fuyutarow/dx https://github.com/fuyutarow/dx
-brew install fuyutarow/dx/dx
-dx -V
+brew install fuyutarow/tap/dx
 ```
 
-`fuyutarow/dx` は private repository です。tap の clone と release asset の取得には、
+`fuyutarow/dx` は private repository です。release asset の取得には、
 repo を読む GitHub 認証が必要です。Formula の download strategy は Homebrew の既存の
 認証（`gh auth`、`HOMEBREW_GITHUB_API_TOKEN` 等）を使い、API asset を取得します。
+Homebrew が gh の認証を引けない環境では、HOMEBREW_GITHUB_API_TOKEN を brew の環境に渡します。
 認証値を Formula や repo の設定に書きません。認証のない新規 CI でインストールできるとは
 主張しません。導入済み cache の版確認は、新規 download の成功を示しません。
 
@@ -84,15 +83,18 @@ mise run release:finish -- 0.1.7
 
 `0.1.7` は明示版の例です。`scripts/release-finish.ts` は最新の stable release と
 4本の asset を確認し、公開 archive を実際に download して SHA-256 と size を照合します。
-その結果で Formula を生成し、`Formula/dx.rb` だけを repo の commit gate で commit/push します。
-無関係な変更のある作業コピーでは止まります。必要なら `--repo <clean workspace>` を使います。
+その結果で Formula を生成し、GitHub Contents API で共通 tap の `Formula/dx.rb` だけを
+`alpha` に commit して公開します。読み取った blob SHA を更新条件にし、競合したら止まります。
+dx repo の作業中の変更を commit/push することはありません。
 以前の試行で Formula が公開済みなら、同じ内容で commit を繰り返しません。
 
-公開 Formula の内容を確認してから tap を追加し、`brew update` と `brew upgrade fuyutarow/dx/dx`
-（未導入なら `brew install fuyutarow/dx/dx`）、`brew test fuyutarow/dx/dx` を実行します。
+公開 Formula の内容を確認してから、`brew update` と `brew upgrade fuyutarow/tap/dx`
+（未導入なら `brew install fuyutarow/tap/dx`）、`brew test fuyutarow/tap/dx` を実行します。
 consumer ごとに PATH が選ぶ dx の実体が Homebrew の `bin/dx` と同じであり、
-`dx -V` が指定版を返すことを確認するまで release 完了とはしません。
+`dx --version` が指定版を返すことを確認するまで release 完了とはしません。
 古い mise/shim を選ぶ場合も、同じ版文字列が出ていても失敗です。
+導入 receipt の tap も検査します。旧 fuyutarow/dx tap からの切替は
+`brew reinstall fuyutarow/tap/dx` で行い、不要になった旧 tap は撤去できます。
 brew の install/upgrade に伴う他の依存先の再インストールや自動 cleanup は抑止します。
 
 consumer は親ディレクトリ直下の記録 repo と既知の利用側から列挙します。
@@ -105,7 +107,7 @@ stdout の `PLAN` と `RELEASE_COMPLETE` は区別します。進捗と失敗は
 公開済み Formula を自動で巻き戻しません。失敗箇所を修復して最終段だけを再実行します。
 新しい release や tag を重複して作る復旧手順ではありません。
 
-Formula の `test do` は `dx -V` を検査します。`tests/release.test.ts` は
+Formula の `test do` は `dx --version` を検査します。`tests/release.test.ts` は
 ソース版との検査結果の一致と、Bun のない PATH での standalone 実行を確認します。
 
 lint は dotfiles の TypeScript 標準プリセットの写しを使います。`.oxlintrc.json` と、

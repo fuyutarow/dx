@@ -11,12 +11,13 @@ async function fixture(
   scenario: {
     missing?: boolean;
     digest?: boolean;
-    dirty?: boolean;
+    conflict?: boolean;
     unpublished?: boolean;
     brewFailure?: boolean;
     shadow?: boolean;
     stale?: boolean;
     installed?: boolean;
+    oldTap?: boolean;
   } = {},
 ) {
   const root = await temporaryDirectory("dx-brew-finish-");
@@ -28,6 +29,13 @@ async function fixture(
     await write(root, `workspace/${name}/dx.toml`, '[repo]\nname="fixture"\n');
   await write(root, "homebrew/bin/dx", "homebrew binary");
   await write(root, "old/dx", "old manager binary");
+  await write(
+    root,
+    "homebrew/opt/dx/INSTALL_RECEIPT.json",
+    JSON.stringify({
+      source: { tap: scenario.oldTap === true ? "fuyutarow/dx" : "fuyutarow/tap" },
+    }),
+  );
   const content = Buffer.from("published archive bytes");
   const digest = new Bun.CryptoHasher("sha256").update(content).digest("hex");
   const assets = releasePlatforms.map((platform, index) => ({
@@ -37,7 +45,8 @@ async function fixture(
     digest: `sha256:${scenario.digest === true ? "0".repeat(64) : digest}`,
   }));
   const calls: string[][] = [];
-  let remoteFormula = "";
+  let remoteFormula = "previous formula";
+  let published = false;
   const runner: FinishRunner = async (cmd) => {
     calls.push([...cmd]);
     if (cmd[0] === "gh" && cmd[1] === "api" && cmd[2]?.endsWith("/releases/latest") === true)
@@ -56,20 +65,30 @@ async function fixture(
       await Bun.write(join(dir, name), content);
       return done();
     }
-    if (cmd[0] === "git" && cmd[1] === "status")
-      return done(scenario.dirty === true ? " M src/unrelated.ts\n" : "");
-    if (cmd[0] === "git" && cmd[1] === "rev-parse") return done("a".repeat(40));
-    if (cmd[0] === "git" && cmd[1] === "ls-remote")
-      return done("a".repeat(40) + "\trefs/heads/alpha\n");
-    if (cmd[0] === "mise") {
-      remoteFormula = await Bun.file(join(repo, "Formula/dx.rb")).text();
-      return done();
+    if (cmd[0] === "gh" && cmd[1] === "api" && cmd[2] === "--method") {
+      if (scenario.conflict === true) return done("", 1, "HTTP 409: concurrent formula edit");
+      const encodedFormula = cmd.find((arg) => arg.startsWith("content="));
+      if (
+        cmd[4] !== "repos/fuyutarow/homebrew-tap/contents/Formula/dx.rb" ||
+        !cmd.includes("branch=alpha") ||
+        !cmd.includes(`sha=${"a".repeat(40)}`) ||
+        encodedFormula === undefined
+      )
+        return done("", 1, "wrong publication scope or missing SHA precondition");
+      remoteFormula = Buffer.from(encodedFormula.slice("content=".length), "base64").toString(
+        "utf8",
+      );
+      published = true;
+      return done("b".repeat(40));
     }
     if (cmd[0] === "gh" && cmd[1] === "api")
       return done(
-        Buffer.from(scenario.unpublished === true ? "wrong formula" : remoteFormula).toString(
-          "base64",
-        ),
+        JSON.stringify({
+          sha: "a".repeat(40),
+          content: Buffer.from(
+            scenario.unpublished === true && published ? "wrong formula" : remoteFormula,
+          ).toString("base64"),
+        }),
       );
     if (cmd[0] === "brew" && cmd[1] === "update" && scenario.brewFailure === true)
       return done("", 1, "update failed");
@@ -77,12 +96,13 @@ async function fixture(
     if (
       cmd[0] === "brew" &&
       ["list", "upgrade", "install", "test"].includes(cmd[1] ?? "") &&
-      cmd.at(-1) !== "fuyutarow/dx/dx"
+      cmd.at(-1) !== "fuyutarow/tap/dx"
     )
       return done("", 1, "ambiguous formula dx");
     if (cmd[0] === "brew" && cmd[1] === "list")
       return scenario.installed === false ? done("", 1) : done("dx 0.1.6\n");
-    if (cmd[0] === "brew" && cmd[1] === "--prefix") return done(prefix + "\n");
+    if (cmd[0] === "brew" && cmd[1] === "--prefix")
+      return done((cmd.length === 3 ? join(prefix, "opt/dx") : prefix) + "\n");
     if (cmd[0] === "brew") return done();
     if (cmd[0] === "sh")
       return done(join(root, scenario.shadow === true ? "old/dx" : "homebrew/bin/dx") + "\n");
@@ -94,36 +114,27 @@ async function fixture(
     finishRelease("0.1.7", { repo, workspace, dryRun }, runner, (line) => {
       progress.push(line);
     });
-  return { root, repo, workspace, calls, invoke, runner, scenario };
+  return { root, repo, workspace, calls, invoke, runner, scenario, formula: () => remoteFormula };
 }
 
-test("hashes four published archives, publishes only the formula, upgrades and checks PATH", async () => {
+test("hashes four published archives, commits only the common-tap formula, upgrades and checks PATH", async () => {
   const f = await fixture();
   const result = await f.invoke();
   expect(result.isOk(), result.isErr() ? result.error : "").toBe(true);
-  const formula = await Bun.file(join(f.repo, "Formula/dx.rb")).text();
+  const formula = f.formula();
   for (const platform of releasePlatforms) expect(formula).toContain(`dx-0.1.7-${platform}.tar.gz`);
   expect(formula).toContain('assert_equal "dx #{version}"');
   expect(formula).toContain("GitHub::API.credentials");
   expect(formula).not.toContain("ghp_");
-  expect(f.calls.filter((cmd) => cmd[0] === "mise")).toEqual([
-    [
-      "mise",
-      "run",
-      "commit",
-      "--",
-      "-m",
-      "release: update Homebrew dx formula",
-      "--push",
-      "--",
-      "Formula/dx.rb",
-    ],
-  ]);
+  expect(f.calls.filter((cmd) => cmd.includes("PUT"))).toHaveLength(1);
+  expect(f.calls.some((cmd) => cmd[0] === "git" || cmd[0] === "mise")).toBe(false);
+  expect(await Bun.file(join(f.repo, "Formula/dx.rb")).exists()).toBe(false);
   expect(f.calls.filter((cmd) => cmd[0] === "dx")).toHaveLength(2);
-  expect(f.calls.findIndex((cmd) => cmd[0] === "mise")).toBeLessThan(
+  expect(f.calls.findIndex((cmd) => cmd.includes("PUT"))).toBeLessThan(
     f.calls.findIndex((cmd) => cmd[0] === "brew"),
   );
-  expect(f.calls).toContainEqual(["brew", "upgrade", "fuyutarow/dx/dx"]);
+  expect(f.calls).toContainEqual(["brew", "upgrade", "fuyutarow/tap/dx"]);
+  expect(f.calls).toContainEqual(["dx", "--version"]);
 });
 
 test("missing archives and checksum mismatches cannot publish a formula or touch brew", async () => {
@@ -132,7 +143,7 @@ test("missing archives and checksum mismatches cannot publish a formula or touch
     const result = await f.invoke();
     expect(result.isErr()).toBe(true);
     expect(await Bun.file(join(f.repo, "Formula/dx.rb")).exists()).toBe(false);
-    expect(f.calls.some((cmd) => cmd[0] === "brew" || cmd[0] === "mise")).toBe(false);
+    expect(f.calls.some((cmd) => cmd[0] === "brew" || cmd.includes("PUT"))).toBe(false);
   }
 });
 
@@ -142,11 +153,14 @@ test("formula publication, brew, version and equal-version PATH shadows fail clo
     { brewFailure: true },
     { stale: true },
     { shadow: true },
+    { oldTap: true },
+    { conflict: true },
   ]) {
     const f = await fixture(scenario);
     const result = await f.invoke();
     expect(result.isErr()).toBe(true);
-    if (scenario.unpublished === true) expect(f.calls.some((cmd) => cmd[0] === "brew")).toBe(false);
+    if (scenario.unpublished === true || scenario.conflict === true)
+      expect(f.calls.some((cmd) => cmd[0] === "brew")).toBe(false);
   }
 });
 
@@ -155,18 +169,19 @@ test("first installation and retry after machine failure do not create another f
   expect((await f.invoke()).isErr()).toBe(true);
   f.scenario.brewFailure = false;
   expect((await f.invoke()).isOk()).toBe(true);
-  expect(f.calls.filter((cmd) => cmd[0] === "mise")).toHaveLength(1);
-  expect(f.calls).toContainEqual(["brew", "install", "fuyutarow/dx/dx"]);
+  expect(f.calls.filter((cmd) => cmd.includes("PUT"))).toHaveLength(1);
+  expect(f.calls).toContainEqual(["brew", "install", "fuyutarow/tap/dx"]);
 });
 
-test("dirty release workspaces refuse publication and preview remains nonmutating", async () => {
-  const f = await fixture({ dirty: true });
-  expect((await f.invoke()).isErr()).toBe(true);
-  expect(f.calls.some((cmd) => cmd[0] === "mise" || cmd[0] === "brew")).toBe(false);
+test("preview does not publish or change the dx checkout, and local edits stay local", async () => {
+  const f = await fixture();
+  await write(f.repo, "src/local.ts", "unreleased local work");
   const preview = await f.invoke(true);
   expect(preview.isOk()).toBe(true);
   expect(await Bun.file(join(f.repo, "Formula/dx.rb")).exists()).toBe(false);
-  expect(f.calls.some((cmd) => cmd[0] === "mise" || cmd[0] === "brew")).toBe(false);
+  expect(f.calls.some((cmd) => cmd.includes("PUT") || cmd[0] === "brew")).toBe(false);
+  expect((await f.invoke()).isOk()).toBe(true);
+  expect(await Bun.file(join(f.repo, "src/local.ts")).text()).toBe("unreleased local work");
 });
 
 test("formula rejects placeholder hashes, duplicated architectures and invalid versions", () => {

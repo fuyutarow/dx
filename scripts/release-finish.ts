@@ -1,5 +1,5 @@
 import { cli } from "cleye";
-import { mkdir, mkdtemp, realpath, readdir, rm } from "node:fs/promises";
+import { mkdtemp, realpath, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { err, ok, ResultAsync, safeTry } from "neverthrow";
@@ -12,10 +12,8 @@ export type FinishRunner = (
   cwd: string,
 ) => Promise<{ exit: number; stdout: string; stderr: string }>;
 export const run: FinishRunner = async (cmd, cwd) => {
-  // A scoped formula commit runs the repository gate before it can publish.
   let timeout = 120000;
   if (cmd[0] === "brew") timeout = 600000;
-  if (cmd[0] === "mise") timeout = 1200000;
   const signal = AbortSignal.timeout(timeout);
   const child = Bun.spawn({
     cmd,
@@ -64,6 +62,9 @@ const publishedSchema = z.object({
   ),
 });
 const formulaPath = "Formula/dx.rb";
+const tapRepo = "fuyutarow/homebrew-tap";
+const formulaName = "fuyutarow/tap/dx";
+const contentSchema = z.object({ sha: z.string().regex(/^[a-f0-9]{40}$/u), content: z.string() });
 const knownConsumers = new Set([
   "firedancer",
   "pass1",
@@ -91,57 +92,42 @@ async function consumerRoots(workspace: string, explicit: readonly string[]) {
 
 async function updateFormula(repo: string, text: string, runner: FinishRunner) {
   return safeTry(async function* () {
-    const status = yield* await command(
-      runner,
-      ["git", "status", "--porcelain", "--untracked-files=all"],
-      repo,
+    const endpoint = `repos/${tapRepo}/contents/${formulaPath}`;
+    const current = jsonOf(contentSchema).safeParse(
+      yield* await command(runner, ["gh", "api", `${endpoint}?ref=alpha`], repo),
     );
-    if (
-      status
-        .split("\n")
-        .filter((line) => line !== "")
-        .some((line) => line.slice(3) !== formulaPath)
-    )
-      return err("prepare a clean release workspace; only Formula/dx.rb may be dirty");
-    const path = join(repo, formulaPath);
-    const existing = (await Bun.file(path).exists())
-      ? yield* ResultAsync.fromPromise(Bun.file(path).text(), String)
-      : undefined;
-    if (status.trim() !== "" && existing !== text)
-      return err("unrelated Formula/dx.rb edits; do not overwrite them");
-    if (existing !== text || status.trim() !== "") {
-      const head = (yield* await command(runner, ["git", "rev-parse", "HEAD"], repo)).trim();
-      const remote = (yield* await command(
-        runner,
-        ["git", "ls-remote", "origin", "refs/heads/alpha"],
-        repo,
-      )).split(/\s/u)[0];
-      if (head !== remote)
-        return err("release workspace must start at published alpha before updating the formula");
-      yield* ResultAsync.fromPromise(mkdir(dirname(path), { recursive: true }), String);
-      yield* ResultAsync.fromPromise(Bun.write(path, text), String);
+    if (!current.success) return err("cannot decode the published common-tap formula");
+    if (Buffer.from(current.data.content, "base64").toString("utf8") !== text) {
+      // Contents API commits only this file to alpha; the blob SHA rejects concurrent edits.
       yield* await command(
         runner,
         [
-          "mise",
-          "run",
-          "commit",
-          "--",
-          "-m",
-          "release: update Homebrew dx formula",
-          "--push",
-          "--",
-          formulaPath,
+          "gh",
+          "api",
+          "--method",
+          "PUT",
+          endpoint,
+          "-f",
+          "branch=alpha",
+          "-f",
+          `sha=${current.data.sha}`,
+          "-f",
+          "message=release: update dx formula",
+          "-f",
+          `content=${Buffer.from(text).toString("base64")}`,
+          "--jq",
+          ".commit.sha",
         ],
         repo,
       );
     }
-    const encoded = yield* await command(
-      runner,
-      ["gh", "api", "repos/fuyutarow/dx/contents/Formula/dx.rb?ref=alpha", "--jq", ".content"],
-      repo,
+    const published = jsonOf(contentSchema).safeParse(
+      yield* await command(runner, ["gh", "api", `${endpoint}?ref=alpha`], repo),
     );
-    if (Buffer.from(encoded, "base64").toString("utf8") !== text)
+    if (
+      !published.success ||
+      Buffer.from(published.data.content, "base64").toString("utf8") !== text
+    )
       return err(
         "formula publication is incomplete; recover the scoped commit/push before machine installation",
       );
@@ -212,22 +198,23 @@ export async function finishRelease(
       assets.push({ platform, id: asset.id, sha256 });
     }
     const formula = yield* renderFormula(version, assets);
-    const tap = ["brew", "tap", "fuyutarow/dx", "https://github.com/fuyutarow/dx"];
     if (options.dryRun === true)
       return ok({
         version,
         consumers: roots,
         dryRun: true,
         formula,
-        commands: [tap, ["brew", "update"], ["brew", "upgrade", "fuyutarow/dx/dx"]],
+        commands: [
+          ["brew", "update"],
+          ["brew", "upgrade", formulaName],
+        ],
       });
     progress("FORMULA: scoped commit and push");
     yield* await updateFormula(repo, formula, runner);
-    yield* await command(runner, tap, repo);
     progress("BREW_UPDATE");
     yield* await command(runner, ["brew", "update"], repo);
     const installed = yield* ResultAsync.fromPromise(
-      runner(["brew", "list", "--formula", "--versions", "fuyutarow/dx/dx"], repo),
+      runner(["brew", "list", "--formula", "--versions", formulaName], repo),
       String,
     );
     if (
@@ -236,12 +223,16 @@ export async function finishRelease(
     )
       return err("cannot inspect the installed Homebrew dx");
     const install =
-      installed.exit === 0
-        ? ["brew", "upgrade", "fuyutarow/dx/dx"]
-        : ["brew", "install", "fuyutarow/dx/dx"];
+      installed.exit === 0 ? ["brew", "upgrade", formulaName] : ["brew", "install", formulaName];
     progress(`BREW_INSTALL: ${install.join(" ")}`);
     yield* await command(runner, install, repo);
-    yield* await command(runner, ["brew", "test", "fuyutarow/dx/dx"], repo);
+    yield* await command(runner, ["brew", "test", formulaName], repo);
+    const keg = (yield* await command(runner, ["brew", "--prefix", formulaName], repo)).trim();
+    const receipt = jsonOf(z.object({ source: z.object({ tap: z.string() }) })).safeParse(
+      yield* ResultAsync.fromPromise(Bun.file(join(keg, "INSTALL_RECEIPT.json")).text(), String),
+    );
+    if (!receipt.success || receipt.data.source.tap !== "fuyutarow/tap")
+      return err(`dx is still installed from another tap; run brew reinstall ${formulaName}`);
     const prefix = (yield* await command(runner, ["brew", "--prefix"], repo)).trim();
     const expected = yield* ResultAsync.fromPromise(realpath(join(prefix, "bin/dx")), String);
     for (const root of roots) {
@@ -252,13 +243,13 @@ export async function finishRelease(
         return err(
           `PATH selects ${selected} instead of Homebrew dx in ${root}; remove the retired mise/shim selection`,
         );
-      const output = yield* await command(runner, ["dx", "-V"], root);
+      const output = yield* await command(runner, ["dx", "--version"], root);
       if (output.trim() !== `dx ${version}`)
         return err(
           `consumer ${root} returned ${JSON.stringify(output.trim())}, expected dx ${version}`,
         );
     }
-    return ok({ version, consumers: roots, dryRun: false, formula: formulaPath, install });
+    return ok({ version, consumers: roots, dryRun: false, tapRepo, formula: formulaPath, install });
   });
 }
 
@@ -277,7 +268,7 @@ async function main() {
     flags: {
       repo: {
         type: String,
-        description: "Clean release workspace for the scoped formula commit/push",
+        description: "dx checkout used for release commands (formula is published to homebrew-tap)",
       },
       workspace: { type: String, description: "Parent directory of consumer repositories" },
       consumer: { type: [String], description: "Additional consumer directory (repeatable)" },
@@ -293,8 +284,8 @@ async function main() {
     process.exitCode = 2;
     return;
   }
-  if (["brew", "gh", "git", "mise"].some((tool) => Bun.which(tool) === null)) {
-    process.stderr.write("FATAL: brew, gh, git and mise must be on PATH\n");
+  if (["brew", "gh"].some((tool) => Bun.which(tool) === null)) {
+    process.stderr.write("FATAL: brew and gh must be on PATH\n");
     process.exitCode = 2;
     return;
   }

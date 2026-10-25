@@ -69,7 +69,7 @@ ${blocks.join("\n\n")}
   end
 
   test do
-    assert_equal "dx #{version}", shell_output("#{bin}/dx -V").strip
+    assert_equal "dx #{version}", shell_output("#{bin}/dx --version").strip
   end
 end
 `);
