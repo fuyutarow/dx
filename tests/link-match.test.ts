@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
-import { advance, checked, dx, markdown, repo, rows, typeSource, write } from "./helpers.ts";
+import { advance, checked, dx, markdown, repo, rows, snapshot, typeSource, write } from "./helpers.ts";
 
 const timeout = 30000;
 async function linkedRepo(declaration: string, config = "") {
   const { cwd } = await repo({}, config);
   await write(
     cwd,
-    ".dx/note.ts",
+    ".semlint/note.ts",
     typeSource().replace('next: { to: "note" }', `next: ${declaration}`),
   );
   const base = await advance(cwd);
@@ -65,9 +65,9 @@ for (const values of ['() => { throw Error("extract failed"); }', '() => "b"', "
 }
 
 test(
-  "plain ids and dx: references keep their existing resolution",
+  "plain ids and frozen dx: references keep their existing resolution",
   async () => {
-    const { cwd, base } = await linkedRepo('{ to: "note" }');
+    const { cwd } = await linkedRepo('{ to: "note" }');
     await write(
       cwd,
       "records/a.md",
@@ -77,10 +77,38 @@ test(
       ),
     );
     await write(cwd, "records/b.md", markdown("b"));
-    const result = await checked(cwd, base, 1);
-    expect(result.findings.map((finding) => [finding.check, finding.field])).toEqual([
-      ["I-04.target", "next:absent"],
-      ["I-04.target", "next:dx:other/"],
+    await snapshot(cwd);
+    const result = await dx(cwd, "ls");
+    expect(result.exit, result.stderr).toBe(0);
+    const listed = rows(result.stdout);
+    expect(listed.find((record) => record.id === "a")?.links).toEqual([
+      { rel: "next", to: "b" },
+      { rel: "next", to: "b" },
+      { rel: "next", to: "absent" },
+      { rel: "next", to: "dx:other/" },
+    ]);
+  },
+  timeout,
+);
+
+test(
+  "new dx: references produce a links.scheme finding",
+  async () => {
+    const { cwd, base } = await linkedRepo('{ to: "note" }');
+    await write(
+      cwd,
+      "records/a.md",
+      markdown("a", 'next: [b, "dx:fixture/b"]\n'),
+    );
+    await write(cwd, "records/b.md", markdown("b"));
+    await snapshot(cwd);
+    const result = await dx(cwd, "check", "--base", base);
+    expect(result.exit, result.stderr).toBe(1);
+    const findings = rows(result.stdout);
+    expect(findings.map((finding) => [finding.check, finding.field, finding.message])).toContainEqual([
+      "links.scheme",
+      "next",
+      "dx: は使わない。ref:<repo>/<id> と書く",
     ]);
   },
   timeout,
