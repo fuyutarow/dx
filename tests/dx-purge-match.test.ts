@@ -5,7 +5,7 @@ test("a removed links.match declaration fails while loading policy, even without
   const { cwd } = await repo();
   await write(
     cwd,
-    ".dx/note.ts",
+    ".semlint/note.ts",
     typeSource().replace('next: { to: "note" }', 'next: { to: "note", match: "^urn:uuid:(.+)$" }'),
   );
   const base = await advance(cwd);
