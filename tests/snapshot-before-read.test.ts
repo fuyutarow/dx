@@ -15,7 +15,10 @@ test("snapshot failure stops the judgment with a recovery instruction", async ()
   const { cwd } = await repo();
   const bin = await temporaryDirectory("semlint-bin-");
   const executable = join(bin, "jj");
-  await Bun.write(executable, "#!/bin/sh\nprintf 'snapshot failed\nextra detail\n' >&2\nexit 1\n");
+  await Bun.write(
+    executable,
+    "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then printf 'jj 0.46.0\\n'; exit 0; fi\nprintf 'snapshot failed\\nextra detail\\n' >&2\nexit 1\n",
+  );
   await chmod(executable, 0o755);
   const result = await processRun(cwd, ["env", `PATH=${bin}:${process.env.PATH}`, process.execPath, main, "check", "@"]);
   expect(result.exit).toBe(4);
