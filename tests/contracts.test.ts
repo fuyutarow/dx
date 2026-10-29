@@ -146,7 +146,7 @@ async function inventory(root: string, path = ""): Promise<Record<string, string
 test(
   "I-07: all four commands are deterministic and leave every repo byte unchanged",
   async () => {
-    const { cwd, base } = await repo();
+    const { cwd } = await repo();
     await write(cwd, "records/a.md", markdown("a"));
     await snapshot(cwd);
     const revision = await advance(cwd);
