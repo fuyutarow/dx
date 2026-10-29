@@ -94,7 +94,7 @@ test("tree findings keep I-02 keys and changed-record classification alongside l
   const { cwd } = await repo();
   await write(
     cwd,
-    ".dx/note.ts",
+    ".semlint/note.ts",
     typeSource().replace(
       "views:",
       `treeChecks: [tree => tree.index.byType.get("note").filter(r => r.fields.bad).map(r => ({
@@ -119,7 +119,7 @@ test("tree callbacks fail closed for throws and invalid results", async () => {
   for (const callback of ['() => { throw Error("tree failure"); }', "async () => 42", "42"]) {
     await write(
       cwd,
-      ".dx/note.ts",
+      ".semlint/note.ts",
       typeSource().replace("views:", `treeChecks: [${callback}], views:`),
     );
     await snapshot(cwd);
@@ -140,7 +140,7 @@ test("inputs override ignores and type matches, stay readable, and are exempt fr
   await write(cwd, "records/input.md", "not a record");
   await write(
     cwd,
-    ".dx/note.ts",
+    ".semlint/note.ts",
     typeSource().replace(
       "views:",
       `treeChecks: [tree => {
@@ -160,9 +160,9 @@ test("I-09: input edits, deletion, and declaration changes cannot accompany reco
     const base = await advance(cwd);
     if (mode === "edit") await write(cwd, ".leakcheck", "after");
     if (mode === "delete") await (await import("node:fs/promises")).rm(`${cwd}/.leakcheck`);
-    if (mode === "undeclare") await write(cwd, "dx.toml", '[repo]\nname="fixture"\n');
+    if (mode === "undeclare") await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n');
     if (mode === "declare")
-      await write(cwd, "dx.toml", '[repo]\nname="fixture"\n[files]\ninputs=[".leakcheck"]\n');
+      await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n[files]\ninputs=[".leakcheck"]\n');
     await write(cwd, "records/a.md", markdown("a"));
     expect((await checked(cwd, base, 1)).findings.some((f) => f.check === "I-09.policy")).toBe(
       true,
