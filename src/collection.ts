@@ -6,7 +6,7 @@ import { inputPatternsSchema, type Config } from "./config.ts";
 
 import { parseRecords, formatAdapter, formatFinding } from "./formats.ts";
 import { isPolicyPath, loadTypes, matches } from "./policy.ts";
-import { isLayoutPath, layoutOf } from "./layout.ts";
+import { historicalLayout, isLayoutPath, layoutOf } from "./layout.ts";
 import { jj, RevisionReader } from "./repository.ts";
 import {
   type FindingInput,
@@ -45,12 +45,14 @@ export async function ruleFiles(
   rev: string,
   ms: number,
   reader = new RevisionReader(cwd, ms),
+  historical = false,
 ) {
   return safeTry(async function* () {
     const files: Record<string, string> = {};
     Object.setPrototypeOf(files, null);
     const tree = yield* await reader.tree(rev);
-    const layout = yield* layoutOf(tree.map(({ path }) => path));
+    const paths = tree.map(({ path }) => path);
+    const layout = historical ? historicalLayout(paths) : yield* layoutOf(paths);
     if (layout === undefined) return ok({ layout, files });
     const entries = tree.filter((e) => e.path.startsWith(layout.dir));
     for (const [path, text] of yield* await reader.read(entries)) files[path] = text;
@@ -117,7 +119,8 @@ export async function readSnapshot(
       );
       const input = matches(config.files.inputs, path);
       if (ignored(config, path) && !input && !isLayoutPath(path) && !verdictPath) continue;
-      const selected = input ? [] : types.filter((t) => matches(t.match, path));
+      const selected =
+        input || isLayoutPath(path) ? [] : types.filter((t) => matches(t.match, path));
       if (selected.length > 1) return undetermined(`file matches multiple types: ${path}`);
       // Policy/config/verdict files are infrastructure and exempt from strict matching.
       const auxiliary = input || isLayoutPath(path) || verdictPath;
@@ -231,7 +234,7 @@ export async function isolationFindings(
         const cached = inputCache.get(rev);
         if (cached !== undefined) return ok(cached);
         const tree = yield* await reader.tree(rev);
-        const layout = yield* layoutOf(tree.map(({ path }) => path));
+        const layout = historicalLayout(tree.map(({ path }) => path));
         const entries = tree.filter((e) => e.path === layout?.config);
         const text =
           layout === undefined ? undefined : (yield* await reader.read(entries)).get(layout.config);
@@ -249,7 +252,7 @@ export async function isolationFindings(
       safeTry(async function* () {
         const cached = cache.get(rev);
         if (cached !== undefined) return ok(cached);
-        const { layout, files } = yield* await ruleFiles(cwd, rev, ms, reader);
+        const { layout, files } = yield* await ruleFiles(cwd, rev, ms, reader, true);
         const loaded =
           layout !== undefined &&
           Object.keys(files).some((p) => /^[^/]+\.ts$/u.test(p.slice(layout.dir.length)))
