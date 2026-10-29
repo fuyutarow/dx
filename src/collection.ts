@@ -335,15 +335,16 @@ function makeRecord(file: SourceFile, type: LoadedType, config: Config, findings
         });
         continue;
       }
+      const deprecatedCandidates = candidates.filter((value) => value.startsWith("dx:"));
+      for (const _candidate of deprecatedCandidates)
+        findings.push({
+          check: "links.scheme",
+          id,
+          path,
+          field: rel,
+          message: "dx: は使わない。ref:<repo>/<id> と書く",
+        });
       for (const candidate of candidates) {
-        if (candidate.startsWith("dx:"))
-          findings.push({
-            check: "links.scheme",
-            id,
-            path,
-            field: rel,
-            message: "dx: は使わない。ref:<repo>/<id> と書く",
-          });
         links.push(
           ...(yield* linkTarget(candidate, config.repo.name)
             .map((to) => (to === undefined ? [] : [{ rel, to }]))
