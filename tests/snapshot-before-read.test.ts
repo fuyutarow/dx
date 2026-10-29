@@ -28,12 +28,13 @@ test("snapshot failure stops the judgment with a recovery instruction", async ()
   const executable = join(bin, "jj");
   await Bun.write(
     executable,
-    "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then printf 'jj 0.46.0\\n'; exit 0; fi\nprintf 'snapshot failed\\nextra detail\\n' >&2\nexit 1\n",
+    '#!/bin/sh\nif [ "$1" = "--ignore-working-copy" ] || [ "$1" = "--version" ]; then exec "$REAL_JJ" "$@"; fi\nprintf \'snapshot failed\\nextra detail\\n\' >&2\nexit 1\n',
   );
   await chmod(executable, 0o755);
   const result = await processRun(cwd, [
     "env",
     `PATH=${bin}:${process.env.PATH}`,
+    `REAL_JJ=${Bun.which("jj")}`,
     process.execPath,
     main,
     "check",
@@ -43,4 +44,28 @@ test("snapshot failure stops the judgment with a recovery instruction", async ()
   expect(result.stderr).toBe(
     "UNDETERMINED:作業コピーを取り込めない: snapshot failed。jj st で原因を見るか、commit してから semlint check @- にかける\n",
   );
+});
+
+test("committed revisions do not attempt a working-copy snapshot", async () => {
+  const { cwd, base } = await repo();
+  const bin = await temporaryDirectory("semlint-bin-");
+  const executable = join(bin, "jj");
+  await Bun.write(
+    executable,
+    '#!/bin/sh\nif [ "$1" = "--ignore-working-copy" ] || [ "$1" = "--version" ]; then exec "$REAL_JJ" "$@"; fi\nprintf \'snapshot failed\\n\' >&2\nexit 1\n',
+  );
+  await chmod(executable, 0o755);
+  const result = await processRun(cwd, [
+    "env",
+    `PATH=${bin}:${process.env.PATH}`,
+    `REAL_JJ=${Bun.which("jj")}`,
+    process.execPath,
+    main,
+    "check",
+    "@-",
+    "--base",
+    base,
+  ]);
+  expect([0, 1]).toContain(result.exit);
+  expect(result.stderr).toContain("新しい finding");
 });

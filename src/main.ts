@@ -17,18 +17,30 @@ import { version } from "../package.json" with { type: "json" };
 
 type Output = { exit: number; stdout: string; stderr: string };
 export async function execute(invocation: Invocation, cwd = process.cwd()) {
-  const snapshot = await snapshotWorkingCopy(cwd);
-  if (snapshot.isErr()) return snapshot;
-  return evaluate(invocation, cwd);
+  return evaluate(invocation, cwd, true);
 }
-async function evaluate(invocation: Invocation, cwd: string): Promise<Result<Output, string>> {
+async function evaluate(
+  invocation: Invocation,
+  cwd: string,
+  maySnapshot = false,
+): Promise<Result<Output, string>> {
   return safeTry(async function* () {
     const repo = yield* await root(cwd);
+    const workingCopy = maySnapshot ? yield* await revision(repo, "@") : undefined;
     const head = yield* await revision(repo, invocation.rev);
     const policy =
       invocation.command === "check" && invocation.policy !== undefined
         ? yield* await revision(repo, invocation.policy)
         : head;
+    const explicitBase =
+      (invocation.command === "check" || invocation.command === "review") &&
+      invocation.base !== undefined
+        ? yield* await revision(repo, invocation.base)
+        : undefined;
+    if (workingCopy !== undefined && [head, policy, explicitBase].includes(workingCopy)) {
+      yield* await snapshotWorkingCopy(repo);
+      return evaluate(invocation, repo);
+    }
     // Repository I/O keeps its per-operation bound; callers bound total execution.
     const ms = 120000;
     const cache = snapshotCache(repo, ms);
@@ -45,12 +57,16 @@ async function evaluate(invocation: Invocation, cwd: string): Promise<Result<Out
     let base: string | undefined;
     let baseNotice = "";
     if (invocation.command === "check" || invocation.command === "review") {
-      if (invocation.base !== undefined) base = yield* await revision(repo, invocation.base);
+      if (explicitBase !== undefined) base = explicitBase;
       else {
         const resolved = yield* await defaultBase(repo, config.repo.branch, config.repo.remote);
         base = resolved.rev;
         baseNotice = resolved.fallback ? "base: remote branch absent; using root()\n" : "";
       }
+    }
+    if (workingCopy !== undefined && base === workingCopy) {
+      yield* await snapshotWorkingCopy(repo);
+      return evaluate(invocation, repo);
     }
     const types = yield* await loadTypes(rules);
     if (invocation.command === "check" || invocation.command === "review")
