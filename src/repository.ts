@@ -2,7 +2,39 @@ import { requireValue, undetermined } from "./errors.ts";
 import { ok, safeTry } from "neverthrow";
 import { resolve } from "node:path";
 
+const minimumJjVersion = "0.46.0";
+let versionCheck: Promise<ReturnType<typeof undetermined> | ReturnType<typeof ok<void, string>>> | undefined;
+
+function checkJjVersion() {
+  return (versionCheck ??= (async () => {
+    const location = Bun.which("jj");
+    let found = "不明";
+    if (location !== null) {
+      try {
+        const child = Bun.spawn({ cmd: [location, "--version"], stdout: "pipe", stderr: "ignore" });
+        const [output, exit] = await Promise.all([new Response(child.stdout).text(), child.exited]);
+        const match = /^jj\s+(\d+)\.(\d+)\.(\d+)(?:[-+\s]|$)/u.exec(output.trim());
+        if (exit === 0 && match !== null) {
+          found = `${match[1]}.${match[2]}.${match[3]}`;
+          const actual = [Number(match[1]), Number(match[2]), Number(match[3])];
+          const minimum = minimumJjVersion.split(".").map(Number);
+          for (let i = 0; i < minimum.length; i++) {
+            if (actual[i]! > minimum[i]!) return ok(undefined);
+            if (actual[i]! < minimum[i]!) break;
+            if (i === minimum.length - 1) return ok(undefined);
+          }
+        }
+      } catch {
+        // An unavailable executable is reported using the same recovery instruction.
+      }
+    }
+    return undetermined(`jj ${minimumJjVersion} 以上が要る（見つかったのは ${found} at ${location}）。PATH の先頭に新しい jj を置く`);
+  })());
+}
+
 export async function snapshotWorkingCopy(cwd: string) {
+  const version = await checkJjVersion();
+  if (version.isErr()) return version;
   const signal = AbortSignal.timeout(120000);
   const child = Bun.spawn({
     cmd: ["jj", "--no-pager", "--color=never", "util", "snapshot"],
@@ -20,6 +52,8 @@ export async function snapshotWorkingCopy(cwd: string) {
 }
 
 export async function jj(cwd: string, args: string[], milliseconds = 120000) {
+  const version = await checkJjVersion();
+  if (version.isErr()) return version;
   const signal = AbortSignal.timeout(Math.max(1, Math.ceil(milliseconds)));
   const child = Bun.spawn({
     cmd: [
