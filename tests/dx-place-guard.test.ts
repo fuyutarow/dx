@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { dx, markdown, repo, spawn, jj, snapshot, write } from "./helpers.ts";
 
 test("review verdict globs that target policy files exit 4 in check and review", async () => {
-  const { cwd, base } = await repo({ review: "file:.dx/verdicts/*.jsonl" });
+  const { cwd, base } = await repo({ review: "file:.semlint/verdicts/*.jsonl" });
   await jj(cwd, "git", "remote", "add", "origin", cwd);
   const git = await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   expect(git.exitCode).toBe(0);
@@ -15,7 +15,7 @@ test("review verdict globs that target policy files exit 4 in check and review",
     expect(result.exit).toBe(4);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain(
-      "UNDETERMINED:policy: note: review.place は規則のファイル（dx.toml、.dx/、inputs）の外に置く",
+      "UNDETERMINED:policy: note: review.place は規則のファイル（semlint.toml、.semlint/、inputs）の外に置く",
     );
   }
 }, 20000);
