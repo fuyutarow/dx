@@ -97,11 +97,16 @@ async function updateFormula(repo: string, text: string, runner: FinishRunner) {
     const response = yield* ResultAsync.fromPromise(runner(getArgs, repo), String);
     const missing = response.exit !== 0 && /\bHTTP 404\b/u.test(response.stderr);
     if (response.exit !== 0 && !missing)
-      return err(`${JSON.stringify(getArgs)} exited ${response.exit}: ${(response.stderr + response.stdout).slice(0, 4096)}`);
+      return err(
+        `${JSON.stringify(getArgs)} exited ${response.exit}: ${(response.stderr + response.stdout).slice(0, 4096)}`,
+      );
     const current = missing ? undefined : jsonOf(contentSchema).safeParse(response.stdout);
     if (current !== undefined && !current.success)
       return err("cannot decode the published common-tap formula");
-    if (current === undefined || (current.success && Buffer.from(current.data.content, "base64").toString("utf8") !== text)) {
+    if (
+      current === undefined ||
+      (current.success && Buffer.from(current.data.content, "base64").toString("utf8") !== text)
+    ) {
       // Contents API commits only this file to alpha; the blob SHA rejects concurrent edits.
       yield* await command(
         runner,

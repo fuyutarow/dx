@@ -79,7 +79,7 @@ async function fixture(
         cmd[4] !== "repos/fuyutarow/homebrew-tap/contents/Formula/semlint.rb" ||
         !cmd.includes("branch=alpha") ||
         (scenario.formulaMissing === true && !published
-          ? cmd.some ( (arg) => arg.startsWith("sha=") )
+          ? cmd.some((arg) => arg.startsWith("sha="))
           : !cmd.includes(`sha=${"a".repeat(40)}`)) ||
         encodedFormula === undefined
       )
