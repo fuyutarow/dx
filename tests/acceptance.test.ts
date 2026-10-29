@@ -146,9 +146,9 @@ test(
   async () => {
     const { cwd } = await repo();
     await write(cwd, "records/a.md", markdown("a", "bad: true\n"));
-    await write(cwd, ".dx/note.ts", typeSource().replace("record.fields.bad === true", "false"));
+    await write(cwd, ".semlint/note.ts", typeSource().replace("record.fields.bad === true", "false"));
     const base = await advance(cwd);
-    await write(cwd, ".dx/note.ts", typeSource());
+    await write(cwd, ".semlint/note.ts", typeSource());
     const result = await checked(cwd, base, 0);
     expect(result.findings).toHaveLength(0);
     expect(result.stderr).toContain("既存 1 件");
@@ -180,7 +180,7 @@ test(
     const { cwd } = await repo();
     await write(
       cwd,
-      ".dx/other.ts",
+      ".semlint/other.ts",
       typeSource()
         .replaceAll('"note"', '"other"')
         .replace('"records/*.md"', '"other/*.md"')
@@ -190,7 +190,7 @@ test(
     await write(cwd, "records/a.md", markdown("a", "next: b\n"));
     await write(cwd, "other/b.md", markdown("b"));
     expect((await checked(cwd, base, 1)).findings.some((r) => r.check === "I-04.type")).toBe(true);
-    await write(cwd, "records/a.md", markdown("a", 'next: "dx:remote/id"\n'));
+    await write(cwd, "records/a.md", markdown("a", 'next: "ref:remote/id"\n'));
     await checked(cwd, base, 0);
   },
   timeout,
@@ -284,7 +284,7 @@ test(
     await write(cwd, "records/a.md", markdown("a"));
     await write(cwd, "verdicts/a.jsonl", `${JSON.stringify(verdict)}\n`);
     const base = await advance(cwd);
-    await write(cwd, ".dx/rubrics/r.toml", 'rubric = "new"\n');
+    await write(cwd, ".semlint/rubrics/r.toml", 'rubric = "new"\n');
     await checked(cwd, base, 0);
   },
   timeout,
@@ -294,7 +294,7 @@ test(
   "I-09: policy-only and record-only pass; combined change rejects",
   async () => {
     const { cwd, base } = await repo();
-    await write(cwd, ".dx/note.ts", `${typeSource()}\n// policy change\n`);
+    await write(cwd, ".semlint/note.ts", `${typeSource()}\n// policy change\n`);
     await checked(cwd, base, 0);
     await write(cwd, "records/a.md", markdown("a"));
     expect((await checked(cwd, base, 1)).findings.some((r) => r.check === "I-09.policy")).toBe(
@@ -324,7 +324,7 @@ test(
       if (args[1] === "--list")
         expect(rows(result.stdout)).toEqual([{ v: 1, name: "index", type: "note" }]);
     }
-    await write(cwd, ".dx/note.ts", "invalid TypeScript");
+    await write(cwd, ".semlint/note.ts", "invalid TypeScript");
     await snapshot(cwd);
     const historical = await dx(cwd, "ls", revision);
     expect(historical.exit, historical.stderr).toBe(0);
@@ -390,7 +390,7 @@ test(
   "I-09: separate policy and record changes in an audit range are allowed",
   async () => {
     const { cwd, base } = await repo();
-    await write(cwd, ".dx/note.ts", `${typeSource()}\n// policy-only change\n`);
+    await write(cwd, ".semlint/note.ts", `${typeSource()}\n// policy-only change\n`);
     await advance(cwd);
     await write(cwd, "records/a.md", markdown("a"));
     await checked(cwd, base, 0);
@@ -404,7 +404,7 @@ test(
     const { cwd } = await repo();
     await write(cwd, "records/a.md", markdown("a"));
     const base = await advance(cwd);
-    await write(cwd, ".dx/note.ts", typeSource().replace('"records/*.md"', '"new/*.md"'));
+    await write(cwd, ".semlint/note.ts", typeSource().replace('"records/*.md"', '"new/*.md"'));
     await write(cwd, "records/a.md", markdown("a", "", "changed\n"));
     expect((await checked(cwd, base, 1)).findings.some((row) => row.check === "I-09.policy")).toBe(
       true,
