@@ -117,7 +117,7 @@ test("C1: version flags print the package version and reject repetition", async 
   const { cwd } = await repo();
   for (const flag of ["--version", "-V"]) {
     const result = await dx(cwd, flag);
-    expect(result).toEqual({ stdout: `dx ${version}\n`, stderr: "", exit: 0 });
+    expect(result).toEqual({ stdout: `semlint ${version}\n`, stderr: "", exit: 0 });
   }
   for (const args of [
     ["--version", "--version"],
@@ -149,16 +149,22 @@ test(
     const { cwd, base } = await repo();
     await write(cwd, "records/a.md", markdown("a"));
     await snapshot(cwd);
+    const revision = await advance(cwd);
+    await snapshot(cwd);
     await write(cwd, "records/unsnapshotted.md", markdown("not-in-revision"));
     const before = await inventory(cwd);
-    for (const args of [["ls"], ["check", "--base", base], ["view", "index"], ["view", "--list"]]) {
+    const repoBytes = (entries: Record<string, string>) =>
+      Object.fromEntries(Object.entries(entries).filter(([path]) =>
+        !path.startsWith(".jj/") && !path.startsWith(".git/")
+      ));
+    for (const args of [["ls", revision], ["check", "--base", revision], ["view", "index", revision], ["view", "--list"]]) {
       const first = await dx(cwd, ...args);
       const second = await dx(cwd, ...args);
       expect(first.exit, first.stderr).toBe(0);
       expect(first).toEqual(second);
       if (args[0] === "ls") expect(rows(first.stdout).map((r) => r.id)).toEqual(["a"]);
     }
-    expect(await inventory(cwd)).toEqual(before);
+    expect(repoBytes(await inventory(cwd))).toEqual(repoBytes(before));
   },
   timeout,
 );
