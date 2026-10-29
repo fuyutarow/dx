@@ -35,7 +35,9 @@ export async function check(
     );
     const oldFindings = yield* await structural(base, base, types);
     const findings = [
-      ...(yield* await structural(head, base, types)),
+      ...(yield* await structural(head, base, types)).filter(
+        (finding) => finding.check !== "links.scheme" || (finding.id !== undefined && changedIds.has(finding.id)),
+      ),
       ...transitions(base, head, types),
       ...(yield* reviews(base, head, types)),
       ...isolation,

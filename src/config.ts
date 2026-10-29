@@ -36,17 +36,14 @@ export const configSchema = z.strictObject({
 });
 export type Config = z.infer<typeof configSchema>;
 export const SUPPORTED_EDITIONS = [1] as const;
-/** Admit the edition before reading the payload. The legacy dx.toml has no selector and means edition 1. */
+/** Admit the edition before reading the payload. */
 export function readConfig(text: string, layout: Layout) {
   return safeTry(function* () {
     const parsed = yield* attempt((): unknown => Bun.TOML.parse(text));
     const table = z.record(z.string(), z.unknown()).safeParse(parsed);
     if (!table.success) return undetermined(`${layout.config}: not a table`);
     const { edition, ...payload } = table.data;
-    if (layout.legacy) {
-      if (edition !== undefined)
-        return undetermined(`${layout.config}: edition は semlint.toml にだけ書く`);
-    } else if (edition === undefined)
+    if (edition === undefined)
       return undetermined(`${layout.config}: edition が無い。先頭に edition = 1 を書く`);
     else if (!SUPPORTED_EDITIONS.some((supported) => supported === edition))
       return undetermined(

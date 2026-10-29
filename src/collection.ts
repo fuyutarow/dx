@@ -340,12 +340,15 @@ function makeRecord(file: SourceFile, type: LoadedType, config: Config, findings
         });
         continue;
       }
-      for (const candidate of candidates)
+      for (const candidate of candidates) {
+        if (candidate.startsWith("dx:"))
+          findings.push({ check: "links.scheme", id, path, field: rel, message: "dx: は使わない。ref:<repo>/<id> と書く" });
         links.push(
           ...(yield* linkTarget(candidate, config.repo.name)
             .map((to) => (to === undefined ? [] : [{ rel, to }]))
             .mapErr((reason) => `${path}: links.${rel}: ${reason}`)),
         );
+      }
     }
     if (links.length > config.limits.links_per_record)
       return undetermined(`limits.links_per_record exceeded: ${id}`);
@@ -384,7 +387,7 @@ function linkCandidates(raw: unknown, link: LoadedType["links"][string], locus: 
 
 function linkTarget(id: string, repo: string) {
   if (id.length === 0) return undetermined("link id must be non-empty");
-  const qualified = /^dx:([^/]+)\/(.+)$/u.exec(id);
+  const qualified = /^(?:ref|dx):([^/]+)\/(.+)$/u.exec(id);
   if (qualified === null) return ok(id);
   if (qualified[1] !== repo) return ok(undefined);
   return requireValue(qualified[2], "dx: reference requires an id");

@@ -12,8 +12,7 @@ import { isLayoutPath, policyDir } from "./layout.ts";
 
 // Policies share the host's API and fixed dependencies, including in a standalone
 // executable where import.meta.resolve cannot find packages on the filesystem.
-// "dx" is the legacy specifier, accepted for one release with the legacy layout (spec D15).
-const runtimeModules: Record<string, Record<string, unknown>> = { semlint, dx: semlint, zod, neverthrow };
+const runtimeModules: Record<string, Record<string, unknown>> = { semlint, zod, neverthrow };
 plugin({
   name: "semlint-policy-runtime",
   setup(build) {
@@ -55,17 +54,17 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
         .join("\n") + `\nexport default [${entries.map((_, index) => `type${index}`).join(",")}];`;
     const failures: string[] = [];
     const rejected = (text: string, importer: string) => {
-      failures.push(`${importer.replace(/^.*\/dx-revision\//u, "")}: ${text}`);
-      return { path: "/dx-revision/rejected.ts", namespace: "dx-revision" };
+      failures.push(`${importer.replace(/^.*\/sl-revision\//u, "")}: ${text}`);
+      return { path: "/sl-revision/rejected.ts", namespace: "sl-revision" };
     };
     const result = await Bun.build({
       throw: false,
-      entrypoints: ["/dx-revision/entry.ts"],
+      entrypoints: ["/sl-revision/entry.ts"],
       root: "/",
       target: "bun",
       plugins: [
         {
-          name: "dx-revision",
+          name: "sl-revision",
           setup(build) {
             build.onResolve({ filter: /.*/u }, (args) => {
               if (Object.hasOwn(runtimeModules, args.path))
@@ -73,15 +72,15 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
                   path: `semlint-runtime:${args.path}`,
                   external: true,
                 };
-              if (args.path === "/dx-revision/entry.ts")
-                return { path: args.path, namespace: "dx-revision" };
+              if (args.path === "/sl-revision/entry.ts")
+                return { path: args.path, namespace: "sl-revision" };
               if (!args.path.startsWith("."))
                 return rejected(
                   `policy import must be relative, semlint, zod or neverthrow: ${args.path}`,
                   args.importer,
                 );
               let path = posix.normalize(posix.join(posix.dirname(args.importer), args.path));
-              if (!path.startsWith(`/dx-revision/${dir}`))
+              if (!path.startsWith(`/sl-revision/${dir}`))
                 return rejected(`policy import escapes ${dir}: ${path}`, args.importer);
               if (
                 files[path.slice(13)] === undefined &&
@@ -90,12 +89,12 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
                 path += ".ts";
               if (files[path.slice(13)] === undefined)
                 return rejected(`missing revision module: ${path}`, args.importer);
-              return { path, namespace: "dx-revision" };
+              return { path, namespace: "sl-revision" };
             });
-            build.onLoad({ filter: /.*/u, namespace: "dx-revision" }, (args) => {
+            build.onLoad({ filter: /.*/u, namespace: "sl-revision" }, (args) => {
               const contents =
-                args.path === "/dx-revision/entry.ts" ? entry : files[args.path.slice(13)];
-              if (contents === undefined && args.path !== "/dx-revision/rejected.ts")
+                args.path === "/sl-revision/entry.ts" ? entry : files[args.path.slice(13)];
+              if (contents === undefined && args.path !== "/sl-revision/rejected.ts")
                 failures.push("missing revision module: " + args.path);
               return { contents: contents ?? "export default undefined;", loader: "ts" };
             });
@@ -106,7 +105,7 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
     if (failures.length > 0) return undetermined(`policy: ${failures.join("; ")}`);
     if (!result.success) {
       const log = result.logs.find((item) => item.level === "error") ?? result.logs[0];
-      const path = log?.position?.file?.replace(/^.*\/dx-revision\//u, "") ?? entries[0];
+      const path = log?.position?.file?.replace(/^.*\/sl-revision\//u, "") ?? entries[0];
       return undetermined(
         `policy: ${path}: ${log?.message.replaceAll(/\s*\n\s*/gu, " ") ?? "bundle failed"}`,
       );
@@ -115,15 +114,15 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
     const code = await output.text();
     const module = yield* await ResultAsync.fromPromise<unknown, string>(
       import(
-        `data:text/javascript;base64,${Buffer.from(code + "\n//# sourceURL=dx-policy.js").toString("base64")}`
+        `data:text/javascript;base64,${Buffer.from(code + "\n//# sourceURL=sl-policy.js").toString("base64")}`
       ),
       (error) => {
         const line =
-          error instanceof Error ? /dx-policy\.js:(\d+):/u.exec(error.stack ?? "")?.[1] : undefined;
+          error instanceof Error ? /sl-policy\.js:(\d+):/u.exec(error.stack ?? "")?.[1] : undefined;
         const preceding = code.split("\n").slice(0, line === undefined ? 0 : Number(line));
         const path =
           preceding
-            .flatMap((text) => /^\/\/ .*\/dx-revision\/(\.(?:dx|semlint)\/.*)$/u.exec(text)?.[1] ?? [])
+            .flatMap((text) => /^\/\/ .*\/sl-revision\/(\.semlint\/.*)$/u.exec(text)?.[1] ?? [])
             .at(-1) ?? entries[0];
         return `policy: ${path}: ${error instanceof Error ? error.message : String(error)}`;
       },

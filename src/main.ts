@@ -5,7 +5,6 @@ import { parseInvocation, type Invocation } from "./cli.ts";
 import { readConfig } from "./config.ts";
 
 import { defaultBase, revision, root, show } from "./repository.ts";
-import { legacyNotice } from "./layout.ts";
 import { loadTypes, matches, reviewCommandRequirement } from "./policy.ts";
 import { isolationFindings, readSnapshot, ruleFiles, snapshotCache } from "./collection.ts";
 import { review } from "./commands/review.ts";
@@ -17,18 +16,12 @@ import { admit } from "./commands/admit.ts";
 import { version } from "../package.json" with { type: "json" };
 
 type Output = { exit: number; stdout: string; stderr: string };
-/** The legacy-layout notice is printed once per invocation, not once per nested check. */
 export async function execute(invocation: Invocation, cwd = process.cwd()) {
-  let notice = "";
-  const result = await evaluate(invocation, cwd, (text) => {
-    notice = text;
-  });
-  return result.map((output) => ({ ...output, stderr: notice + output.stderr }));
+  return evaluate(invocation, cwd);
 }
 async function evaluate(
   invocation: Invocation,
   cwd: string,
-  announce: (notice: string) => void,
 ): Promise<Result<Output, string>> {
   return safeTry(async function* () {
     const repo = yield* await root(cwd);
@@ -42,13 +35,12 @@ async function evaluate(
     const cache = snapshotCache(repo, ms);
     const { layout, files: rules } = yield* await ruleFiles(repo, policy, ms, cache.reader);
     if (layout === undefined) return undetermined("semlint.toml が無い（repo のルートに置く）");
-    announce(legacyNotice(layout));
     const configText = yield* await show(repo, policy, layout.config, ms);
     const config = yield* readConfig(configText, layout);
     if (invocation.command === "admit")
       return ok(
         yield* await admit(repo, head, config, (base, rev) =>
-          evaluate({ command: "check", base, rev, list: false }, repo, () => {}),
+          evaluate({ command: "check", base, rev, list: false }, repo),
         ),
       );
     let base: string | undefined;

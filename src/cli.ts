@@ -38,10 +38,8 @@ function usage(reason: string): never {
 /** Cleye owns parsing/help. This extra gate rejects repeat flags and extra positionals. */
 export function parseInvocation(argv: string[]): CliAction | undefined {
   const commands = ["ls", "check", "review", "admit", "view"];
-  // `land` was renamed to `admit`; C5 keeps the old name for one release with a warning.
-  const args = argv[0] === "land" ? ["admit", ...argv.slice(1)] : argv;
-  if (argv[0] === "land")
-    process.stderr.write("semlint: land は admit に改名した。次の版で land を消す\n");
+  const args = argv;
+  if (argv[0] === "land") usage("unknown command: land（admit に改名した）");
   const name = args[0];
   if (name === undefined) usage("a command is required");
   if (name === "--version" || name === "-V") {

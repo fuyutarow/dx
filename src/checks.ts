@@ -17,10 +17,10 @@ import {
 import { isPolicyPath, matches } from "./policy.ts";
 import { sha256, stableJson } from "./formats.ts";
 import { inputPatternsSchema } from "./config.ts";
-import { CURRENT, isLayoutPath, LEGACY, policyDir } from "./layout.ts";
+import { CURRENT, isLayoutPath, policyDir } from "./layout.ts";
 
 function policyInputs(files: Readonly<Record<string, string>>): readonly string[] {
-  const config = attempt((): unknown => Bun.TOML.parse(files[CURRENT.config] ?? files[LEGACY.config] ?? ""));
+  const config = attempt((): unknown => Bun.TOML.parse(files[CURRENT.config] ?? ""));
   if (config.isErr()) return [];
   const parsedConfig = z
     .object({ files: z.object({ inputs: z.unknown().optional() }).optional() })
@@ -185,13 +185,12 @@ export function transitions(
   }
   return findings;
 }
-/** A rubric path is relative to the policy directory, so moving .dx/ to .semlint/ keeps verdicts bound. */
+/** A rubric path is relative to the policy directory. */
 export function rubricPath(type: LoadedType, files: Readonly<Record<string, string>>) {
   return safeTry(function* () {
     const raw = yield* requireValue(type.review?.rubric, `no rubric for ${type.name}`);
     const dir = policyDir(Object.keys(files));
-    const relative = raw.startsWith(LEGACY.dir) ? raw.slice(LEGACY.dir.length) : raw;
-    const path = posix.normalize(`${dir}${relative}`);
+    const path = posix.normalize(`${dir}${raw}`);
     if (!path.startsWith(dir)) return undetermined(`rubric must be in ${dir}: ${raw}`);
     return ok(path);
   });
@@ -260,9 +259,7 @@ export function verdictChecker(head: Snapshot, type: LoadedType, rubricHash?: st
           v.id === record.id &&
           v.sha256 === record.sha256 &&
           v.rubric_sha256 === hash &&
-          (v.rubric === review.rubric ||
-            v.rubric === path ||
-            v.rubric === `${LEGACY.dir}${path.slice(policyDir([path]).length)}`) &&
+          (v.rubric === review.rubric || v.rubric === path) &&
           v.pass &&
           reviewerAllowed(record.by, v.by) &&
           v.p.every((p) => p >= REVIEW_PASS)
