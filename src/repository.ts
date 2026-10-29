@@ -2,6 +2,23 @@ import { requireValue, undetermined } from "./errors.ts";
 import { ok, safeTry } from "neverthrow";
 import { resolve } from "node:path";
 
+export async function snapshotWorkingCopy(cwd: string) {
+  const signal = AbortSignal.timeout(120000);
+  const child = Bun.spawn({
+    cmd: ["jj", "--no-pager", "--color=never", "util", "snapshot"],
+    cwd,
+    stdin: "ignore",
+    stdout: "ignore",
+    stderr: "pipe",
+    signal,
+    killSignal: "SIGKILL",
+  });
+  const [stderr, exit] = await Promise.all([new Response(child.stderr).text(), child.exited]);
+  if (exit !== 0 || signal.aborted)
+    return undetermined(`作業コピーを取り込めない: ${stderr.split("\n")[0] ?? ""}。jj st で原因を見るか、commit してから semlint check @- にかける`);
+  return ok(undefined);
+}
+
 export async function jj(cwd: string, args: string[], milliseconds = 120000) {
   const signal = AbortSignal.timeout(Math.max(1, Math.ceil(milliseconds)));
   const child = Bun.spawn({

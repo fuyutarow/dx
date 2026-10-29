@@ -4,7 +4,7 @@ import { ok, safeTry, type Result } from "neverthrow";
 import { parseInvocation, type Invocation } from "./cli.ts";
 import { readConfig } from "./config.ts";
 
-import { defaultBase, revision, root, show } from "./repository.ts";
+import { defaultBase, revision, root, show, snapshotWorkingCopy } from "./repository.ts";
 import { loadTypes, matches, reviewCommandRequirement } from "./policy.ts";
 import { isolationFindings, readSnapshot, ruleFiles, snapshotCache } from "./collection.ts";
 import { review } from "./commands/review.ts";
@@ -17,6 +17,8 @@ import { version } from "../package.json" with { type: "json" };
 
 type Output = { exit: number; stdout: string; stderr: string };
 export async function execute(invocation: Invocation, cwd = process.cwd()) {
+  const snapshot = await snapshotWorkingCopy(cwd);
+  if (snapshot.isErr()) return snapshot;
   return evaluate(invocation, cwd);
 }
 async function evaluate(
