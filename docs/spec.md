@@ -9,29 +9,29 @@
 
 **semlint は、記録を「構造の検査」と「Jev による review」の両方に通したものだけを正規の branch に入れ、入ったものを書き換えさせない道具である。**
 
-1 つの道具を、retrospectives・soks・research_record のどの repo にも同じように使う。repo ごとの決まりは、各 repo の `.dx/` に書く。
+1 つの道具を、retrospectives・soks・research_record のどの repo にも同じように使う。repo ごとの決まりは、各 repo の `.semlint/` に書く。
 
 ## 1. 用語
 
 | 用語 | 意味 |
 |---|---|
-| repo | semlint が相手にする jj（git）の repository。ルートに `dx.toml` を持つ |
-| 記録 | `.dx/` の type の `match` に当たるファイルから読み出した、1 件の単位。1 つのファイルから複数の記録を読むこともある（research_record の fragment） |
-| type | 記録の種類。`.dx/<type>.ts` に定義する（retrospectives なら retro、soks なら evi・sok・pro・led） |
-| 正規の branch | `dx.toml` の `branch`（既定は `alpha`）。remote 側のものが正本 |
+| repo | semlint が相手にする jj（git）の repository。ルートに `semlint.toml` を持つ |
+| 記録 | `.semlint/` の type の `match` に当たるファイルから読み出した、1 件の単位。1 つのファイルから複数の記録を読むこともある（research_record の fragment） |
+| type | 記録の種類。`.semlint/<type>.ts` に定義する（retrospectives なら retro、soks なら evi・sok・pro・led） |
+| 正規の branch | `semlint.toml` の `branch`（既定は `alpha`）。remote 側のものが正本 |
 | 受け入れる | 記録を正規の branch に入れること。**受け入れた ⇔ remote の正規の branch から到達できる** |
 | finding | `semlint check` の指摘 1 件 |
 | verdict | `semlint review` の結果 1 件。記録の sha256 と rubric の sha256 に結びつく |
-| rubric | Jev に問う問いの集まり（`.dx/rubrics/*.toml`） |
-| view | `.dx/` の type が定義する、読み取り専用の計算結果（索引、status など） |
+| rubric | Jev に問う問いの集まり（`.semlint/rubrics/*.toml`） |
+| view | `.semlint/` の type が定義する、読み取り専用の計算結果（索引、status など） |
 
 ## 2. 責務の分け方
 
 | 持ち主 | 持つもの | 持たないもの |
 |---|---|---|
 | **semlint** | 記録を読み出すこと（`ls`）、構造の検査（`check`）、Jev を呼んで verdict を記録に結びつけること（`review`）、受け入れ（`admit`）、view の計算（`view`） | 下のすべて |
-| **repo の `.dx/`** | type の定義（置き場所、形式、id、schema、links、immutable、その type だけの checks、rubric と verdict の置き場、views） | 実行の手順 |
-| **repo の `dx.toml`** | 配線の値（名前、remote、branch、review のコマンド、上限、読まないファイル） | 規則 |
+| **repo の `.semlint/`** | type の定義（置き場所、形式、id、schema、links、immutable、その type だけの checks、rubric と verdict の置き場、views） | 実行の手順 |
+| **repo の `semlint.toml`** | 配線の値（名前、remote、branch、review のコマンド、上限、読まないファイル） | 規則 |
 | git / jj | 保存、履歴、原子性、同時に書いたときの調停、パスを選んだ commit（`jj commit <paths>`）、blob | 記録の意味 |
 | Jev（`agx jev`） | review の推論そのもの | 何を問うか |
 | agx | 書き手ごとの workspace、作業の割り振り | 受け入れ |
@@ -57,7 +57,7 @@
 | US-02 | 書き手 | review | 構造が通った記録について `semlint review` を流し、verdict を得る |
 | US-03 | 書き手 | 受け入れ | `semlint admit` で、構造と verdict の両方が通った変更を入れる |
 | US-04 | 読み手 | 読む | `semlint ls` と `semlint view` で、ある revision の記録と view を読む |
-| US-05 | repo の保守者 | 規則を変える | `.dx/` を変えて admit する |
+| US-05 | repo の保守者 | 規則を変える | `.semlint/` を変えて admit する |
 | US-06 | 監査する者 | 読む | `semlint check --base A B` で、正規の branch の任意の範囲を後から判定する。`--policy alpha` で規則を読む revision を別に指定し、規則を持たない過去の履歴も今の規則で判定できる |
 
 | ID | semlint がしないこと | 持ち主 |
@@ -81,8 +81,8 @@
 | I-06 | rubric を持つ type の記録で、新しいものと変わったものはすべて、今の記録の sha256 と今の rubric の sha256 に結びついた合格の verdict を持つ。verdict の `by` は、記録の `by` と違う。記録に `by` が無いときは、作り手と判定者の違いを確かめられないので、`by` が `process:` で始まる（機械の判定者の）verdict だけを認める | check |
 | I-07 | `ls`、`check`、`view` は副作用が無く決定的である。判定できなければ終了コード 4 を返し、空の成功にしない。不正な UTF-8 の記録または inputs は読み替えず、`check: "format"` の finding にする | 各コマンド |
 | I-08 | 正規の branch は、check を通った commit への fast-forward でだけ動く | admit |
-| I-09 | 規則のファイル（`dx.toml`、`.dx/` 以下、`[files] inputs` に当たるファイル）または inputs 宣言を変える change は、ほかの記録を一緒に変えない。`check --policy` を明示した場合は検査しない | check |
-| I-10 | review は、check の finding が無い記録にだけ Jev を呼ぶ。そのため、既存の finding を持つ旧い記録を変えるときは、先にその記録の finding をすべて消す必要がある（rubric を持つ type の場合。retrospectives で 2026-10-17 に実際に起きた） | review |
+| I-09 | 規則のファイル（`semlint.toml`、`.semlint/` 以下、`[files] inputs` に当たるファイル）または inputs 宣言を変える change は、ほかの記録を一緒に変えない。`check --policy` を明示した場合は検査しない | check |
+| I-10 | review は、check の finding が無い記録にだけ Jev を呼ぶ。そのため、今その記録にある finding を持つ旧い記録を変えるときは、先にその記録の finding をすべて消す必要がある（rubric を持つ type の場合。retrospectives で 2026-10-17 に実際に起きた）。ここでいう「今その記録にある finding」は、base との比較で「既存」に分類される finding とは別である | review |
 
 | Story | 関わる禁止 | 守る invariant |
 |---|---|---|
@@ -106,24 +106,24 @@
 | # | ニーズ | 持ち主 | 移行で変わること |
 |---|---|---|---|
 | 1 | 記録を 1 か所に置き、後から読める | git + 各 repo | なし |
-| 2 | 構造の検査（ファイル名、frontmatter、schema、タイムゾーン、リンク、略語の定義、3 文書の組、引用先、孤児の evi、読解の深さ、leakcheck、大きさの上限） | `semlint check` + `.dx/` の checks | なし |
-| 3 | review（retro の blameless と多層の要因、polysearch の review、Jev の一括判定） | `semlint review` + `.dx/rubrics/` | なし。soks では新たに満たされる |
+| 2 | 構造の検査（ファイル名、frontmatter、schema、タイムゾーン、リンク、略語の定義、3 文書の組、引用先、孤児の evi、読解の深さ、leakcheck、大きさの上限） | `semlint check` + `.semlint/` の checks | なし |
+| 3 | review（retro の blameless と多層の要因、polysearch の review、Jev の一括判定） | `semlint review` + `.semlint/rubrics/` | なし。soks では新たに満たされる |
 | 4 | verdict が、その時点の本文に結びついている | I-06 | なし |
 | 5 | 自分で自分を review しない | I-06 | なし |
 | 6 | 一度入れたら変えない。訂正は後継の記録で行う | I-03、I-04 | なし。soks で強制していなかった「後継の参照先の実在」を強制する |
 | 7 | links の型、参照先、循環、id | I-04、I-05 | なし |
-| 8 | 予測の事前登録（試験される prediction は base の木にある） | research_record の `.dx/` の checks | なし |
+| 8 | 予測の事前登録（試験される prediction は base の木にある） | research_record の `.semlint/` の checks | なし |
 | 9 | 既存の違反を残したまま、新しい違反を止める | I-02 | なし |
 | 10 | 選んだパスだけを commit する | `jj commit <paths>` → `semlint admit @-` | なし |
 | 11 | 受け入れた記録が失われない | I-01、I-08 | なし。「受け入れたが push していない」状態が無くなる |
-| 12 | 正しい repo の正しい branch に入れる | `dx.toml` の remote と branch | なし |
-| 13 | view（soks の index と keys、polysearch の status、閉包の読み出し、期限切れの予測） | `semlint view` + `.dx/` の views | なし。commit する index は「view の出力と一致すること」を checks で検査する |
+| 12 | 正しい repo の正しい branch に入れる | `semlint.toml` の remote と branch | なし |
+| 13 | view（soks の index と keys、polysearch の status、閉包の読み出し、期限切れの予測） | `semlint view` + `.semlint/` の views | なし。commit する index は「view の出力と一致すること」を checks で検査する |
 | 14 | 作業中の変更を壊さない | 書き手ごとの workspace（D1） | なし。semlint は正規の作業木に先に書かない |
 | 15 | エージェントが正規の作業木に直接書くのを止める | harness | semlint からは消える。harness に規則を置き直すまで、soks の hook を外さない |
 | 16 | 人の git による push の検査 | push の権限を持つ人 | semlint からは消える（D2） |
 | 17 | 実際の著者 | git の author、agx の session | 一部が失われる（今も強い保証は無い） |
 | 18 | 実行の観測 | run | なし（D3） |
-| 19 | arena、candidate、rows の登録と contract の検査 | research_record の `.dx/` | なし |
+| 19 | arena、candidate、rows の登録と contract の検査 | research_record の `.semlint/` | なし |
 | 20 | leaderboard、研究の比較と再現 | 使う側 | semlint からは消える（D4）。使う側の移行を確かめてから旧い機能を消す |
 | 21 | 検索 | rr / ccc | なし |
 | 22 | 旧形式からの移行 | 完了済み。archive に置く | なし |
@@ -136,7 +136,7 @@
 | `semlint check [--all] [--base REV] [REV]` | 構造を検査し、verdict の結びつき（I-06）を確かめる | 新しい finding の JSONL（--all なら既存も含む） | なし |
 | `semlint review [REV]` | rubric を持つ type の記録のうち、新しいものと変わったもので finding が無いものについて、`[review] command` で jex を呼び、verdict を書く | verdict の JSONL | 作業コピーに verdict を書く。jex への問い合わせ |
 | `semlint admit [REV]` | check を通った REV で、remote の正規の branch を fast-forward する | 受領の JSON 1 値 | remote の正規の branch と、手元の bookmark |
-| `semlint view <name> [REV]`、`semlint view --list` | `.dx/` の views が定義する計算結果を出す | view の JSONL | なし |
+| `semlint view <name> [REV]`、`semlint view --list` | `.semlint/` の views が定義する計算結果を出す | view の JSONL | なし |
 
 書き手の普段の流れ:
 
@@ -182,11 +182,17 @@ semlint admit @-
 | `semlint admit [REV]` | REV は 1 個まで | 読まない | 例: `semlint admit @-` |
 | `semlint view <name> [REV]`、`semlint view --list` | name は必須。`--list` は単独で使う | 読まない | 例: `semlint view status \| jq 'select(.empirical_status=="falsified")'` |
 
-`check` は `dx.toml`、`.dx/`、`[files] inputs` の内容を、1 つの規則 revision から一度読み、
+`check` は `semlint.toml`、`.semlint/`、`[files] inputs` の内容を、1 つの規則 revision から一度読み、
 base と head の両方の評価に使う（I-02）。既定は head、`--policy REV` を明示したときはその REV とする。
 判定する木は変えない。`--base` の既定は、規則 revision の設定の branch と remote から決める。
 head と同じ REV を指定した場合も、`--policy` を明示したときは I-09 を検査せず、
 stderr に `semlint: --policy: I-09 の検査を省略します` を 1 行出す。
+
+判定の前に作業コピーを snapshot する。失敗時は終了コード 4 とし、stderr に
+`UNDETERMINED:作業コピーを取り込めない: <原因の 1 行>。jj st で原因を見るか、commit してから semlint check @- にかける`
+を出す。jj は 0.46.0 以上が必要で、足りない場合は終了コード 4 とし、
+`UNDETERMINED:jj 0.46.0 以上が要る（見つかったのは <版> at <場所>）。PATH の先頭に新しい jj を置く`
+を出す。jj が見つからない場合の版表示は `不明`、場所は `null`。
 
 ## C2 EFFECTS
 
@@ -221,7 +227,7 @@ verdict: `{"v":1,"id","sha256","rubric","rubric_sha256","by","at","bits","p":[�
 | TTY か非 TTY か | 同じ JSONL / JSON | 人向けの要約（例: 「新しい finding 3 件 / 既存 244 件」）、待ちの表示、警告 | 色や表は付けない。人は jq で整形する |
 | 失敗したとき | check は新しい finding のみ（--all なら既存も含む）、review は判定まで終わった finding と verdict を全件出す | 理由を 1 行。拒否コードを先頭に付ける | 同じ |
 
-`.dx/` の bundle・import 失敗は `UNDETERMINED:policy: <path>: <原因の 1 行>` とする。
+`.semlint/` の bundle・import 失敗は `UNDETERMINED:policy: <path>: <原因の 1 行>` とする。
 review が I-10 で記録を飛ばす場合は `REVIEW_BLOCKED: <id>: I-10: 既存の finding N 件を先に消す` を出す。
 N はその記録に該当する verdict 以外の finding の件数。id のない format finding には path を使う。
 
@@ -233,18 +239,22 @@ N はその記録に該当する verdict 以外の finding の件数。id のな
 |---|---|---|---|
 | 新しい finding が無い。review ならすべて合格。admit なら push まで済んだ | 0 | check は stdout 空（--all なら既存 finding）。review は verdict、admit は受領 | なし |
 | 新しい finding がある。review で不合格がある。fast-forward でない | 1 | check は新しい finding のみ（--all なら既存も含む）、review は finding と verdict を全件。fast-forward でなければ `NOT_FAST_FORWARD` | 記録を直すか、rebase してから流し直す |
+| head が remote branch の子孫でない | 1 | stderr の3行: `NOT_FAST_FORWARD` / `compared: <branch>@<remote> = <base>; <head> is not its descendant` / `next: jj git fetch --remote <remote> && jj rebase -b <head> -d '<branch>@<remote>'` | 表示された fetch と rebase を行って再実行する |
 | push が pre-push / pre-receive hook に拒否された | 1 | stderr に `PUSH_REJECTED` と Git が出した拒否理由の最初の行 | hook や入力を直してから流し直す |
 | 使い方の誤り | 2 | stderr に使い方 | 引数を直す |
+| 旧コマンド `land` | 2 | stderr に `USAGE: unknown command: land（admit に改名した）` | `semlint admit` を使う |
 | 一時的な失敗（lease の外れ・remote の ref のロック競合、remote または jex の不達、時間切れ、照合後も結果が分からない） | 3 | stderr に `RACE`、`REMOTE_UNAVAILABLE`、`REVIEW_UNAVAILABLE`、`RESULT_UNKNOWN` | `RACE` は必要なら fetch と rebase をしてから流し直す。`RESULT_UNKNOWN` は受け入れを確認する |
-| 判定できない（REV が無い、`.dx/` が読めない・型が合わない、上限を超えた、I/O の失敗） | 4 | stderr に `UNDETERMINED:<理由>`。stdout は空 | 原因を直す |
+| 判定できない（REV が無い、`.semlint/` が読めない・型が合わない、上限を超えた、I/O の失敗） | 4 | stderr に `UNDETERMINED:<理由>`。stdout は空 | 原因を直す |
 
 review の jex 終了コードは次のように semlint の結果へ写す。jex exit 0/1 の stdout は、`model` と全 criteria id の `bits` を検証して verdict を作る。各 criteria の p は同じ id の bit の p、`pass` はすべて p ≥ 0.5、`by` は `process:jex/<model>`、reason は verdict の `reasons`（id → reason）に保存する。jex exit 2/4 は semlint exit 4 `UNDETERMINED`、exit 3 は semlint exit 3 `REVIEW_UNAVAILABLE`。model が `{na:true}`、bit の欠落、または不正な JSON 形は semlint exit 4 で、verdict を書かない。jex exit 4 でも応答が届いた場合は stdout があり得るが、semlint は verdict にしない。
 
 ## C5 EVOLUTION
 
+改名は owner の指示で猶予を置かずに切り替えた（D15）。`land` の拒否文言は `admit` に改名した旨を含む。
+
 `treeChecks` と共有索引を使う追加コマンドは作らない。`semlint check --base A B` が従来の checks と
-treeChecks の両方を実行する。`.dx/` の読み込み・実行・戻り値の検証の失敗は終了コード 4 とする。
-semlint は静的な型検査コマンドを持たない。必要な repo は `.dx/` 側の設定で `bun check` を実行する。
+treeChecks の両方を実行する。`.semlint/` の読み込み・実行・戻り値の検証の失敗は終了コード 4 とする。
+semlint は静的な型検査コマンドを持たない。必要な repo は `.semlint/` 側の設定で `bun check` を実行する。
 
 - Positive receipt: 未取得（試作 1 で、`semlint check` が exit 0 で出力する finding を取る）
 - Negative receipt: 未取得（試作 1 で、immutable な記録を変えた差分に対して exit 1 になる出力を取る）
@@ -252,17 +262,19 @@ semlint は静的な型検査コマンドを持たない。必要な repo は `.
 | Surface | Promise | Change / deprecation | Verification receipt |
 |---|---|---|---|
 | サブコマンド名と位置引数 | 安定 | 消すときは、1 つの版の間、警告を出してから消す | 試作の後に取る |
-| `dx.toml` の `limits.check_seconds` と `review.pass` | 廃止済み。未知の項目として exit 4 で拒否する | 0.1.0 の 1 つの版の間、警告を出してから削除した | 設定の互換性試験、soks の影運用 |
+| `semlint.toml` の `limits.check_seconds` と `review.pass` | 廃止済み。未知の項目として exit 4 で拒否する | 0.1.0 の 1 つの版の間、警告を出してから削除した | 設定の互換性試験、soks の影運用 |
 | JSONL のフィールド（`v`=1） | 足すだけ | 意味を変えるときは `v` を上げる | 試作の後に取る |
 | 終了コード 0〜4 | 安定 | 変えない | 試作の後に取る |
-| finding の `key` の形 | 安定（I-02 がこれに頼る） | 変えるときは、旧い key との対応表を `.dx/` に置く | 試作の後に取る |
-| `.dx/` の type 定義の API | 3 つの repo が載るまでは不安定 | 3 つが載ったら安定にする | 3 つの repo の影運用 |
+| finding の `key` の形 | 安定（I-02 がこれに頼る） | 変えるときは、旧い key との対応表を `.semlint/` に置く | 試作の後に取る |
+| `.semlint/` の type 定義の API | 3 つの repo が載るまでは不安定 | 3 つが載ったら安定にする | 3 つの repo の影運用 |
 
-## 6. dx.toml
+## 6. semlint.toml
 
 ```toml
+edition = 1
+
 [repo]
-name   = "retrospectives"   # 別の repo から引くときの名前（dx:<name>/<id>）。必須
+name   = "retrospectives"   # 別の repo から引くときの名前（ref:<repo>/<id>）。必須
 remote = "origin"           # admit の push 先
 branch = "alpha"            # 正規の branch
 
@@ -280,34 +292,39 @@ inputs = []                 # 規則が読む入力の glob。ignore より優�
 strict = false              # true なら、どの type にも当たらないファイルを finding にする
 ```
 
+`edition = 1` は必須で、TOML の先頭に書く。欠落、未知の edition、整数以外の型は
+`UNDETERMINED` として終了コード 4 で拒否する。`dx.toml` または `.dx/` が存在する場合は旧配置として拒否し、
+`UNDETERMINED:dx.toml と .dx/ は読まない。semlint.toml（先頭に edition = 1）と .semlint/ に移す`
+を stderr に出して終了コード 4 にする。
+
 - `name` と `[review] command` 以外の値は、すべて上の値が既定になる。
-- `[review] command` に既定値はない。rubric を持つ type が 1 つでもある repo では必須で、未指定なら `semlint check` と `semlint review` は `UNDETERMINED:policy: dx.toml: [review] command を書く（例: ["jex"]）` を出して終了コード 4 にする。rubric を持つ type が無ければ省略できる。
+- `[review] command` に既定値はない。rubric を持つ type が 1 つでもある repo では必須で、未指定なら `semlint check` と `semlint review` は `UNDETERMINED:policy: semlint.toml: [review] command を書く（例: ["jex"]）` を出して終了コード 4 にする。rubric を持つ type が無ければ省略できる。
 - `files.ignore` を指定すると既定全体を置き換える（足し合わせない）。`ignore = []` も指定できる。
 - 廃止済みの `limits.check_seconds` と `review.pass` は未知の項目として exit 4 にする。
 - review は、すべての問いの確率が 0.5 以上なら合格とする。
 - 判定全体の時間の上限は呼び出し側が持つ（`timeout 120 semlint check`、agx の `timeout_s`、CI）。
-- `dx.toml` に規則は書かない。規則は `.dx/` に書く。
+- `semlint.toml` に規則は書かない。規則は `.semlint/` に書く。
 - inputs に当たるファイルは snapshot に残り、`tree.files` と `tree.read` で読める。
   base の評価でも、規則 revision（既定は head）の内容とファイル集合を返す。
   inputs のパターンを足しただけでは、既存の記録の当たりを新しい finding にしない。
   type の match にも当たる場合は inputs を優先し、記録にはしない。
-- inputs の内容は判定する規則を左右するため、その追加・変更・削除を `.dx/` と同じ規則の変更として I-09 に含める。
+- inputs の内容は判定する規則を左右するため、その追加・変更・削除を `.semlint/` と同じ規則の変更として I-09 に含める。
   `inputs` 宣言自体の変更も同じ扱いとする。規則を緩める変更と、その緩みを使う記録の変更を分けるためである。
   各 change の前後両方の inputs と type の match で確かめ、宣言の削除で記録の変更を隠せないようにする。
 
-## 7. .dx/ の type 定義
+## 7. .semlint/ の type 定義
 
 ```
 <repo>/
-  dx.toml
-  .dx/
+  semlint.toml
+  .semlint/
     <type>.ts        # 1 つの type に 1 ファイル
     rubrics/*.toml   # review の問い
 ```
 
 ```ts
-// .dx/retro.ts（retrospectives の例。中身は今の schema.ts と check.ts）
-import { defineType } from "dx";
+// .semlint/retro.ts（retrospectives の例。中身は今の schema.ts と check.ts）
+import { defineType } from "semlint";
 
 export default defineType({
   name: "retro",
@@ -325,8 +342,8 @@ export default defineType({
 });
 ```
 
-- `review.place` は `"file:<glob>"` だけを受け付け、verdict を別のファイルに置く。`"frontmatter"` は使えない。`file:<glob>` は規則のファイル（`dx.toml`、`.dx/`、`[files] inputs`）に当たらないものとする。
-- すべての type に semlint が必ずかける検査は、I-02〜I-06 と I-09。`.dx/` に書く必要はない。
+- `review.place` は `"file:<glob>"` だけを受け付け、verdict を別のファイルに置く。`"frontmatter"` は使えない。`file:<glob>` は規則のファイル（`semlint.toml`、`.semlint/`、`[files] inputs`）に当たらないものとする。
+- すべての type に semlint が必ずかける検査は、I-02〜I-06 と I-09。`.semlint/` に書く必要はない。
 
 0.1.6 の review では、jex に渡す `questions.toml` の各問いの `text` を、次の順序の 5 行にする。
 
@@ -355,12 +372,12 @@ export default defineType({
    例外または文字列配列以外の返り値は、理由を出して exit 4 にする。
    省略時は従来どおり、空でない文字列またはその配列を候補とし、異なる形は `I-04.links` の finding にする。
 2. 候補の文字列全体を id とする。空の id は許可しない。
-3. id が `dx:<name>/<id>`（name、id ともに空でなく、name は `/` を含まない）の形なら、
+3. 新しい参照は `ref:<repo>/<id>`（repo、id ともに空でなく、repo は `/` を含まない）の形とする。`dx:<repo>/<id>` は受け入れ済みの記録にすでにある参照としてだけ読む。新しい、または変更された記録に `dx:` があれば `links.scheme` finding にする。
    name を `[repo] name` と比較する。異なる repo の参照は形だけを認識して link から除き、
    I-04 の実在・型・循環の検査をしない。同じ repo の参照は `<id>` を内部 id として検査する。
    この形に当たらない値は通常の内部 id として扱う。
 
-候補の選択や id の変換は `values` で行う。`dx:` の repo 判定は上記に従う。
+候補の選択や id の変換は `values` で行う。`ref:` の repo 判定は上記に従う。
 記録の `links` には抽出・正規化後の内部参照だけを入れ、元の値は `fields` に残す。
 `limits.links_per_record` は、`values` の適用後の link 件数を数える（同じ参照の複数回の出現も数える）。
 head の同じ宣言で base も評価し、参照先のない既存の supersedes も I-02 に従って既存扱いにする。
@@ -415,7 +432,7 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 
 **順序:**
 
-1. 試作 1: semlint と retrospectives の `.dx/`。合格の条件は次の 3 つ。
+1. 試作 1: semlint と retrospectives の `.semlint/`。合格の条件は次の 3 つ。
    - records/ の全件で、今の gate（`lint:records`）と同じ判定になる。
    - immutable、links、id、verdict の結びつきについて、違反を 1 つずつ入れた差分がすべて拒否される。
    - `semlint review` が、今の `review.ts` と同じ verdict（bits）を返す。
@@ -434,7 +451,7 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 | polysearch-v1 | compare crate | 使う側（ニーズ 20） |
 | retrospectives | `candidate.ts`、`lint-records.ts`、`lint-oxlint.ts`、`review.ts` | `jj commit <paths>`、`semlint check`、dotfiles の preset、`semlint review` |
 
-**残すもの:** 各 repo の `.dx/`（今の規則と rubric を移したもの）と、polysearch の run。
+**残すもの:** 各 repo の `.semlint/`（今の規則と rubric を移したもの）と、polysearch の run。
 
 ## 9. 決定の記録
 
@@ -446,28 +463,30 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 | D4 | leaderboard、研究の比較と再現は semlint の外に置く | owner「研究再現性は別の問題で semlint の責務分界の外」 |
 | D5 | blob の管理は semlint の外に置く | owner「blob は管理しなくていいだろ」 |
 | D6 | review（Jev）は semlint の中心に置く | owner「semlint は jev を利用しないの？？そこが肝なんじゃないの？？」 |
-| D7 | status の導出（証明依存グラフ）は、semlint 本体ではなく research_record の `.dx/` の view に置く | 記録のグラフだけから決まる研究の意味なので、repo が持つ（2026-10-17、coordinator の提案。反対があれば改める） |
+| D7 | status の導出（証明依存グラフ）は、semlint 本体ではなく research_record の `.semlint/` の view に置く | 記録のグラフだけから決まる研究の意味なので、repo が持つ（2026-10-17、coordinator の提案。反対があれば改める） |
 | D9 | `semlint review` は `[review] command`（例 `command = ["jex"]`）を `<command…> questions.toml <記録の path> <evidence の path…>` の形で呼ぶ。cwd は semlint が作る一時ディレクトリで、rubric の criteria（最大 8 件）を `schema = 1` と `[[question]]`（`id`、`text`）からなる questions TOML にし、記録と evidence も repo 内の相対 path で一時ディレクトリに書く。記録と問いは切らず、evidence は `fitEvidence` の規則で合計 30,000 bytes 以内にする。jex の JSON stdout と終了コードを検証し、bits と exit 0/1 から verdict を作る。要求 JSON は semlint で組み立てない。 | dotfiles に rubric 道具がなく作成予定もないため、持ち主の判断で jex 呼び出しに切り替えた（2026-10-19） |
-| D8 | 名前: `ls`、`check`、`review`、`admit`、`view`、`.dx/`、type、`checks`、`immutable`、`links`、`[repo]`、`branch`、`[review]`、`[files]`、`sha256`、`by` | 既存の 3 つの repo と OKF の語にそろえる（Unix の副原則 3）。`.dx/` は、道具が持つ設定を dot ディレクトリに置く慣習（`.claude/`、`.githooks/`、`.cocoindex_code/`）に合わせ、repo の中身（records/、knowledge/）と分ける（owner、2026-10-17） |
+| D8 | 名前: `ls`、`check`、`review`、`admit`、`view`、`.semlint/`、type、`checks`、`immutable`、`links`、`[repo]`、`branch`、`[review]`、`[files]`、`sha256`、`by` | 既存の 3 つの repo と OKF の語にそろえる（Unix の副原則 3）。設定を dot ディレクトリに置く慣習（`.claude/`、`.githooks/`、`.cocoindex_code/`）に合わせ、repo の中身（records/、knowledge/）と分ける（配置名は D15 で改定） |
 | D10 | 時間の上限は呼び出し側が持つ。schema と pass の設定は、使う人がいないので消した。旧設定の 2 項目は C5 に従って 0.1.x の間は警告して無視する | owner の簡素化依頼、coordinator の削除・移行決定（2026-10-17） |
 | D11 | 変わった記録は、既存の finding も含めてすべて無いことを求める（I-02） | soks-govern の L と retrospectives の gate が、どちらも「変えた記録は潔白に」を求めていたため（2026-10-17） |
 | D12 | 複数記録に関わる finding は、`ids` のどれか 1 つでも新しいか変わった記録なら new とする（I-02） | I-02 の新規・変更記録に対する規則を、複数記録 finding にも適用するため（2026-10-18） |
 | D13 | head で記録を生まないファイルも、bytes が変われば、その path の finding を new とする（I-02） | policy revision のもとで、壊れた inputs を入れる commit が既存 finding として通る穴を塞ぐため（2026-10-18） |
-| D14 | semlint は Homebrew で配布する。共通 fuyutarow/homebrew-tap の alpha にある Formula/dx.rb が公開 archive 4本（darwin/linux × arm64/x64）の SHA-256 を持つ。配布担当者が公開 archive を download/hash して Formula だけを SHA 条件付きで commit して公開し、brew update・brew upgrade fuyutarow/tap/dx と consumer の PATH 経由の semlint --version の一致を確かめ、最後に共通 tap の update-formulas.yml を tool=semlint で起動するまで release 完了としない。mise の semlint 宣言と bun global install は使わない | owner の Homebrew 決定を agx coordinator が伝達、2026-10-25。以前の mise 宣言方針を置換。手順は README の release:finish |
+| D14 | semlint は Homebrew で配布する。共通 fuyutarow/homebrew-tap の alpha にある Formula/semlint.rb が公開 archive 4本（darwin/linux × arm64/x64）の SHA-256 を持つ。配布担当者が公開 archive を download/hash して Formula だけを SHA 条件付きで commit して公開し、brew update・brew upgrade fuyutarow/tap/semlint と consumer の PATH 経由の semlint --version の一致を確かめ、最後に共通 tap の update-formulas.yml を tool=semlint で起動するまで release 完了としない。mise の semlint 宣言と bun global install は使わない | owner の Homebrew 決定を agx coordinator が伝達、2026-10-25。以前の mise 宣言方針を置換。手順は README の release:finish |
+| D15 | 名前は semlint、admit とする。配置は `semlint.toml`（先頭に `edition = 1`）と `.semlint/`、新しい参照は `ref:<repo>/<id>` とし、凍結済み記録にある `dx:<repo>/<id>` は読み続ける。alpha を動かすのは repo ごとに一者とする。jj の最低版は 0.46.0。改名は猶予を置かずに切り替える | owner「dx という名前が駆逐されることを期待します」、2026-10-29。agx の担当と合意、2026-10-29。実装に合わせた配置・edition・参照・最低版 |
 
 ## 10. 残差
 
 | # | 残差 | 扱い |
 |---|---|---|
+| R-17 | `links.scheme` は変わっていない記録の `dx:` にも finding を出し、既存に分類される | `check --all` に残る |
 | R-16 | research-record-v2 0.1.6 の 90 件の取り直しで残る残差は、同じ rubric での 1 件の flip（`pe4-flip-clarified-seed1-observation`。jev の p は [0.83, 0.54, 0.92]、0.1.5 は [0.91, 0.32, 0.81]、0.1.6 は [0.82, 0.46, 0.91]。jev でも 2 問目は合格線 0.5 の近く）と、link 先の切り詰め（90 件中 42 件）。どちらも判定が厳しくなる向きで、悪い記録が入る向きではない。 | 持ち主は semlint（予算の配り方）と jex（入力の上限）。合否の変わる記録が出たら、記録の id と p で報告を受ける。link 先の切り詰めが合否を変えた例が出たら、予算の配り方を見直す。出典: research-record-v2 alpha `3b809485` の `docs/jex-rereview-016.json`。 |
 | R-1 | firedancer に、削除済みの leaderboard を呼ぶ箇所が残っている（`launcher/repository.test.ts:146-149`、`v1_record.test.ts:307-335`、`ModelRegistry.jl/scripts/generate_editions_catalog.ts:249-269`、`lineage_gate.ts:133-148`） | 使う側の課題として firedancer に渡す（D4） |
 | R-2 | 時刻と `by` は自己申告で、偽造できる | 今と同じ水準。必要になったら、署名つきの commit を admit の条件に加える |
 | R-3 | finding の key が版をまたいで同じでないと、I-02 が誤る | key の形を契約にする（§5 C5） |
 | R-4 | run の、親プロセスを失ったときの復旧 | semlint の外（D3） |
-| R-5 | repo をまたぐ参照 | §7 の `dx:<name>/<id>` を扱う。name が `[repo] name` と異なれば形だけを認識し I-04 から除く。同じなら id を内部参照として実在・型と、acyclic の宣言に従う循環を検査する。repo 外の参照先は解決しない |
+| R-5 | repo をまたぐ参照 | 新しい参照は `ref:<repo>/<id>`。凍結済みの記録に含まれる `dx:<repo>/<id>` は読み取る。name が `[repo] name` と異なれば形だけを認識し I-04 から除く。同じなら id を内部参照として実在・型と、acyclic の宣言に従う循環を検査する。repo 外の参照先は解決しない |
 | R-6 | 移行が正しいか | §8 の影運用で確かめる |
 | R-7 | 全記録を毎回検査する費用（soks 6,748 文書、research_record 3,132 fragment） | 試作 2、3 で測る。遅ければ base 側の読み出し結果を cache する |
-| R-8 | soks: review の要求の上限（30,000 バイト）を超える文書が 266 件（全 6,789 件の 3.9%）、100 KB を超えるものが 5 件ある（2026-10-17 に `wc -c knowledge/*.md` で計測） | 上限を超えた記録の review は、終了コード 4（判定できない）で止める。黙って切り詰めない。分割して review するか、その type には別の rubric を当てるかは、soks の `.dx/` で決める（未決） |
+| R-8 | soks: review の要求の上限（30,000 バイト）を超える文書が 266 件（全 6,789 件の 3.9%）、100 KB を超えるものが 5 件ある（2026-10-17 に `wc -c knowledge/*.md` で計測） | 上限を超えた記録の review は、終了コード 4（判定できない）で止める。黙って切り詰めない。分割して review するか、その type には別の rubric を当てるかは、soks の `.semlint/` で決める（未決） |
 | R-9 | soks: rubric がまだ無い。今の soks は `semantic_review: not_performed` で、review を求めると、新しい evi ごとに Jev の費用と、待ち時間が加わる | soks の rubric を書くまで、soks の type には `review` を宣言しない（今と同じ水準）。宣言した時点から、新しいものと変わったものに review を求める |
 | R-10 | soks: 生成した `knowledge/index.md`（2.7 MB）を commit している。admit のたびに同じ 1 ファイルが変わるので、並行して admit すると、毎回 RACE → rebase → index の作り直しになる | 読んでいるのは soks-govern の push の認証（custody.rs:134-143）だけで、外の使う側は見つからなかった（2026-10-17、soks のセッションの範囲を限った検索）。soks-govern の push を退役させたら、commit をやめて `semlint view index` で読む |
 | R-11 | soks: 書き手の流れが変わる。今は、worker が scratchpad に bundle を作り、soks-govern が alpha に書く唯一の書き手である。semlint では、worker が soks の自分の workspace に直接書く | 書き手の手順書（AGENTS.md）を書き換える。新しい evi の UUIDv7 は書き手が作る（今の `soks-govern ids` に当たるものは semlint に無い） |

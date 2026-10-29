@@ -2,6 +2,8 @@
 
 状態: 論証の記録（2026-10-17）。**仕様は [spec.md](spec.md) が唯一の正本であり、この文書と食い違う箇所は spec.md を正とする。** 特に、意味の判定（Jev）を dx の外に置いた §0 と §3 は誤りで、spec.md の D6 で改めた。名前（kinds、derive、judge など）も spec.md の D8 で改めた。根拠は `notes/genealogy/*.md`（系譜の調査）と、polysearch-v1・soks・retrospectives への聞き取り。soks の系譜は未着で、届いたら §7 で照合する。
 
+名前と配置は spec D15 で semlint に改めた。
+
 ## 0. 結論
 
 dx は **「型付きの不変な記録のグラフを、git の上で、1 点の関門だけで守る道具」** である。
