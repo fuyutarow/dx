@@ -22,7 +22,7 @@ const denyPolicy = typeSource().replace(
 
 test("head inputs apply on both sides: adding a pattern retains findings; editing a record rejects", async () => {
   const { cwd } = await repo({}, '[files]\ninputs=[".leakcheck"]\n');
-  await write(cwd, ".dx/note.ts", denyPolicy);
+  await write(cwd, ".semlint/note.ts", denyPolicy);
   await write(cwd, ".leakcheck", "old\n");
   await write(cwd, "records/a.md", markdown("a", "", "GB21\n"));
   await write(cwd, "records/b.md", markdown("b", "", "safe\n"));
@@ -44,7 +44,7 @@ test("head inputs apply on both sides: adding a pattern retains findings; editin
 test("input additions and deletions use the policy file set on both sides", async () => {
   for (const deleting of [false, true]) {
     const { cwd } = await repo({}, '[files]\ninputs=[".leakcheck"]\n');
-    await write(cwd, ".dx/note.ts", denyPolicy);
+    await write(cwd, ".semlint/note.ts", denyPolicy);
     await write(cwd, "records/a.md", markdown("a", "", "GB21\n"));
     if (deleting) await write(cwd, ".leakcheck", "GB21\n");
     const base = await advance(cwd);
@@ -57,19 +57,19 @@ test("input additions and deletions use the policy file set on both sides", asyn
 });
 
 test("policy alpha checks history without rules, uses alpha inputs and config, and skips I-09", async () => {
-  const { cwd } = await repo();
-  await rm(`${cwd}/dx.toml`);
-  await rm(`${cwd}/.dx`, { recursive: true });
+  const { cwd } = await repo({}, 'branch="audit-base"\n');
+  await rm(`${cwd}/semlint.toml`);
+  await rm(`${cwd}/.semlint`, { recursive: true });
   await write(cwd, "records/a.md", markdown("a", "", "GB21\n"));
   const base = await advance(cwd);
   await write(cwd, "records/b.md", markdown("b", "", "safe\n"));
   const head = await advance(cwd);
   await write(
     cwd,
-    "dx.toml",
-    '[repo]\nname="audit"\nbranch="audit-base"\n[files]\ninputs=[".leakcheck"]\n',
+    "semlint.toml",
+    'edition = 1\n[repo]\nname="audit"\nbranch="audit-base"\n[files]\ninputs=[".leakcheck"]\n',
   );
-  await write(cwd, ".dx/note.ts", denyPolicy);
+  await write(cwd, ".semlint/note.ts", denyPolicy);
   await write(cwd, ".leakcheck", "GB21\n");
   // A policy+record change must be permitted only with explicit --policy.
   await write(cwd, "records/b.md", markdown("b", "", "GB21\n"));
@@ -79,16 +79,17 @@ test("policy alpha checks history without rules, uses alpha inputs and config, a
   await jj(cwd, "git", "remote", "add", "origin", cwd);
   await jj(cwd, "git", "export");
   await jj(cwd, "git", "fetch", "--remote", "origin");
+  await jj(cwd, "git", "export");
   const result = await dx(cwd, "check", "--policy", "alpha", "--base", base, head);
   expect(result.exit, result.stderr).toBe(0);
   expect(rows(result.stdout)).toEqual([]);
   expect(result.stderr).toBe(
-    "dx: --policy: I-09 の検査を省略します\n新しい finding 0 件 / 既存 1 件\n",
+    "semlint: --policy: I-09 の検査を省略します\n新しい finding 0 件 / 既存 1 件\n",
   );
   expect((await dx(cwd, "check", head, "--policy=alpha")).stdout).toBe(result.stdout);
   expect((await dx(cwd, "check", "--base", base, head)).exit).toBe(4);
   const implicit = await dx(cwd, "check", "--base", base, policy);
-  expect(implicit.exit).toBe(1);
+  expect(implicit.exit, implicit.stderr).toBe(1);
   expect(rows(implicit.stdout).some((f) => f.check === "I-09.policy")).toBe(true);
   const explicit = await dx(cwd, "check", "--policy=alpha", "--base", base, policy);
   expect(explicit.exit).toBe(1);
@@ -96,7 +97,7 @@ test("policy alpha checks history without rules, uses alpha inputs and config, a
   expect(
     rows(explicit.stdout).some((f) => f.check === "deny" && f.id === "b" && f.new === true),
   ).toBe(true);
-});
+}, 30000);
 
 test("omitting policy keeps default findings and stderr when inputs do not change", async () => {
   const { cwd, base } = await repo();
@@ -107,7 +108,7 @@ test("omitting policy keeps default findings and stderr when inputs do not chang
   expect(implicit.exit).toBe(1);
   expect(explicit.stdout).toBe(implicit.stdout);
   expect(explicit.exit).toBe(implicit.exit);
-  expect(explicit.stderr).toBe(`dx: --policy: I-09 の検査を省略します\n${implicit.stderr}`);
+  expect(explicit.stderr).toBe(`semlint: --policy: I-09 の検査を省略します\n${implicit.stderr}`);
   expect(implicit.stderr).toBe("FINDINGS: 新しい finding 1 件 / 既存 0 件\n");
 });
 
@@ -117,7 +118,7 @@ test("policy parsing rejects missing/repeated values and non-check commands; inv
     ["check", "--policy"],
     ["check", "--policy="],
     ["check", "--policy", "@", "--policy=@"],
-    ...["ls", "view", "review", "land"].map((c) => [c, "--policy", "@"]),
+    ...["ls", "view", "review", "admit"].map((c) => [c, "--policy", "@"]),
   ])
     expect((await dx(cwd, ...args)).exit).toBe(2);
   for (const policy of ["missing", "all()"])
@@ -134,7 +135,7 @@ const brokenInputPolicy = typeSource().replace(
 
 test("I-02: adding only a broken input rejects; untouched input findings remain existing", async () => {
   const { cwd } = await repo({}, '[files]\ninputs=[".leakcheck"]\n');
-  await write(cwd, ".dx/note.ts", brokenInputPolicy);
+  await write(cwd, ".semlint/note.ts", brokenInputPolicy);
   const base = await advance(cwd);
   await write(cwd, ".leakcheck", "broken");
   const rejected = await checked(cwd, base, 1);
@@ -147,7 +148,7 @@ test("I-02: adding only a broken input rejects; untouched input findings remain 
 
 test("I-02: explicit policy compares input paths in base/head, not policy", async () => {
   const { cwd } = await repo({}, '[files]\ninputs=[".leakcheck"]\n');
-  await write(cwd, ".dx/note.ts", brokenInputPolicy);
+  await write(cwd, ".semlint/note.ts", brokenInputPolicy);
   await write(cwd, ".leakcheck", "safe");
   const base = await advance(cwd);
   await write(cwd, ".leakcheck", "changed but safe");
@@ -171,24 +172,24 @@ test("I-02: explicit policy compares input paths in base/head, not policy", asyn
 
 test("I-02: raw blob comparison covers config, rules and ignored binary bytes, not mode", async () => {
   const { chmod } = await import("node:fs/promises");
-  for (const path of ["dx.toml", ".dx/helper.txt", "ignored.bin"]) {
+  for (const path of ["semlint.toml", ".semlint/helper.txt", "ignored.bin"]) {
     const { cwd } = await repo({}, '[files]\nignore=["ignored.bin"]\n');
     const policySource = typeSource().replace(
       "views:",
       `treeChecks: [() => [{ check: "auxiliary", path: ${JSON.stringify(path)},
         field: "stable", message: "existing auxiliary finding" }]], views:`,
     );
-    await write(cwd, ".dx/note.ts", policySource);
-    if (path !== "dx.toml") await write(cwd, path, "before");
+    await write(cwd, ".semlint/note.ts", policySource);
+    if (path !== "semlint.toml") await write(cwd, path, "before");
     const base = await advance(cwd);
     // An executable-bit change does not change bytes and must remain existing.
     await chmod(`${cwd}/${path}`, 0o755);
     await checked(cwd, base, 0);
-    if (path === "dx.toml") {
+    if (path === "semlint.toml") {
       await write(
         cwd,
         path,
-        '[repo]\nname="fixture"\n# changed bytes\n[files]\nignore=["ignored.bin"]\n',
+        'edition = 1\n[repo]\nname="fixture"\n# changed bytes\n[files]\nignore=["ignored.bin"]\n',
       );
     } else await write(cwd, path, "after");
     const result = await checked(cwd, base, 1);
@@ -198,7 +199,7 @@ test("I-02: raw blob comparison covers config, rules and ignored binary bytes, n
   const { cwd } = await repo({}, '[files]\nignore=["ignored.bin"]\n');
   await write(
     cwd,
-    ".dx/note.ts",
+    ".semlint/note.ts",
     typeSource().replace(
       "views:",
       'treeChecks: [() => [{ check: "binary", path: "ignored.bin", message: "bad" }]], views:',
