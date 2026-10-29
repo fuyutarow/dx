@@ -18,10 +18,11 @@ import { test, expect, beforeEach, afterEach } from "bun:test";
 import { join } from "node:path";
 import { mkdir, rm, chmod, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { land } from "../../src/commands/land.ts";
+import { admit } from "../../src/commands/admit.ts";
 import { readConfig } from "../../src/config.ts";
+import { CURRENT } from "../../src/layout.ts";
 import { execute } from "../../src/main.ts";
-import { pushOutcome, run } from "../../src/land/process.ts";
+import { pushOutcome, run } from "../../src/admit/process.ts";
 
 const timeout = 60000;
 const originalConfigHome = process.env.XDG_CONFIG_HOME;
@@ -77,7 +78,7 @@ for (const colocate of [true, false])
       const { cwd, remote, base } = await fixture(colocate);
       await write(cwd, "records/a.md", markdown("a"));
       const head = await snapshot(cwd);
-      const result = await dx(cwd, "land");
+      const result = await dx(cwd, "admit");
       expect(result.exit, result.stderr).toBe(0);
       expect(decode(fieldsSchema, result.stdout)).toEqual({
         v: 1,
@@ -101,9 +102,9 @@ test(
   async () => {
     const { cwd, remote, base } = await fixture();
     await jj(cwd, "new", "root()");
-    await write(cwd, "dx.toml", '[repo]\nname="fixture"\n');
+    await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n');
     await snapshot(cwd);
-    const result = await dx(cwd, "land");
+    const result = await dx(cwd, "admit");
     expect(result.exit).toBe(1);
     expect(result.stderr).toContain("NOT_FAST_FORWARD");
     expect(result.stdout).toBe("");
@@ -120,7 +121,7 @@ test(
     await write(cwd, "records/b.md", markdown("b", "bad: true\n"));
     const head = await snapshot(cwd);
     const preview = await dx(cwd, "check", "--base", base, head);
-    const result = await dx(cwd, "land", head);
+    const result = await dx(cwd, "admit", head);
     expect(result.exit).toBe(1);
     expect(result.stdout).toBe(preview.stdout);
     expect(rows(result.stdout)).toHaveLength(2);
@@ -141,17 +142,17 @@ test(
     await write(cwd, "records/loser.md", markdown("loser"));
     const head = await snapshot(cwd);
     const result = value(
-      await land(
+      await admit(
         cwd,
         head,
-        value(readConfig('[repo]\nname="fixture"')),
+        value(readConfig('edition = 1\n[repo]\nname="fixture"', CURRENT)),
         async (actualBase, rev) => {
           expect(actualBase).toBe(base);
           const checked = value(
             await execute({ command: "check", base: actualBase, rev, list: false }, cwd),
           );
           expect(checked.exit).toBe(0);
-          expect((await dx(other, "land", winner)).exit).toBe(0);
+          expect((await dx(other, "admit", winner)).exit).toBe(0);
           return ok(checked);
         },
       ),
@@ -169,11 +170,11 @@ test(
   async () => {
     const { cwd, remote } = await fixture();
     await rm(remote, { recursive: true });
-    const result = await dx(cwd, "land");
+    const result = await dx(cwd, "admit");
     expect(result.exit).toBe(3);
     expect(result.stderr).toBe("REMOTE_UNAVAILABLE\n");
     expect(result.stdout).toBe("");
-    const invalid = await dx(cwd, "land", "not-a-revision");
+    const invalid = await dx(cwd, "admit", "not-a-revision");
     expect(invalid.exit).toBe(4);
     expect(invalid.stdout).toBe("");
   },
@@ -195,7 +196,7 @@ test(
       `#!${process.execPath}\nimport { renameSync } from "node:fs";\nrenameSync(${JSON.stringify(join(cwd, ".jj"))}, ${JSON.stringify(join(cwd, ".jj-disabled"))});\n`,
     );
     await chmod(hook, 0o755);
-    const result = await dx(cwd, "land", head);
+    const result = await dx(cwd, "admit", head);
     expect(result.exit, result.stderr).toBe(0);
     expect(result.stderr).toContain("WARNING:");
     expect(decode(fieldsSchema, result.stdout).commit).toBe(head);
@@ -219,7 +220,7 @@ test(
       `#!${process.execPath}\nconst child = Bun.spawn(["git", "--git-dir=${join(cwd, ".git")}", "remote", "set-url", "origin", ${JSON.stringify(join(cwd, ".git", "missing.git"))}], {stdout:"ignore", stderr:"inherit"}); process.exit(await child.exited);\n`,
     );
     await chmod(hook, 0o755);
-    const result = await dx(cwd, "land", head);
+    const result = await dx(cwd, "admit", head);
     expect(result.exit, result.stderr).toBe(0);
     expect(result.stderr).toContain(
       "WARNING: push succeeded; jj remote-tracking bookmark could not be updated\n",
@@ -242,7 +243,7 @@ test(
   async () => {
     const { cwd } = await fixture();
     for (const args of [["--force"], ["@", "@-"]])
-      expect((await dx(cwd, "land", ...args)).exit).toBe(2);
+      expect((await dx(cwd, "admit", ...args)).exit).toBe(2);
   },
   timeout,
 );
@@ -269,7 +270,7 @@ test(
   "fetch and push each emit one waiting line after two seconds",
   async () => {
     for (const phase of ["fetch", "push"]) {
-      const script = `import { run } from ${JSON.stringify(join(import.meta.dir, "../../src/land/process.ts"))}; await run(process.cwd(), [process.execPath, "-e", "await Bun.sleep(2200)"], {remote:"origin", phase:${JSON.stringify(phase)}});`;
+      const script = `import { run } from ${JSON.stringify(join(import.meta.dir, "../../src/admit/process.ts"))}; await run(process.cwd(), [process.execPath, "-e", "await Bun.sleep(2200)"], {remote:"origin", phase:${JSON.stringify(phase)}});`;
       const result = await processRun(import.meta.dir, [process.execPath, "-e", script]);
       expect(result.exit).toBe(0);
       expect(result.stderr).toBe(`dx: waiting for origin (${phase})…\n`);
@@ -286,7 +287,7 @@ test(
     const head = await advance(cwd);
     await write(cwd, "records/b.md", markdown("b", "bad: true\n"));
     await snapshot(cwd);
-    const result = await dx(cwd, "land", head);
+    const result = await dx(cwd, "admit", head);
     expect(result.exit, result.stderr).toBe(0);
     expect(await tip(remote)).toBe(head);
   },
@@ -300,9 +301,9 @@ test(
     await git(remote, "update-ref", "refs/heads/release", base);
     await jj(cwd, "git", "remote", "rename", "origin", "upstream");
     await git(cwd, "remote", "set-url", "--push", "upstream", join(cwd, ".git", "missing.git"));
-    await write(cwd, "dx.toml", '[repo]\nname="fixture"\nremote="upstream"\nbranch="release"\n');
+    await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\nremote="upstream"\nbranch="release"\n');
     const head = await snapshot(cwd);
-    const result = await dx(cwd, "land", head);
+    const result = await dx(cwd, "admit", head);
     expect(result.exit, result.stderr).toBe(0);
     expect(decode(fieldsSchema, result.stdout)).toEqual({
       v: 1,
@@ -346,7 +347,7 @@ for (const hookName of ["pre-push", "pre-receive"])
         `#!${process.execPath}\nconsole.error("Git LFS upload failed: (missing) fixture.pointer"); process.exit(1);\n`,
       );
       await chmod(hook, 0o755);
-      const result = await dx(cwd, "land", head);
+      const result = await dx(cwd, "admit", head);
       expect(result.exit, result.stderr).toBe(1);
       expect(result.stderr).toContain("PUSH_REJECTED\n");
       expect(result.stderr).toContain("Git LFS upload failed: (missing) fixture.pointer");
@@ -417,7 +418,7 @@ for (const mode of ["accepted", "descendant", "race", "unavailable", "ancestry-e
         `PATH=${path}`,
         process.execPath,
         join(import.meta.dir, "../../src/main.ts"),
-        "land",
+          "admit",
         head,
       ]);
       const accepted = ["accepted", "descendant"].includes(mode);
@@ -482,7 +483,7 @@ test("eight concurrent writers: every attempt agrees with remote ancestry", asyn
           `PATH=${path}`,
           process.execPath,
           join(import.meta.dir, "../../src/main.ts"),
-          "land",
+        "admit",
           head,
         ]);
         return Object.assign({ head }, result);

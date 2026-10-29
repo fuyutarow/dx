@@ -15,6 +15,7 @@ import { test, expect } from "bun:test";
 import { readdir, readFile, lstat, symlink } from "node:fs/promises";
 import { join } from "node:path";
 import { readConfig } from "../src/config.ts";
+import { CURRENT } from "../src/layout.ts";
 import { sha256 } from "../src/formats.ts";
 import { version } from "../package.json" with { type: "json" };
 
@@ -200,7 +201,7 @@ test(
           "42",
         ),
     ]) {
-      await write(cwd, ".dx/note.ts", source);
+      await write(cwd, ".semlint/note.ts", source);
       await snapshot(cwd);
       const result = await dx(cwd, "check", "--base", base);
       expect(result.exit, result.stderr).toBe(4);
@@ -231,7 +232,7 @@ test(
 );
 
 test("configuration defaults match §6 exactly", () => {
-  expect(value(readConfig('[repo]\nname="fixture"\n'))).toEqual({
+  expect(value(readConfig('edition = 1\n[repo]\nname="fixture"\n', CURRENT))).toEqual({
     repo: { name: "fixture", remote: "origin", branch: "alpha" },
     review: {},
     limits: { record_bytes: 4194304, records: 200000, links_per_record: 10000 },
@@ -315,12 +316,12 @@ test(
     const { cwd } = await repo();
     await write(
       cwd,
-      ".dx/helpers/identity.ts",
+      ".semlint/helpers/identity.ts",
       "export const identity = file => String(file.fields.id);\n",
     );
     await write(
       cwd,
-      ".dx/note.ts",
+      ".semlint/note.ts",
       typeSource()
         .replace(
           'import { z } from "zod";',
@@ -367,15 +368,15 @@ test(
   "invalid config and invalid schema declarations fail closed",
   async () => {
     const { cwd } = await repo();
-    await write(cwd, "dx.toml", '[repo]\nname="fixture"\n[limits]\nrecords=0\n');
+    await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n[limits]\nrecords=0\n');
     await snapshot(cwd);
     const config = await dx(cwd, "ls");
     expect(config.exit).toBe(4);
     expect(config.stdout).toBe("");
-    await write(cwd, "dx.toml", '[repo]\nname="fixture"\n');
+    await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n');
     await write(
       cwd,
-      ".dx/note.ts",
+      ".semlint/note.ts",
       typeSource().replace(
         "schema: z.looseObject({ id: z.string(), title: z.string().min(1) })",
         "schema: {}",
@@ -410,7 +411,7 @@ test("retired and unknown config keys fail closed", async () => {
     ["limits", "unknown"],
     ["review", "unknown"],
   ] as const) {
-    await write(cwd, "dx.toml", `[repo]\nname="fixture"\n[${section}]\n${key}=1\n`);
+    await write(cwd, "semlint.toml", `edition = 1\n[repo]\nname="fixture"\n[${section}]\n${key}=1\n`);
     await snapshot(cwd);
     const invalid = await dx(cwd, "ls");
     expect(invalid.exit).toBe(4);
@@ -427,7 +428,7 @@ test("C4: a later policy failure discards findings already computed for earlier 
   await write(cwd, "records/b.md", markdown("b"));
   await write(
     cwd,
-    ".dx/note.ts",
+    ".semlint/note.ts",
     typeSource().replace(
       "record.fields.bad === true",
       '(() => { if (record.id === "b") throw Error("later policy failure"); return record.fields.bad === true; })()',

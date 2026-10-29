@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { sha256 } from "../src/formats.ts";
 import { readSnapshot, ruleFiles } from "../src/collection.ts";
 import { readConfig } from "../src/config.ts";
+import { CURRENT } from "../src/layout.ts";
 import { loadTypes } from "../src/policy.ts";
 import { advance, main, processRun, rows, value, write } from "./helpers.ts";
 
@@ -16,7 +17,7 @@ test.skipIf(process.env.DX_LINK_MATCH_SHADOW !== "1")(
     const source = process.env.DX_LINK_MATCH_SOKS ?? "/home/fuyu/Workspace/soks.ws/ws_dx-shadow";
     const cwd = await mkdtemp(join(tmpdir(), "dx-link-match-shadow-"));
     const run = (cmd: string[]) => processRun(cwd, cmd, 300000);
-    for (const path of [".dx", "dx.toml", ".leakcheck"])
+    for (const path of [".semlint", "semlint.toml", ".leakcheck"])
       await cp(join(source, path), join(cwd, path), { recursive: true });
     // Derived inputs belong to the policy snapshot, so adding the corpus later
     // does not manufacture I-09 findings for simultaneous input/record edits.
@@ -24,7 +25,7 @@ test.skipIf(process.env.DX_LINK_MATCH_SHADOW !== "1")(
       if (await Bun.file(join(source, path)).exists())
         await write(cwd, path, await readFile(join(source, path), "utf8"));
     }
-    const policyPath = ".dx/helpers/type.ts";
+    const policyPath = ".semlint/helpers/type.ts";
     const originalPolicy = await readFile(join(cwd, policyPath), "utf8");
     expect(originalPolicy).toContain("links: { sok_supersedes: { to: role } },");
     // The baseline measures soks's custom checks without dx's pre-existing
@@ -68,8 +69,9 @@ test.skipIf(process.env.DX_LINK_MATCH_SHADOW !== "1")(
     expect(unchanged.exit, unchanged.stderr).toBe(0);
     // ls deliberately refuses a partial corpus when existing format findings are
     // present. Inspect the same collected records through the library instead.
-    const types = value(await loadTypes(value(await ruleFiles(cwd, "@", 300000))));
-    const config = value(readConfig(await readFile(join(cwd, "dx.toml"), "utf8")));
+    const ruleSet = value(await ruleFiles(cwd, "@", 300000));
+    const types = value(await loadTypes(ruleSet.files));
+    const config = value(readConfig(await readFile(join(cwd, "semlint.toml"), "utf8"), ruleSet.layout ?? CURRENT));
     const collected = value(await readSnapshot(cwd, "@", config, types, 300000));
     const current = rows(after.stdout);
     const internal = current.filter((f) => String(f.check).startsWith("I-04."));

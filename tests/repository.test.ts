@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { RevisionReader, show } from "../src/repository.ts";
 import { readSnapshot, snapshotCache } from "../src/collection.ts";
 import { readConfig } from "../src/config.ts";
+import { CURRENT } from "../src/layout.ts";
 import { loadTypes } from "../src/policy.ts";
 
 test("batch framing preserves empty, binary, Unicode and unusual-path blobs", async () => {
@@ -37,9 +38,9 @@ test("same blobs across revisions are parsed once, while changed blobs are parse
   const base = await advance(cwd);
   await write(cwd, "records/b.md", markdown("b", "", "Changed\n"));
   const head = await snapshot(cwd);
-  const config = value(readConfig(value(await show(cwd, head, "dx.toml", 20000))));
+  const config = value(readConfig(value(await show(cwd, head, "semlint.toml", 20000)), CURRENT));
   const types = value(
-    await loadTypes({ ".dx/note.ts": value(await show(cwd, head, ".dx/note.ts", 20000)) }),
+    await loadTypes({ ".semlint/note.ts": value(await show(cwd, head, ".semlint/note.ts", 20000)) }),
   );
   const cache = snapshotCache(cwd, 20000);
   const current = value(await readSnapshot(cwd, head, config, types, 20000, cache));

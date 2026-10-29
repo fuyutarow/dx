@@ -62,7 +62,7 @@ export async function write(cwd: string, path: string, text: string) {
 export function typeSource(
   options: { immutable?: boolean; review?: string; format?: string } = {},
 ) {
-  return `import { defineType } from "dx";
+  return `import { defineType } from "semlint";
 import { z } from "zod";
 export default defineType({
   name: "note", match: "records/*.${options.format === "toml" ? "toml" : "md"}",
@@ -95,9 +95,9 @@ export async function repo(options: Parameters<typeof typeSource>[0] = {}, confi
     options.review !== undefined && !config.includes("[review]")
       ? '\n[review]\ncommand = ["jex"]\n'
       : "";
-  await write(cwd, "dx.toml", `[repo]\nname = "fixture"\n${config}${reviewConfig}`);
-  await write(cwd, ".dx/note.ts", typeSource(options));
-  if (options.review !== undefined) await write(cwd, ".dx/rubrics/r.toml", 'rubric = "r"\n');
+  await write(cwd, "semlint.toml", `edition = 1\n[repo]\nname = "fixture"\n${config}${reviewConfig}`);
+  await write(cwd, ".semlint/note.ts", typeSource(options));
+  if (options.review !== undefined) await write(cwd, ".semlint/rubrics/r.toml", 'rubric = "r"\n');
   const base = await advance(cwd);
   return { cwd, base };
 }

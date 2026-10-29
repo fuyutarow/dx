@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { chmod } from "node:fs/promises";
 import { join } from "node:path";
 import { dx, markdown, processRun, repo, snapshot, write } from "./helpers.ts";
-import { pushRejectionDetails } from "../src/land/process.ts";
+import { pushRejectionDetails } from "../src/admit/process.ts";
 
 const timeout = 60000;
 
@@ -29,7 +29,7 @@ test(
     );
     await chmod(hook, 0o755);
 
-    const result = await dx(cwd, "land", head);
+    const result = await dx(cwd, "admit", head);
     expect(result.exit, result.stderr).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toStartWith("PUSH_REJECTED\nremote:");
