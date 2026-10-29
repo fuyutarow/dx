@@ -40,7 +40,7 @@ test("--all preserves new input findings and rejection against root()", async ()
   await write(cwd, ".leakcheck", "invalid pattern");
   await write(
     cwd,
-    ".dx/note.ts",
+    ".semlint/note.ts",
     typeSource().replace(
       "views:",
       `treeChecks: [tree => [{ check: "policy.input", id: "policy:input", path: ".leakcheck", field: "pattern", message: tree.read(".leakcheck") }]], views:`,
@@ -67,12 +67,14 @@ test("--all is a check-only boolean flag and appears in help", async () => {
     ["review", "--all"],
     ["ls", "--all"],
     ["view", "--all"],
-    ["land", "--all"],
   ]) {
     const result = await dx(cwd, ...args);
     expect(result.exit).toBe(2);
     expect(result.stdout).toBe("");
   }
+  const land = await dx(cwd, "land");
+  expect(land.exit).toBe(2);
+  expect(land.stderr).toContain("unknown command: land");
 });
 
 test("absent default remote branch uses root; explicit missing base still fails", async () => {
@@ -103,7 +105,7 @@ test("default ignore excludes dependencies at every depth; explicit ignore repla
   await write(cwd, "node_modules/dep/file.txt", "dependency");
   await write(cwd, "app/node_modules/dep/file.txt", "dependency");
   await checked(cwd, "root()", 0);
-  await write(cwd, "dx.toml", '[repo]\nname="fixture"\n[files]\nstrict=true\nignore=[]\n');
+  await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n[files]\nstrict=true\nignore=[]\n');
   const included = await checked(cwd, "root()", 1);
   expect(
     new Set(included.findings.filter((f) => f.check === "files.strict").map((f) => f.path)),
@@ -111,21 +113,21 @@ test("default ignore excludes dependencies at every depth; explicit ignore repla
 }, 60000);
 
 for (const [label, files, path, cause] of [
-  ["syntax", { ".dx/note.ts": "export default { broken: ; };" }, ".dx/note.ts", "Unexpected"],
+  ["syntax", { ".semlint/note.ts": "export default { broken: ; };" }, ".semlint/note.ts", "Unexpected"],
   [
     "missing import",
-    { ".dx/note.ts": 'import x from "./helpers/missing.ts"; export default x;' },
-    ".dx/note.ts",
+    { ".semlint/note.ts": 'import x from "./helpers/missing.ts"; export default x;' },
+    ".semlint/note.ts",
     "missing revision module",
   ],
   [
     "runtime",
     {
-      ".dx/note.ts": 'import x from "./helpers/throw.ts"; export default x;',
-      ".dx/helpers/throw.ts":
+      ".semlint/note.ts": 'import x from "./helpers/throw.ts"; export default x;',
+      ".semlint/helpers/throw.ts":
         'throw new Error("policy exploded\\nsecond line"); export default {};',
     },
-    ".dx/helpers/throw.ts",
+    ".semlint/helpers/throw.ts",
     "policy exploded",
   ],
 ] as const) {
