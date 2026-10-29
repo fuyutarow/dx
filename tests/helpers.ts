@@ -1,4 +1,4 @@
-import { jsonOf, z } from "../.dx-preset/zod.ts";
+import { jsonOf, z } from "../.preset/zod.ts";
 import type { Result } from "neverthrow";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";

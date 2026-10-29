@@ -1,4 +1,4 @@
-import { jsonOf, z } from "../../.dx-preset/zod";
+import { jsonOf, z } from "../../.preset/zod";
 
 const questionsSchema = z.object({
   schema: z.literal(1),

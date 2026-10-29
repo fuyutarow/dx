@@ -3,7 +3,7 @@ import { mkdtemp, realpath, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { err, ok, ResultAsync, safeTry } from "neverthrow";
-import { jsonOf, z } from "../.dx-preset/zod.ts";
+import { jsonOf, z } from "../.preset/zod.ts";
 import { releasePlatforms } from "./release-platforms.ts";
 import { renderFormula, releaseVersion, type FormulaAsset } from "./brew-formula.ts";
 

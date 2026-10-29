@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { z } from "../.dx-preset/zod.ts";
+import { z } from "../.preset/zod.ts";
 import { runJex } from "../src/commands/review.ts";
 import type { Evidence } from "../src/model.ts";
 import { decode, temporaryDirectory } from "./helpers.ts";

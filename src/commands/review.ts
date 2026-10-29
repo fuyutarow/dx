@@ -1,4 +1,4 @@
-import { jsonOf } from "../../.dx-preset/zod.ts";
+import { jsonOf } from "../../.preset/zod.ts";
 import { validate, requireValue, attemptAsync, undetermined } from "../errors.ts";
 
 import { ok, safeTry } from "neverthrow";

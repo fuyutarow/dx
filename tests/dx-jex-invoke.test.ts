@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { dx, markdown, repo, rows, snapshot, write, jj, spawn, decode } from "./helpers.ts";
-import { z } from "../.dx-preset/zod.ts";
+import { z } from "../.preset/zod.ts";
 import type { Evidence } from "../src/model.ts";
 
 const rubric = (count = 1) =>

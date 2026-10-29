@@ -27,6 +27,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", ".dx-preset/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", ".preset/**/*.ts"],
   "exclude": ["node_modules"]
 }

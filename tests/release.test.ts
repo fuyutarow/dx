@@ -21,7 +21,7 @@ async function verify(cwd: string, base: string, temporary: string) {
   const root = join(main, "../..");
   await mkdir(source);
   await cp(join(root, "src"), join(source, "src"), { recursive: true });
-  await cp(join(root, ".dx-preset"), join(source, ".dx-preset"), { recursive: true });
+  await cp(join(root, ".preset"), join(source, ".preset"), { recursive: true });
   await cp(join(root, "package.json"), join(source, "package.json"));
   await symlink(join(root, "node_modules"), join(source, "node_modules"));
   const binary = join(temporary, "semlint");

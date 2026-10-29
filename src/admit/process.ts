@@ -3,7 +3,7 @@ import { attemptAsync, undetermined } from "../errors.ts";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { jsonOf, z } from "../../.dx-preset/zod.ts";
+import { jsonOf, z } from "../../.preset/zod.ts";
 
 export type ProcessResult = {
   stdout: string;
