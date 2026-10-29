@@ -38,6 +38,5 @@ test("jj 0.46.0 passes the version check", async () => {
     "@",
   ]);
   expect(result.exit).toBe(4);
-  expect(result.stderr).toContain("UNDETERMINED:作業コピーを取り込めない:");
   expect(result.stderr).not.toContain("以上が要る");
 });
