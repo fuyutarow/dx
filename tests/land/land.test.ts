@@ -106,7 +106,13 @@ test(
     await snapshot(cwd);
     const result = await dx(cwd, "admit");
     expect(result.exit).toBe(1);
-    expect(result.stderr).toContain("NOT_FAST_FORWARD");
+    const head = /compared: alpha@origin = [^;]+; ([0-9a-f]+) is not its descendant/u.exec(
+      result.stderr,
+    )?.[1];
+    expect(head).toMatch(/^[0-9a-f]+$/u);
+    expect(result.stderr).toBe(
+      `NOT_FAST_FORWARD\ncompared: alpha@origin = ${base}; ${head} is not its descendant\nnext: jj git fetch --remote origin && jj rebase -b ${head} -d 'alpha@origin'\n`,
+    );
     expect(result.stdout).toBe("");
     expect(await tip(remote)).toBe(base);
   },
@@ -273,7 +279,7 @@ test(
       const script = `import { run } from ${JSON.stringify(join(import.meta.dir, "../../src/admit/process.ts"))}; await run(process.cwd(), [process.execPath, "-e", "await Bun.sleep(2200)"], {remote:"origin", phase:${JSON.stringify(phase)}});`;
       const result = await processRun(import.meta.dir, [process.execPath, "-e", script]);
       expect(result.exit).toBe(0);
-      expect(result.stderr).toBe(`dx: waiting for origin (${phase})…\n`);
+      expect(result.stderr).toBe(`semlint: waiting for origin (${phase})…\n`);
     }
   },
   timeout,
