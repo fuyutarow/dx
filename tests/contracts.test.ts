@@ -143,6 +143,14 @@ async function inventory(root: string, path = ""): Promise<Record<string, string
   return entries;
 }
 
+function repoBytes(entries: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(entries).filter(
+      ([path]) => !path.startsWith(".jj/") && !path.startsWith(".git/"),
+    ),
+  );
+}
+
 test(
   "I-07: all four commands are deterministic and leave every repo byte unchanged",
   async () => {
@@ -153,12 +161,6 @@ test(
     await snapshot(cwd);
     await write(cwd, "records/unsnapshotted.md", markdown("not-in-revision"));
     const before = await inventory(cwd);
-    const repoBytes = (entries: Record<string, string>) =>
-      Object.fromEntries(
-        Object.entries(entries).filter(
-          ([path]) => !path.startsWith(".jj/") && !path.startsWith(".git/"),
-        ),
-      );
     for (const args of [
       ["ls", revision],
       ["check", "--base", revision],
