@@ -2,20 +2,22 @@ import { ok, safeTry, ResultAsync } from "neverthrow";
 import { requireValue, undetermined } from "./errors.ts";
 import { posix } from "node:path";
 import { plugin } from "bun";
-import * as dx from "./index.ts";
+import * as semlint from "./index.ts";
 import * as zod from "zod";
 import * as neverthrow from "neverthrow";
 import { z } from "zod";
 import { rejectRemovedLinkMatch, typeSchema } from "./model.ts";
 import type { Config } from "./config.ts";
+import { isLayoutPath, policyDir } from "./layout.ts";
 
 // Policies share the host's API and fixed dependencies, including in a standalone
 // executable where import.meta.resolve cannot find packages on the filesystem.
-const runtimeModules: Record<string, Record<string, unknown>> = { dx, zod, neverthrow };
+// "dx" is the legacy specifier, accepted for one release with the legacy layout (spec D15).
+const runtimeModules: Record<string, Record<string, unknown>> = { semlint, dx: semlint, zod, neverthrow };
 plugin({
-  name: "dx-policy-runtime",
+  name: "semlint-policy-runtime",
   setup(build) {
-    build.onLoad({ filter: /.*/u, namespace: "dx-runtime" }, (args) => ({
+    build.onLoad({ filter: /.*/u, namespace: "semlint-runtime" }, (args) => ({
       exports: runtimeModules[args.path] ?? {},
       loader: "object",
     }));
@@ -26,24 +28,25 @@ export function matches(patterns: string | readonly string[], path: string): boo
   const values = typeof patterns === "string" ? [patterns] : patterns;
   return values.some((pattern) => new Bun.Glob(pattern).match(path));
 }
-/** Rule files: dx.toml, everything under .dx/, and [files] inputs. The one home for "what is policy". */
+/** Rule files: the config file, everything under the policy directory, and [files] inputs. The one home for "what is policy". */
 export function isPolicyPath(path: string, inputs: readonly string[]): boolean {
-  return path === "dx.toml" || path.startsWith(".dx/") || matches(inputs, path);
+  return isLayoutPath(path) || matches(inputs, path);
 }
 export function reviewCommandRequirement(
   types: readonly z.infer<typeof typeSchema>[],
   config: Config,
 ) {
   if (types.some((type) => type.review !== undefined) && config.review.command === undefined)
-    return undetermined('policy: dx.toml: [review] command を書く（例: ["agx", "worker", "jev"]）');
+    return undetermined('policy: semlint.toml: [review] command を書く（例: ["agx", "worker", "jev"]）');
   return ok(undefined);
 }
 export async function loadTypes(files: Readonly<Record<string, string>>) {
   return safeTry(async function* () {
+    const dir = policyDir(Object.keys(files));
     const entries = Object.keys(files)
-      .filter((p) => /^\.dx\/[^/]+\.ts$/u.test(p))
+      .filter((p) => p.startsWith(dir) && /^[^/]+\.ts$/u.test(p.slice(dir.length)))
       .toSorted();
-    if (entries.length === 0) return undetermined(".dx/: no type definitions");
+    if (entries.length === 0) return undetermined(`${dir}: no type definitions`);
     // Bundle revision sources in memory, then dynamically import them. Runtime onResolve
     // does not reliably intercept bare package imports in Bun 1.4.2; build hooks do.
     const entry =
@@ -65,21 +68,21 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
           name: "dx-revision",
           setup(build) {
             build.onResolve({ filter: /.*/u }, (args) => {
-              if (args.path === "dx" || args.path === "zod" || args.path === "neverthrow")
+              if (Object.hasOwn(runtimeModules, args.path))
                 return {
-                  path: `dx-runtime:${args.path}`,
+                  path: `semlint-runtime:${args.path}`,
                   external: true,
                 };
               if (args.path === "/dx-revision/entry.ts")
                 return { path: args.path, namespace: "dx-revision" };
               if (!args.path.startsWith("."))
                 return rejected(
-                  `policy import must be relative, dx, zod or neverthrow: ${args.path}`,
+                  `policy import must be relative, semlint, zod or neverthrow: ${args.path}`,
                   args.importer,
                 );
               let path = posix.normalize(posix.join(posix.dirname(args.importer), args.path));
-              if (!path.startsWith("/dx-revision/.dx/"))
-                return rejected(`policy import escapes .dx/: ${path}`, args.importer);
+              if (!path.startsWith(`/dx-revision/${dir}`))
+                return rejected(`policy import escapes ${dir}: ${path}`, args.importer);
               if (
                 files[path.slice(13)] === undefined &&
                 files[`${path.slice(13)}.ts`] !== undefined
@@ -108,7 +111,7 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
         `policy: ${path}: ${log?.message.replaceAll(/\s*\n\s*/gu, " ") ?? "bundle failed"}`,
       );
     }
-    const output = yield* requireValue(result.outputs[0], ".dx/: empty module build");
+    const output = yield* requireValue(result.outputs[0], `${dir}: empty module build`);
     const code = await output.text();
     const module = yield* await ResultAsync.fromPromise<unknown, string>(
       import(
@@ -120,7 +123,7 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
         const preceding = code.split("\n").slice(0, line === undefined ? 0 : Number(line));
         const path =
           preceding
-            .flatMap((text) => /^\/\/ .*\/dx-revision\/(\.dx\/.*)$/u.exec(text)?.[1] ?? [])
+            .flatMap((text) => /^\/\/ .*\/dx-revision\/(\.(?:dx|semlint)\/.*)$/u.exec(text)?.[1] ?? [])
             .at(-1) ?? entries[0];
         return `policy: ${path}: ${error instanceof Error ? error.message : String(error)}`;
       },
@@ -148,14 +151,14 @@ export async function loadTypes(files: Readonly<Record<string, string>>) {
     for (const definition of definitions.success ? definitions.data.default : [])
       yield* rejectRemovedLinkMatch(definition);
     const parsed = z.object({ default: z.array(typeSchema) }).safeParse(module);
-    if (!parsed.success) return undetermined(`.dx/: ${parsed.error.message}`);
+    if (!parsed.success) return undetermined(`${dir}: ${parsed.error.message}`);
     const types = parsed.data.default;
     const views = new Set<string>();
     const names = new Set(types.map((t) => t.name));
     for (let index = 0; index < types.length; index += 1) {
       const type = types[index];
       if (type === undefined) continue;
-      if (entries[index] !== `.dx/${type.name}.ts`)
+      if (entries[index] !== `${dir}${type.name}.ts`)
         return undetermined(`type name must match file: ${entries[index]}`);
       const missingLink = Object.values(type.links)
         .flatMap((link) => (typeof link.to === "string" ? [link.to] : link.to))

@@ -43,11 +43,11 @@ export async function run(
     operation === undefined
       ? undefined
       : setTimeout(() => {
-          process.stderr.write(`dx: waiting for ${operation.remote} (${operation.phase})…\n`);
+          process.stderr.write(`semlint: waiting for ${operation.remote} (${operation.phase})…\n`);
         }, 2000);
   const result = await attemptAsync(async () => {
     const traceDir =
-      operation?.phase === "push" ? await mkdtemp(join(tmpdir(), "dx-push-")) : undefined;
+      operation?.phase === "push" ? await mkdtemp(join(tmpdir(), "semlint-push-")) : undefined;
     const trace = traceDir === undefined ? undefined : join(traceDir, "trace.jsonl");
     await using traceCleanup = {
       async [Symbol.asyncDispose]() {

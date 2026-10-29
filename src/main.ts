@@ -5,6 +5,7 @@ import { parseInvocation, type Invocation } from "./cli.ts";
 import { readConfig } from "./config.ts";
 
 import { defaultBase, revision, root, show } from "./repository.ts";
+import { legacyNotice } from "./layout.ts";
 import { loadTypes, matches, reviewCommandRequirement } from "./policy.ts";
 import { isolationFindings, readSnapshot, ruleFiles, snapshotCache } from "./collection.ts";
 import { review } from "./commands/review.ts";
@@ -12,13 +13,23 @@ import { check } from "./commands/check.ts";
 import { listRecords } from "./commands/ls.ts";
 import { view } from "./commands/view.ts";
 import { stableJson } from "./formats.ts";
-import { land } from "./commands/land.ts";
+import { admit } from "./commands/admit.ts";
 import { version } from "../package.json" with { type: "json" };
 
-export async function execute(
+type Output = { exit: number; stdout: string; stderr: string };
+/** The legacy-layout notice is printed once per invocation, not once per nested check. */
+export async function execute(invocation: Invocation, cwd = process.cwd()) {
+  let notice = "";
+  const result = await evaluate(invocation, cwd, (text) => {
+    notice = text;
+  });
+  return result.map((output) => ({ ...output, stderr: notice + output.stderr }));
+}
+async function evaluate(
   invocation: Invocation,
-  cwd = process.cwd(),
-): Promise<Result<{ exit: number; stdout: string; stderr: string }, string>> {
+  cwd: string,
+  announce: (notice: string) => void,
+): Promise<Result<Output, string>> {
   return safeTry(async function* () {
     const repo = yield* await root(cwd);
     const head = yield* await revision(repo, invocation.rev);
@@ -26,12 +37,18 @@ export async function execute(
       invocation.command === "check" && invocation.policy !== undefined
         ? yield* await revision(repo, invocation.policy)
         : head;
-    const configText = yield* await show(repo, policy, "dx.toml", 120000);
-    const config = yield* readConfig(configText);
-    if (invocation.command === "land")
+    // Repository I/O keeps its per-operation bound; callers bound total execution.
+    const ms = 120000;
+    const cache = snapshotCache(repo, ms);
+    const { layout, files: rules } = yield* await ruleFiles(repo, policy, ms, cache.reader);
+    if (layout === undefined) return undetermined("semlint.toml が無い（repo のルートに置く）");
+    announce(legacyNotice(layout));
+    const configText = yield* await show(repo, policy, layout.config, ms);
+    const config = yield* readConfig(configText, layout);
+    if (invocation.command === "admit")
       return ok(
-        yield* await land(repo, head, config, (base, rev) =>
-          execute({ command: "check", base, rev, list: false }, repo),
+        yield* await admit(repo, head, config, (base, rev) =>
+          evaluate({ command: "check", base, rev, list: false }, repo, () => {}),
         ),
       );
     let base: string | undefined;
@@ -44,10 +61,6 @@ export async function execute(
         baseNotice = resolved.fallback ? "base: remote branch absent; using root()\n" : "";
       }
     }
-    // Repository I/O keeps its per-operation bound; callers bound total execution.
-    const ms = 120000;
-    const cache = snapshotCache(repo, ms);
-    const rules = yield* await ruleFiles(repo, policy, ms, cache.reader);
     const types = yield* await loadTypes(rules);
     if (invocation.command === "check" || invocation.command === "review")
       yield* reviewCommandRequirement(types, config);
@@ -57,14 +70,14 @@ export async function execute(
       ),
     );
     for (const [path, text] of Object.entries(rules)) policyFiles.set(path, text);
-    policyFiles.set("dx.toml", configText);
+    policyFiles.set(layout.config, configText);
     const current = yield* await readSnapshot(repo, head, config, types, ms, cache, policyFiles);
     if (
       invocation.command !== "check" &&
       invocation.command !== "review" &&
       current.findings.some((finding) => finding.check === "format")
     )
-      return undetermined("record format could not be read; run dx check for findings");
+      return undetermined("record format could not be read; run semlint check for findings");
     if (invocation.command === "review" && base !== undefined) {
       const previous = yield* await readSnapshot(repo, base, config, types, ms, cache, policyFiles);
       const isolation = yield* await isolationFindings(
@@ -101,7 +114,7 @@ export async function execute(
           output.map((finding) => stableJson(finding)).join("\n") + (output.length > 0 ? "\n" : ""),
         stderr:
           baseNotice +
-          (invocation.policy === undefined ? "" : "dx: --policy: I-09 の検査を省略します\n") +
+          (invocation.policy === undefined ? "" : "semlint: --policy: I-09 の検査を省略します\n") +
           `${count > 0 ? "FINDINGS: " : ""}新しい finding ${count} 件 / 既存 ${findings.length - count} 件\n`,
       });
     }
@@ -121,7 +134,7 @@ async function main(): Promise<void> {
   const invocation = parseInvocation(Bun.argv.slice(2));
   if (invocation === undefined) return;
   if (invocation.command === "version") {
-    process.stdout.write(`dx ${version}\n`);
+    process.stdout.write(`semlint ${version}\n`);
     process.exitCode = 0;
     return;
   }

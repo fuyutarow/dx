@@ -21,7 +21,7 @@ function renderPlainHelp(nodes: Parameters<Renderers["render"]>[0], renderers: R
 }
 
 export const invocationSchema = z.object({
-  command: z.enum(["ls", "check", "review", "land", "view"]),
+  command: z.enum(["ls", "check", "review", "admit", "view"]),
   rev: z.string().default("@"),
   base: z.string().optional(),
   policy: z.string().optional(),
@@ -32,12 +32,16 @@ export const invocationSchema = z.object({
 export type Invocation = z.infer<typeof invocationSchema>;
 export type CliAction = Invocation | { command: "version" };
 function usage(reason: string): never {
-  process.stderr.write(`USAGE: ${reason}\nRun dx --help\n`);
+  process.stderr.write(`USAGE: ${reason}\nRun semlint --help\n`);
   process.exit(2);
 }
 /** Cleye owns parsing/help. This extra gate rejects repeat flags and extra positionals. */
-export function parseInvocation(args: string[]): CliAction | undefined {
-  const commands = ["ls", "check", "review", "land", "view"];
+export function parseInvocation(argv: string[]): CliAction | undefined {
+  const commands = ["ls", "check", "review", "admit", "view"];
+  // `land` was renamed to `admit`; C5 keeps the old name for one release with a warning.
+  const args = argv[0] === "land" ? ["admit", ...argv.slice(1)] : argv;
+  if (argv[0] === "land")
+    process.stderr.write("semlint: land は admit に改名した。次の版で land を消す\n");
   const name = args[0];
   if (name === undefined) usage("a command is required");
   if (name === "--version" || name === "-V") {
@@ -88,7 +92,7 @@ export function parseInvocation(args: string[]): CliAction | undefined {
     usage("view needs a name or --list");
   const parsed = cli(
     {
-      name: "dx",
+      name: "semlint",
       version,
       strictFlags: true,
       help: {
@@ -97,7 +101,7 @@ export function parseInvocation(args: string[]): CliAction | undefined {
       },
       commands: [
         command({
-          name: "land",
+          name: "admit",
           parameters: ["[REV]"],
           help: { description: "Check and fast-forward the remote branch with an explicit lease" },
         }),

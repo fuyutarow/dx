@@ -6,6 +6,7 @@ import { inputPatternsSchema, type Config } from "./config.ts";
 
 import { parseRecords, formatAdapter, formatFinding } from "./formats.ts";
 import { isPolicyPath, loadTypes, matches } from "./policy.ts";
+import { isLayoutPath, layoutOf } from "./layout.ts";
 import { jj, RevisionReader } from "./repository.ts";
 import {
   type FindingInput,
@@ -48,9 +49,12 @@ export async function ruleFiles(
   return safeTry(async function* () {
     const files: Record<string, string> = {};
     Object.setPrototypeOf(files, null);
-    const entries = (yield* await reader.tree(rev)).filter((e) => e.path.startsWith(".dx/"));
+    const tree = yield* await reader.tree(rev);
+    const layout = yield* layoutOf(tree.map(({ path }) => path));
+    if (layout === undefined) return ok({ layout, files });
+    const entries = tree.filter((e) => e.path.startsWith(layout.dir));
     for (const [path, text] of yield* await reader.read(entries)) files[path] = text;
-    return ok(files);
+    return ok({ layout, files });
   });
 }
 export async function readSnapshot(
@@ -95,8 +99,7 @@ export async function readSnapshot(
       return (
         !ignored(config, path) ||
         matches(config.files.inputs, path) ||
-        path.startsWith(".dx/") ||
-        path === "dx.toml" ||
+        isLayoutPath(path) ||
         verdictPath
       );
     });
@@ -116,15 +119,14 @@ export async function readSnapshot(
       if (
         ignored(config, path) &&
         !input &&
-        !path.startsWith(".dx/") &&
-        path !== "dx.toml" &&
+        !isLayoutPath(path) &&
         !verdictPath
       )
         continue;
       const selected = input ? [] : types.filter((t) => matches(t.match, path));
       if (selected.length > 1) return undetermined(`file matches multiple types: ${path}`);
       // Policy/config/verdict files are infrastructure and exempt from strict matching.
-      const auxiliary = input || path === "dx.toml" || path.startsWith(".dx/") || verdictPath;
+      const auxiliary = input || isLayoutPath(path) || verdictPath;
       if (selected.length === 0 && !auxiliary && config.files.strict)
         findings.push({
           check: "files.strict",
@@ -234,8 +236,10 @@ export async function isolationFindings(
       safeTry(async function* () {
         const cached = inputCache.get(rev);
         if (cached !== undefined) return ok(cached);
-        const entries = (yield* await reader.tree(rev)).filter((e) => e.path === "dx.toml");
-        const text = (yield* await reader.read(entries)).get("dx.toml");
+        const tree = yield* await reader.tree(rev);
+        const layout = yield* layoutOf(tree.map(({ path }) => path));
+        const entries = tree.filter((e) => e.path === layout?.config);
+        const text = layout === undefined ? undefined : (yield* await reader.read(entries)).get(layout.config);
         const patterns =
           text === undefined
             ? []
@@ -250,10 +254,12 @@ export async function isolationFindings(
       safeTry(async function* () {
         const cached = cache.get(rev);
         if (cached !== undefined) return ok(cached);
-        const files = yield* await ruleFiles(cwd, rev, ms, reader);
-        const loaded = Object.keys(files).some((p) => /^\.dx\/[^/]+\.ts$/u.test(p))
-          ? yield* await loadTypes(files)
-          : [];
+        const { layout, files } = yield* await ruleFiles(cwd, rev, ms, reader);
+        const loaded =
+          layout !== undefined &&
+          Object.keys(files).some((p) => /^[^/]+\.ts$/u.test(p.slice(layout.dir.length)))
+            ? yield* await loadTypes(files)
+            : [];
         cache.set(rev, loaded);
         return ok(loaded);
       });
@@ -284,7 +290,7 @@ export async function isolationFindings(
           check: "I-09.policy",
           path,
           field: path,
-          message: `policy and records changed together: policy files ${policyFileList}; 規則は dx.toml、.dx/ の下、[files] inputs。規則の変更は別の commit にする`,
+          message: `policy and records changed together: policy files ${policyFileList}; 規則は semlint.toml、.semlint/ の下、[files] inputs。規則の変更は別の commit にする`,
         });
     }
     return ok(findings);

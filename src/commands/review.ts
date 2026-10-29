@@ -122,7 +122,7 @@ export async function runJex(
     : hasLinkedFilesOrTreeFiles,
 ) {
   return attemptAsync(async () => {
-    const root = await mkdtemp(join(tmpdir(), "dx-jex-review-"));
+    const root = await mkdtemp(join(tmpdir(), "semlint-jex-review-"));
     await using cleanup = {
       async [Symbol.asyncDispose]() {
         await rm(root, { recursive: true, force: true });
@@ -172,7 +172,7 @@ export async function runJex(
       killSignal: "SIGKILL",
     });
     const waiting = setTimeout(() => {
-      process.stderr.write("dx: waiting for jex…\n");
+      process.stderr.write("semlint: waiting for jex…\n");
     }, 2000);
     using waitingCleanup = {
       [Symbol.dispose]() {
@@ -250,7 +250,7 @@ export async function review(
       if (passing.get(type.name)?.(record) === true) continue;
       const source = yield* requireValue(head.sources.get(record), "missing review source");
       const adapter = formatAdapter(type.format);
-      const rubricText = yield* requireValue(head.files[yield* rubricPath(type)], "missing rubric");
+      const rubricText = yield* requireValue(head.files[yield* rubricPath(type, head.files)], "missing rubric");
       const rubric = yield* parseRubric(rubricText);
       if (rubric.criteria.length > 8)
         return undetermined(`${type.review.rubric}: jex の問いは 8 つまで`);

@@ -17,9 +17,10 @@ import {
 import { isPolicyPath, matches } from "./policy.ts";
 import { sha256, stableJson } from "./formats.ts";
 import { inputPatternsSchema } from "./config.ts";
+import { CURRENT, isLayoutPath, LEGACY, policyDir } from "./layout.ts";
 
 function policyInputs(files: Readonly<Record<string, string>>): readonly string[] {
-  const config = attempt((): unknown => Bun.TOML.parse(files["dx.toml"] ?? ""));
+  const config = attempt((): unknown => Bun.TOML.parse(files[CURRENT.config] ?? files[LEGACY.config] ?? ""));
   if (config.isErr()) return [];
   const parsedConfig = z
     .object({ files: z.object({ inputs: z.unknown().optional() }).optional() })
@@ -39,13 +40,13 @@ export function reviewPlacePolicy(
     const place = type.review?.place;
     if (
       place?.startsWith("file:") === true &&
-      (place.slice(5).startsWith(".dx/") ||
+      (isLayoutPath(place.slice(5)) ||
         Object.keys(files).some(
           (path) => matches(place.slice(5), path) && isPolicyPath(path, declaredInputs),
         ))
     )
       return undetermined(
-        `policy: ${type.name}: review.place は規則のファイル（dx.toml、.dx/、inputs）の外に置く`,
+        `policy: ${type.name}: review.place は規則のファイル（semlint.toml、.semlint/、inputs）の外に置く`,
       );
   }
   return ok(undefined);
@@ -184,11 +185,14 @@ export function transitions(
   }
   return findings;
 }
-export function rubricPath(type: LoadedType) {
+/** A rubric path is relative to the policy directory, so moving .dx/ to .semlint/ keeps verdicts bound. */
+export function rubricPath(type: LoadedType, files: Readonly<Record<string, string>>) {
   return safeTry(function* () {
     const raw = yield* requireValue(type.review?.rubric, `no rubric for ${type.name}`);
-    const path = posix.normalize(raw.startsWith(".dx/") ? raw : `.dx/${raw}`);
-    if (!path.startsWith(".dx/")) return undetermined(`rubric must be in .dx/: ${raw}`);
+    const dir = policyDir(Object.keys(files));
+    const relative = raw.startsWith(LEGACY.dir) ? raw.slice(LEGACY.dir.length) : raw;
+    const path = posix.normalize(`${dir}${relative}`);
+    if (!path.startsWith(dir)) return undetermined(`rubric must be in ${dir}: ${raw}`);
     return ok(path);
   });
 }
@@ -214,7 +218,7 @@ export function reviews(base: Snapshot, head: Snapshot, types: readonly LoadedTy
     const previous = groups(base.records);
     for (const type of types) {
       if (type.review === undefined) continue;
-      const rubric = yield* rubricPath(type);
+      const rubric = yield* rubricPath(type, head.files);
       const text = yield* requireValue(head.files[rubric], `rubric missing: ${rubric}`);
       const rubricHash = sha256(text);
       const hasPassingVerdict = yield* verdictChecker(head, type, rubricHash);
@@ -230,7 +234,7 @@ export function reviews(base: Snapshot, head: Snapshot, types: readonly LoadedTy
           path: record.path,
           field: "review",
           message:
-            'missing passing verdict bound to this record, rubric and another author; dx review は verdict を作業コピーに書く。jj commit -m "<説明>" で verdict を確定してから、その commit を land する（例: dx land @-）',
+            'missing passing verdict bound to this record, rubric and another author; semlint review は verdict を作業コピーに書く。jj commit -m "<説明>" で verdict を確定してから、その commit を admit する（例: semlint admit @-）',
         });
       }
     }
@@ -241,7 +245,7 @@ export function reviews(base: Snapshot, head: Snapshot, types: readonly LoadedTy
 /** Shared by I-06 and review retries: one schema, binding and storage reader. */
 export function verdictChecker(head: Snapshot, type: LoadedType, rubricHash?: string) {
   return safeTry(function* () {
-    const path = yield* rubricPath(type);
+    const path = yield* rubricPath(type, head.files);
     const hash = rubricHash ?? sha256(yield* requireValue(head.files[path], "missing rubric"));
     const review = yield* requireValue(type.review, "missing review definition");
     const raw = Object.entries(head.files)
@@ -256,7 +260,9 @@ export function verdictChecker(head: Snapshot, type: LoadedType, rubricHash?: st
           v.id === record.id &&
           v.sha256 === record.sha256 &&
           v.rubric_sha256 === hash &&
-          (v.rubric === review.rubric || v.rubric === path) &&
+          (v.rubric === review.rubric ||
+            v.rubric === path ||
+            v.rubric === `${LEGACY.dir}${path.slice(policyDir([path]).length)}`) &&
           v.pass &&
           reviewerAllowed(record.by, v.by) &&
           v.p.every((p) => p >= REVIEW_PASS)

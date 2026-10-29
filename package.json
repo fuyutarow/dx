@@ -1,10 +1,10 @@
 {
-  "name": "dx",
+  "name": "semlint",
   "version": "0.1.6",
   "private": true,
-  "description": "Revision-based record checks and views for jj repositories",
+  "description": "Semantic lint and admission for records in jj repositories",
   "bin": {
-    "dx": "./src/main.ts"
+    "semlint": "./src/main.ts"
   },
   "type": "module",
   "exports": {

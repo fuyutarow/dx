@@ -2,12 +2,12 @@ import { ok, safeTry, type Result } from "neverthrow";
 import type { Config } from "../config.ts";
 import { attemptAsync, undetermined } from "../errors.ts";
 import { jj, revision } from "../repository.ts";
-import { pushOutcome, pushRejectionDetails, run } from "../land/process.ts";
+import { pushOutcome, pushRejectionDetails, run } from "../admit/process.ts";
 
 type Output = { exit: number; stdout: string; stderr: string };
 const refused = (exit: number, code: string): Output => ({ exit, stdout: "", stderr: `${code}\n` });
 
-export async function land(
+export async function admit(
   cwd: string,
   head: string,
   config: Config,

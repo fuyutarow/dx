@@ -4,7 +4,7 @@ import { classify } from "../findings.ts";
 import type { Snapshot } from "../collection.ts";
 import type { FindingInput, LoadedType } from "../model.ts";
 
-/** The common check(base, head) surface that land can call later. */
+/** The common check(base, head) surface that admit calls. */
 export async function check(
   base: Snapshot,
   head: Snapshot,

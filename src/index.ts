@@ -1,5 +1,5 @@
 import type { TypeDefinition } from "./model.ts";
-/** Declare pure revision policy; runtime validation happens when dx loads a tree. */
+/** Declare pure revision policy; runtime validation happens when semlint loads a tree. */
 export function defineType<const T extends TypeDefinition>(definition: T): T {
   return definition;
 }
