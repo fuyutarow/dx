@@ -26,7 +26,7 @@ process.exit(Number(exit));`;
     { review: "file:verdicts/*.json" },
     `[review]\ncommand = ${JSON.stringify(command)}\n`,
   );
-  await write(cwd, ".dx/rubrics/r.toml", rubric(options.criteria));
+  await write(cwd, ".semlint/rubrics/r.toml", rubric(options.criteria));
   await jj(cwd, "new", "-m", "review base");
   const cleanBase = await jj(cwd, "log", "--no-graph", "-r", "@-", "-T", "commit_id");
   await jj(cwd, "git", "remote", "add", "origin", cwd);
