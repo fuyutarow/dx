@@ -47,7 +47,12 @@ export async function admit(
       "-T",
       "commit_id",
     ]);
-    if (ancestor.trim() !== base) return ok(refused(1, "NOT_FAST_FORWARD"));
+    if (ancestor.trim() !== base)
+      return ok({
+        exit: 1,
+        stdout: "",
+        stderr: `NOT_FAST_FORWARD\ncompared: ${branch}@${remote} = ${base}; ${head} is not its descendant\nnext: jj git fetch --remote ${remote} && jj rebase -b ${head} -d '${branch}@${remote}'\n`,
+      });
     const checked = yield* await check(base, head);
     if (checked.exit !== 0) return ok(checked);
     const push = await run(
