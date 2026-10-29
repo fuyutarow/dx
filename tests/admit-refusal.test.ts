@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { join } from "node:path";
 import { ok } from "neverthrow";
+import { jsonOf, z } from "../.preset/zod.ts";
 import { admit } from "../src/commands/admit.ts";
 import { configSchema } from "../src/config.ts";
 import { jj, processRun, repo, snapshot, value, write } from "./helpers.ts";
@@ -17,9 +18,13 @@ async function fixture() {
   await git(cwd, "init", "--bare", remote);
   await jj(cwd, "git", "remote", "add", "upstream", remote);
   await git(cwd, "push", "upstream", `${base}:refs/heads/release`);
-  const config = configSchema.parse({
+  const parsedConfig = configSchema.safeParse({
     repo: { name: "fixture", branch: "release", remote: "upstream" },
   });
+  expect(parsedConfig.success).toBe(true);
+  const config = parsedConfig.success
+    ? parsedConfig.data
+    : expect.unreachable(parsedConfig.error.message);
   return { cwd, base, remote, config };
 }
 
@@ -29,7 +34,7 @@ test("non-fast-forward reports the compared ref, commits and rebase", async () =
   await write(cwd, "unrelated.txt", "unrelated\n");
   const head = await snapshot(cwd);
   const result = value(
-    await admit(cwd, head, config, async () => expect.unreachable("check called")),
+    await admit(cwd, head, config, () => Promise.resolve(expect.unreachable("check called"))),
   );
   expect(result.exit).toBe(1);
   expect(result.stdout).toBe("");
@@ -44,15 +49,20 @@ test("fast-forward still checks and pushes the head", async () => {
   await write(cwd, "new.txt", "new\n");
   const head = await snapshot(cwd);
   const result = value(
-    await admit(cwd, head, config, async (actualBase, actualHead) => {
+    await admit(cwd, head, config, (actualBase, actualHead) => {
       expect(actualBase).toBe(base);
       expect(actualHead).toBe(head);
-      return ok({ exit: 0, stdout: "", stderr: "" });
+      return Promise.resolve(ok({ exit: 0, stdout: "", stderr: "" }));
     }),
   );
   expect(result.exit, result.stderr).toBe(0);
   expect(result.stderr).toBe("");
-  expect(JSON.parse(result.stdout)).toEqual({
+  const parsedOutput = jsonOf(z.unknown()).safeParse(result.stdout);
+  expect(parsedOutput.success).toBe(true);
+  const output = parsedOutput.success
+    ? parsedOutput.data
+    : expect.unreachable(parsedOutput.error.message);
+  expect(output).toEqual({
     v: 1,
     commit: head,
     base,
