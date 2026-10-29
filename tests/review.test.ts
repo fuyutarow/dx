@@ -42,10 +42,10 @@ async function fixture(
   ];
   await write(
     cwd,
-    "dx.toml",
-    `[repo]\nname = "fixture"\n[review]\ncommand = ${JSON.stringify(command)}\n${options.extra ?? ""}`,
+    "semlint.toml",
+    `edition = 1\n[repo]\nname = "fixture"\n[review]\ncommand = ${JSON.stringify(command)}\n${options.extra ?? ""}`,
   );
-  await write(cwd, ".dx/rubrics/r.toml", rubric);
+  await write(cwd, ".semlint/rubrics/r.toml", rubric);
   if (options.response !== undefined || options.exit !== undefined)
     await write(
       cwd,
@@ -57,8 +57,8 @@ async function fixture(
   // The configured base expression uses <branch>@<remote>.
   await write(
     cwd,
-    "dx.toml",
-    `[repo]\nname = "fixture"\nbranch = "alpha"\n[review]\ncommand = ${JSON.stringify(command)}\n${options.extra ?? ""}`,
+    "semlint.toml",
+    `edition = 1\n[repo]\nname = "fixture"\nbranch = "alpha"\n[review]\ncommand = ${JSON.stringify(command)}\n${options.extra ?? ""}`,
   );
   // Keep configuration out of record changes.
   const cleanBase = await advance(cwd);
@@ -139,10 +139,10 @@ test("I-10 blocks a record with a finding while reviewing clean records", async 
 }, 60000);
 test("I-10 blocks every member of a group finding and reviews the rest", async () => {
   const { cwd, captureDir } = await fixture();
-  const source = await Bun.file(`${cwd}/.dx/note.ts`).text();
+  const source = await Bun.file(`${cwd}/.semlint/note.ts`).text();
   await write(
     cwd,
-    ".dx/note.ts",
+    ".semlint/note.ts",
     source.replace(
       "checks: [",
       `treeChecks: [tree => { const ids = tree.records.filter(r => r.fields.pair === true).map(r => r.id);
@@ -167,7 +167,7 @@ test("oversized record or questions refuse with exit 4, no command and empty std
     if (largeQuestion) {
       await write(
         cwd,
-        ".dx/rubrics/r.toml",
+        ".semlint/rubrics/r.toml",
         rubric.replace("Is the account clear?", "問".repeat(11000)),
       );
       const newBase = await advance(cwd);
@@ -252,7 +252,7 @@ test("REV with a different working-copy record refuses before calling jex", asyn
 }, 60000);
 test("custom format evidence policy supplies linked files through the revision tree", async () => {
   const { cwd, captureDir } = await fixture();
-  const typePath = `${cwd}/.dx/note.ts`;
+  const typePath = `${cwd}/.semlint/note.ts`;
   let type = await Bun.file(typePath).text();
   type = type
     .replace("import { defineType }", "import { defineType, markdownFrontmatter }")
@@ -262,7 +262,7 @@ test("custom format evidence policy supplies linked files through the revision t
       evidence: (file, tree) => [{ locator: "evidence.txt", status: "supplied",
         content: tree.read("evidence.txt") }] }`,
     );
-  await write(cwd, ".dx/note.ts", type);
+  await write(cwd, ".semlint/note.ts", type);
   await write(cwd, "evidence.txt", "漢😀".repeat(10000));
   const base = await advance(cwd);
   await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
@@ -309,7 +309,7 @@ test("external review waits report liveness and complete", async () => {
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
   expect(result.exit, result.stderr).toBe(0);
-  expect(result.stderr).toContain("dx: waiting for jex…");
+  expect(result.stderr).toContain("semlint: waiting for jex…");
 }, 60000);
 test("partial verdicts survive a later unavailable response and retry skips them", async () => {
   const { cwd, captureDir } = await fixture();
@@ -331,8 +331,8 @@ test("partial verdicts survive a later unavailable response and retry skips them
 }, 60000);
 test("immutable TOML fragments use sidecars even under a default ignored directory", async () => {
   const { cwd } = await fixture({ place: "file:tools/verdicts/*.json", format: "toml" });
-  const type = await Bun.file(`${cwd}/.dx/note.ts`).text();
-  await write(cwd, ".dx/note.ts", type.replace("immutable: false", "immutable: true"));
+  const type = await Bun.file(`${cwd}/.semlint/note.ts`).text();
+  await write(cwd, ".semlint/note.ts", type.replace("immutable: false", "immutable: true"));
   const base = await advance(cwd);
   await spawn(["git", "update-ref", "refs/remotes/origin/alpha", base], { cwd });
   await jj(cwd, "git", "import");
@@ -360,7 +360,7 @@ test("new malformed review records block I-10; unchanged malformed records are o
   expect(unchanged.exit, unchanged.stderr).toBe(0);
   expect(unchanged.stdout).toBe("");
 }, 60000);
-test("dx review sends questions and repository paths to jex and satisfies I-06", async () => {
+test("semlint review sends questions and repository paths to jex and satisfies I-06", async () => {
   const { cwd, captureDir } = await fixture();
   await write(cwd, "records/one.md", markdown("one"));
   const result = await review(cwd);
