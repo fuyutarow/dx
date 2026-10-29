@@ -14,7 +14,7 @@ async function fixture(response: unknown, criteria: number) {
     { review: "file:verdicts/*.json" },
     `[review]\ncommand = ${JSON.stringify(command)}\n`,
   );
-  await write(cwd, ".dx/rubrics/r.toml", rubric(criteria));
+  await write(cwd, ".semlint/rubrics/r.toml", rubric(criteria));
   await jj(cwd, "new", "-m", "review base");
   const cleanBase = await jj(cwd, "log", "--no-graph", "-r", "@-", "-T", "commit_id");
   await jj(cwd, "git", "remote", "add", "origin", cwd);
