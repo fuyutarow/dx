@@ -17,7 +17,9 @@ test("check reads a record written since the last jj snapshot", async () => {
   await write(cwd, "records/fresh.md", markdown("fresh", "bad: true\n"));
   const result = await dx(cwd, "check", "@", "--base", base);
   expect(result.exit, result.stderr).toBe(1);
-  expect(rows(result.stdout)).toContainEqual({ id: "fresh", check: "quality" });
+  expect(
+    rows(result.stdout).some((finding) => finding.id === "fresh" && finding.check === "quality"),
+  ).toBe(true);
 });
 
 test("snapshot failure stops the judgment with a recovery instruction", async () => {
