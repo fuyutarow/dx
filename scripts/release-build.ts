@@ -38,7 +38,7 @@ async function build(root: string, dist: string, staging: string): Promise<void>
   for (const platform of releasePlatforms) {
     const directory = join(staging, platform);
     await mkdir(join(directory, "bin"), { recursive: true });
-    const archive = join(dist, `dx-${version}-${platform}.tar.gz`);
+    const archive = join(dist, `semlint-${version}-${platform}.tar.gz`);
     // Remove an earlier artifact so a failed rebuild cannot leave a stale release asset.
     await rm(archive, { force: true });
     const compiled = Bun.spawn({
@@ -50,7 +50,7 @@ async function build(root: string, dist: string, staging: string): Promise<void>
         `--target=bun-${platform}`,
         "src/main.ts",
         "--outfile",
-        join(directory, "bin/dx"),
+        join(directory, "bin/semlint"),
       ],
       cwd: root,
       env: {
@@ -66,7 +66,7 @@ async function build(root: string, dist: string, staging: string): Promise<void>
       return;
     }
     const packed = Bun.spawn({
-      cmd: ["tar", "-czf", archive, "-C", directory, "bin/dx"],
+      cmd: ["tar", "-czf", archive, "-C", directory, "bin/semlint"],
       stdout: "inherit",
       stderr: "inherit",
       timeout: 60000,

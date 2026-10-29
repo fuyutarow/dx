@@ -8,7 +8,7 @@ import { dx, main, markdown, processRun, repo, snapshot, typeSource, write } fro
 
 test("standalone policy loading survives removal of build sources and a PATH without Bun", async () => {
   const { cwd, base } = await repo();
-  const temporary = await mkdtemp(join(tmpdir(), "dx-release-test-"));
+  const temporary = await mkdtemp(join(tmpdir(), "semlint-release-test-"));
   await using cleanup = new AsyncDisposableStack();
   cleanup.defer(async () => {
     await rm(temporary, { recursive: true, force: true });
@@ -24,7 +24,7 @@ async function verify(cwd: string, base: string, temporary: string) {
   await cp(join(root, ".dx-preset"), join(source, ".dx-preset"), { recursive: true });
   await cp(join(root, "package.json"), join(source, "package.json"));
   await symlink(join(root, "node_modules"), join(source, "node_modules"));
-  const binary = join(temporary, "dx");
+  const binary = join(temporary, "semlint");
   const compiled = await processRun(source, [
     process.execPath,
     "build",
@@ -45,14 +45,14 @@ async function verify(cwd: string, base: string, temporary: string) {
   expect(Bun.which("bun", { PATH: path })).toBeNull();
   await write(
     cwd,
-    ".dx/helpers/id.ts",
+    ".semlint/helpers/id.ts",
     `import { ok } from "neverthrow";
-import { sha256 } from "dx";
+import { sha256 } from "semlint";
 export const id = (file: {fields: Record<string, unknown>}) => ok(sha256(String(file.fields.id)))._unsafeUnwrap();`,
   );
   await write(
     cwd,
-    ".dx/note.ts",
+    ".semlint/note.ts",
     typeSource()
       .replace(
         'import { z } from "zod";',
@@ -68,7 +68,7 @@ export const id = (file: {fields: Record<string, unknown>}) => ok(sha256(String(
   expect(expected.stdout).toContain('"check":"quality"');
   const env = { ...process.env, PATH: path, BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0" };
   const versionResult = await runBinary(binary, cwd, env, ["-V"]);
-  expect(versionResult).toEqual({ stdout: `dx ${version}\n`, stderr: "", exit: 0 });
+  expect(versionResult).toEqual({ stdout: `semlint ${version}\n`, stderr: "", exit: 0 });
   const actual = await runBinary(binary, cwd, env, args);
   expect(actual).toEqual(expected);
   expect(sha256(actual.stdout)).toBe(sha256(expected.stdout));

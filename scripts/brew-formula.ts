@@ -13,7 +13,7 @@ function variant(version: string, os: string, arch: string, assets: readonly For
   const asset = assets.find((item) => item.platform === `${os}-${arch}`);
   if (asset === undefined) return err(`missing ${os}-${arch} release archive`);
   return ok(
-    `    on_${arch === "arm64" ? "arm" : "intel"} do\n      # dx-${version}-${os}-${arch}.tar.gz\n      url "https://github.com/fuyutarow/dx/releases/download/v${version}/dx-${version}-${os}-${arch}.tar.gz"\n      sha256 "${asset.sha256}"\n    end`,
+    `    on_${arch === "arm64" ? "arm" : "intel"} do\n      # semlint-${version}-${os}-${arch}.tar.gz\n      url "https://github.com/fuyutarow/semlint/releases/download/v${version}/semlint-${version}-${os}-${arch}.tar.gz"\n      sha256 "${asset.sha256}"\n    end`,
   );
 }
 
@@ -39,9 +39,9 @@ export function renderFormula(version: string, assets: readonly FormulaAsset[]) 
         `  on_${os === "darwin" ? "macos" : "linux"} do\n${variants.join("\n\n")}\n  end`,
       );
     }
-    return ok(`class Dx < Formula
+    return ok(`class Semlint < Formula
   desc "Revision-based record checks and views for jj repositories"
-  homepage "https://github.com/fuyutarow/dx"
+  homepage "https://github.com/fuyutarow/semlint"
   version "${version}"
 
   depends_on "git"
@@ -60,7 +60,7 @@ ${blocks.join("\n\n")}
   end
 
   test do
-    assert_equal "dx #{version}", shell_output("#{bin}/dx --version").strip
+    assert_equal "semlint #{version}", shell_output("#{bin}/semlint --version").strip
   end
 end
 `);

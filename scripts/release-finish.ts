@@ -61,9 +61,9 @@ const publishedSchema = z.object({
     }),
   ),
 });
-const formulaPath = "Formula/dx.rb";
+const formulaPath = "Formula/semlint.rb";
 const tapRepo = "fuyutarow/homebrew-tap";
-const formulaName = "fuyutarow/tap/dx";
+const formulaName = "fuyutarow/tap/semlint";
 const contentSchema = z.object({ sha: z.string().regex(/^[a-f0-9]{40}$/u), content: z.string() });
 const knownConsumers = new Set([
   "firedancer",
@@ -82,7 +82,7 @@ async function consumerRoots(workspace: string, explicit: readonly string[]) {
     );
     for (const entry of entries.filter((item) => item.isDirectory())) {
       const root = join(workspace, entry.name);
-      if (knownConsumers.has(entry.name) || (await Bun.file(join(root, "dx.toml")).exists()))
+      if (knownConsumers.has(entry.name) || (await Bun.file(join(root, "semlint.toml")).exists()))
         roots.add(root);
     }
     if (roots.size === 0) return err("no consumers found; supply --consumer directories");
@@ -112,7 +112,7 @@ async function updateFormula(repo: string, text: string, runner: FinishRunner) {
           "-f",
           `sha=${current.data.sha}`,
           "-f",
-          "message=release: update dx formula",
+          "message=release: update semlint formula",
           "-f",
           `content=${Buffer.from(text).toString("base64")}`,
           "--jq",
@@ -147,7 +147,7 @@ export async function finishRelease(
     const repo = resolve(options.repo);
     const roots = yield* await consumerRoots(resolve(options.workspace), options.consumers ?? []);
     const release = jsonOf(publishedSchema).safeParse(
-      yield* await command(runner, ["gh", "api", "repos/fuyutarow/dx/releases/latest"], repo),
+      yield* await command(runner, ["gh", "api", "repos/fuyutarow/semlint/releases/latest"], repo),
     );
     if (
       !release.success ||
@@ -156,14 +156,14 @@ export async function finishRelease(
       release.data.prerelease
     )
       return err(`v${version} is not the latest published stable release`);
-    const stage = yield* ResultAsync.fromPromise(mkdtemp(join(tmpdir(), "dx-formula-")), String);
+    const stage = yield* ResultAsync.fromPromise(mkdtemp(join(tmpdir(), "semlint-formula-")), String);
     await using cleanup = new AsyncDisposableStack();
     cleanup.defer(async () => {
       await rm(stage, { recursive: true, force: true });
     });
     const assets: FormulaAsset[] = [];
     for (const platform of releasePlatforms) {
-      const name = `dx-${version}-${platform}.tar.gz`;
+      const name = `semlint-${version}-${platform}.tar.gz`;
       const matches = release.data.assets.filter((asset) => asset.name === name);
       const asset = matches[0];
       if (matches.length !== 1 || asset === undefined)
@@ -177,7 +177,7 @@ export async function finishRelease(
           "download",
           `v${version}`,
           "--repo",
-          "fuyutarow/dx",
+          "fuyutarow/semlint",
           "--pattern",
           name,
           "--dir",
@@ -206,7 +206,7 @@ export async function finishRelease(
       "-R",
       tapRepo,
       "-f",
-      "tool=dx",
+      "tool=semlint",
     ];
     if (options.dryRun === true)
       return ok({
@@ -228,7 +228,7 @@ export async function finishRelease(
       installed.exit !== 0 &&
       !(installed.exit === 1 && installed.stdout.trim() === "" && installed.stderr.trim() === "")
     )
-      return err("cannot inspect the installed Homebrew dx");
+      return err("cannot inspect the installed Homebrew semlint");
     const install =
       installed.exit === 0 ? ["brew", "upgrade", formulaName] : ["brew", "install", formulaName];
     progress(`BREW_INSTALL: ${install.join(" ")}`);
@@ -239,24 +239,24 @@ export async function finishRelease(
       yield* ResultAsync.fromPromise(Bun.file(join(keg, "INSTALL_RECEIPT.json")).text(), String),
     );
     if (!receipt.success || receipt.data.source.tap !== "fuyutarow/tap")
-      return err(`dx is still installed from another tap; run brew reinstall ${formulaName}`);
+      return err(`semlint is still installed from another tap; run brew reinstall ${formulaName}`);
     const prefix = (yield* await command(runner, ["brew", "--prefix"], repo)).trim();
-    const expected = yield* ResultAsync.fromPromise(realpath(join(prefix, "bin/dx")), String);
+    const expected = yield* ResultAsync.fromPromise(realpath(join(prefix, "bin/semlint")), String);
     for (const root of roots) {
       progress(`VERIFY_PATH: ${root}`);
-      const selected = (yield* await command(runner, ["sh", "-c", "command -v dx"], root)).trim();
+      const selected = (yield* await command(runner, ["sh", "-c", "command -v semlint"], root)).trim();
       const actual = yield* ResultAsync.fromPromise(realpath(selected), String);
       if (actual !== expected)
         return err(
-          `PATH selects ${selected} instead of Homebrew dx in ${root}; remove the retired mise/shim selection`,
+          `PATH selects ${selected} instead of Homebrew semlint in ${root}; remove the retired mise/shim selection`,
         );
-      const output = yield* await command(runner, ["dx", "--version"], root);
-      if (output.trim() !== `dx ${version}`)
+      const output = yield* await command(runner, ["semlint", "--version"], root);
+      if (output.trim() !== `semlint ${version}`)
         return err(
-          `consumer ${root} returned ${JSON.stringify(output.trim())}, expected dx ${version}`,
+          `consumer ${root} returned ${JSON.stringify(output.trim())}, expected semlint ${version}`,
         );
     }
-    progress("FORMULA_WORKFLOW: update-formulas.yml tool=dx");
+    progress("FORMULA_WORKFLOW: update-formulas.yml tool=semlint");
     const dispatch = (yield* await command(runner, workflow, repo)).trim();
     if (dispatch !== "") progress(dispatch);
     return ok({
@@ -286,7 +286,7 @@ async function main() {
     flags: {
       repo: {
         type: String,
-        description: "dx checkout used for release commands (formula is published to homebrew-tap)",
+        description: "semlint checkout used for release commands (formula is published to homebrew-tap)",
       },
       workspace: { type: String, description: "Parent directory of consumer repositories" },
       consumer: { type: [String], description: "Additional consumer directory (repeatable)" },
