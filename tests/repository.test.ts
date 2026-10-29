@@ -40,7 +40,9 @@ test("same blobs across revisions are parsed once, while changed blobs are parse
   const head = await snapshot(cwd);
   const config = value(readConfig(value(await show(cwd, head, "semlint.toml", 20000)), CURRENT));
   const types = value(
-    await loadTypes({ ".semlint/note.ts": value(await show(cwd, head, ".semlint/note.ts", 20000)) }),
+    await loadTypes({
+      ".semlint/note.ts": value(await show(cwd, head, ".semlint/note.ts", 20000)),
+    }),
   );
   const cache = snapshotCache(cwd, 20000);
   const current = value(await readSnapshot(cwd, head, config, types, 20000, cache));

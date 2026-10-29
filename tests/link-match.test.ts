@@ -1,5 +1,15 @@
 import { expect, test } from "bun:test";
-import { advance, checked, dx, markdown, repo, rows, snapshot, typeSource, write } from "./helpers.ts";
+import {
+  advance,
+  checked,
+  dx,
+  markdown,
+  repo,
+  rows,
+  snapshot,
+  typeSource,
+  write,
+} from "./helpers.ts";
 
 const timeout = 30000;
 async function linkedRepo(declaration: string, config = "") {
@@ -95,21 +105,15 @@ test(
   "new dx: references produce a links.scheme finding",
   async () => {
     const { cwd, base } = await linkedRepo('{ to: "note" }');
-    await write(
-      cwd,
-      "records/a.md",
-      markdown("a", 'next: [b, "dx:fixture/b"]\n'),
-    );
+    await write(cwd, "records/a.md", markdown("a", 'next: [b, "dx:fixture/b"]\n'));
     await write(cwd, "records/b.md", markdown("b"));
     await snapshot(cwd);
     const result = await dx(cwd, "check", "--base", base);
     expect(result.exit, result.stderr).toBe(1);
     const findings = rows(result.stdout);
-    expect(findings.map((finding) => [finding.check, finding.field, finding.message])).toContainEqual([
-      "links.scheme",
-      "next",
-      "dx: は使わない。ref:<repo>/<id> と書く",
-    ]);
+    expect(
+      findings.map((finding) => [finding.check, finding.field, finding.message]),
+    ).toContainEqual(["links.scheme", "next", "dx: は使わない。ref:<repo>/<id> と書く"]);
   },
   timeout,
 );

@@ -307,7 +307,11 @@ test(
     await git(remote, "update-ref", "refs/heads/release", base);
     await jj(cwd, "git", "remote", "rename", "origin", "upstream");
     await git(cwd, "remote", "set-url", "--push", "upstream", join(cwd, ".git", "missing.git"));
-    await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\nremote="upstream"\nbranch="release"\n');
+    await write(
+      cwd,
+      "semlint.toml",
+      'edition = 1\n[repo]\nname="fixture"\nremote="upstream"\nbranch="release"\n',
+    );
     const head = await snapshot(cwd);
     const result = await dx(cwd, "admit", head);
     expect(result.exit, result.stderr).toBe(0);
@@ -424,7 +428,7 @@ for (const mode of ["accepted", "descendant", "race", "unavailable", "ancestry-e
         `PATH=${path}`,
         process.execPath,
         join(import.meta.dir, "../../src/main.ts"),
-          "admit",
+        "admit",
         head,
       ]);
       const accepted = ["accepted", "descendant"].includes(mode);
@@ -489,7 +493,7 @@ test("eight concurrent writers: every attempt agrees with remote ancestry", asyn
           `PATH=${path}`,
           process.execPath,
           join(import.meta.dir, "../../src/main.ts"),
-        "admit",
+          "admit",
           head,
         ]);
         return Object.assign({ head }, result);

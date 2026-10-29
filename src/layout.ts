@@ -11,7 +11,9 @@ export function isLayoutPath(path: string): boolean {
 export function layoutOf(paths: Iterable<string>): Result<Layout | undefined, string> {
   const all = [...paths];
   if (all.some((path) => path === "dx.toml" || path.startsWith(".dx/")))
-    return undetermined("dx.toml と .dx/ は読まない。semlint.toml（先頭に edition = 1）と .semlint/ に移す");
+    return undetermined(
+      "dx.toml と .dx/ は読まない。semlint.toml（先頭に edition = 1）と .semlint/ に移す",
+    );
   return ok(all.includes(CURRENT.config) ? CURRENT : undefined);
 }
 

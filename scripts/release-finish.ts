@@ -156,7 +156,10 @@ export async function finishRelease(
       release.data.prerelease
     )
       return err(`v${version} is not the latest published stable release`);
-    const stage = yield* ResultAsync.fromPromise(mkdtemp(join(tmpdir(), "semlint-formula-")), String);
+    const stage = yield* ResultAsync.fromPromise(
+      mkdtemp(join(tmpdir(), "semlint-formula-")),
+      String,
+    );
     await using cleanup = new AsyncDisposableStack();
     cleanup.defer(async () => {
       await rm(stage, { recursive: true, force: true });
@@ -244,7 +247,11 @@ export async function finishRelease(
     const expected = yield* ResultAsync.fromPromise(realpath(join(prefix, "bin/semlint")), String);
     for (const root of roots) {
       progress(`VERIFY_PATH: ${root}`);
-      const selected = (yield* await command(runner, ["sh", "-c", "command -v semlint"], root)).trim();
+      const selected = (yield* await command(
+        runner,
+        ["sh", "-c", "command -v semlint"],
+        root,
+      )).trim();
       const actual = yield* ResultAsync.fromPromise(realpath(selected), String);
       if (actual !== expected)
         return err(
@@ -286,7 +293,8 @@ async function main() {
     flags: {
       repo: {
         type: String,
-        description: "semlint checkout used for release commands (formula is published to homebrew-tap)",
+        description:
+          "semlint checkout used for release commands (formula is published to homebrew-tap)",
       },
       workspace: { type: String, description: "Parent directory of consumer repositories" },
       consumer: { type: [String], description: "Additional consumer directory (repeatable)" },

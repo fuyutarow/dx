@@ -116,13 +116,7 @@ export async function readSnapshot(
           t.review?.place.startsWith("file:") === true && matches(t.review.place.slice(5), path),
       );
       const input = matches(config.files.inputs, path);
-      if (
-        ignored(config, path) &&
-        !input &&
-        !isLayoutPath(path) &&
-        !verdictPath
-      )
-        continue;
+      if (ignored(config, path) && !input && !isLayoutPath(path) && !verdictPath) continue;
       const selected = input ? [] : types.filter((t) => matches(t.match, path));
       if (selected.length > 1) return undetermined(`file matches multiple types: ${path}`);
       // Policy/config/verdict files are infrastructure and exempt from strict matching.
@@ -239,7 +233,8 @@ export async function isolationFindings(
         const tree = yield* await reader.tree(rev);
         const layout = yield* layoutOf(tree.map(({ path }) => path));
         const entries = tree.filter((e) => e.path === layout?.config);
-        const text = layout === undefined ? undefined : (yield* await reader.read(entries)).get(layout.config);
+        const text =
+          layout === undefined ? undefined : (yield* await reader.read(entries)).get(layout.config);
         const patterns =
           text === undefined
             ? []
@@ -342,7 +337,13 @@ function makeRecord(file: SourceFile, type: LoadedType, config: Config, findings
       }
       for (const candidate of candidates) {
         if (candidate.startsWith("dx:"))
-          findings.push({ check: "links.scheme", id, path, field: rel, message: "dx: は使わない。ref:<repo>/<id> と書く" });
+          findings.push({
+            check: "links.scheme",
+            id,
+            path,
+            field: rel,
+            message: "dx: は使わない。ref:<repo>/<id> と書く",
+          });
         links.push(
           ...(yield* linkTarget(candidate, config.repo.name)
             .map((to) => (to === undefined ? [] : [{ rel, to }]))

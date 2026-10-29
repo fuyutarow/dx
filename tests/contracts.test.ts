@@ -154,10 +154,17 @@ test(
     await write(cwd, "records/unsnapshotted.md", markdown("not-in-revision"));
     const before = await inventory(cwd);
     const repoBytes = (entries: Record<string, string>) =>
-      Object.fromEntries(Object.entries(entries).filter(([path]) =>
-        !path.startsWith(".jj/") && !path.startsWith(".git/")
-      ));
-    for (const args of [["ls", revision], ["check", "--base", revision], ["view", "index", revision], ["view", "--list"]]) {
+      Object.fromEntries(
+        Object.entries(entries).filter(
+          ([path]) => !path.startsWith(".jj/") && !path.startsWith(".git/"),
+        ),
+      );
+    for (const args of [
+      ["ls", revision],
+      ["check", "--base", revision],
+      ["view", "index", revision],
+      ["view", "--list"],
+    ]) {
       const first = await dx(cwd, ...args);
       const second = await dx(cwd, ...args);
       expect(first.exit, first.stderr).toBe(0);
@@ -417,7 +424,11 @@ test("retired and unknown config keys fail closed", async () => {
     ["limits", "unknown"],
     ["review", "unknown"],
   ] as const) {
-    await write(cwd, "semlint.toml", `edition = 1\n[repo]\nname="fixture"\n[${section}]\n${key}=1\n`);
+    await write(
+      cwd,
+      "semlint.toml",
+      `edition = 1\n[repo]\nname="fixture"\n[${section}]\n${key}=1\n`,
+    );
     await snapshot(cwd);
     const invalid = await dx(cwd, "ls");
     expect(invalid.exit).toBe(4);

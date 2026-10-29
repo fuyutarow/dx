@@ -146,7 +146,11 @@ test(
   async () => {
     const { cwd } = await repo();
     await write(cwd, "records/a.md", markdown("a", "bad: true\n"));
-    await write(cwd, ".semlint/note.ts", typeSource().replace("record.fields.bad === true", "false"));
+    await write(
+      cwd,
+      ".semlint/note.ts",
+      typeSource().replace("record.fields.bad === true", "false"),
+    );
     const base = await advance(cwd);
     await write(cwd, ".semlint/note.ts", typeSource());
     const result = await checked(cwd, base, 0);

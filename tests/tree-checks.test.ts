@@ -160,9 +160,14 @@ test("I-09: input edits, deletion, and declaration changes cannot accompany reco
     const base = await advance(cwd);
     if (mode === "edit") await write(cwd, ".leakcheck", "after");
     if (mode === "delete") await (await import("node:fs/promises")).rm(`${cwd}/.leakcheck`);
-    if (mode === "undeclare") await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n');
+    if (mode === "undeclare")
+      await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n');
     if (mode === "declare")
-      await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n[files]\ninputs=[".leakcheck"]\n');
+      await write(
+        cwd,
+        "semlint.toml",
+        'edition = 1\n[repo]\nname="fixture"\n[files]\ninputs=[".leakcheck"]\n',
+      );
     await write(cwd, "records/a.md", markdown("a"));
     expect((await checked(cwd, base, 1)).findings.some((f) => f.check === "I-09.policy")).toBe(
       true,

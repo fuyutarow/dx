@@ -71,7 +71,9 @@ test.skipIf(process.env.DX_LINK_MATCH_SHADOW !== "1")(
     // present. Inspect the same collected records through the library instead.
     const ruleSet = value(await ruleFiles(cwd, "@", 300000));
     const types = value(await loadTypes(ruleSet.files));
-    const config = value(readConfig(await readFile(join(cwd, "semlint.toml"), "utf8"), ruleSet.layout ?? CURRENT));
+    const config = value(
+      readConfig(await readFile(join(cwd, "semlint.toml"), "utf8"), ruleSet.layout ?? CURRENT),
+    );
     const collected = value(await readSnapshot(cwd, "@", config, types, 300000));
     const current = rows(after.stdout);
     const internal = current.filter((f) => String(f.check).startsWith("I-04."));

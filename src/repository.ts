@@ -3,7 +3,9 @@ import { ok, safeTry } from "neverthrow";
 import { resolve } from "node:path";
 
 const minimumJjVersion = "0.46.0";
-let versionCheck: Promise<ReturnType<typeof undetermined> | ReturnType<typeof ok<void, string>>> | undefined;
+let versionCheck:
+  | Promise<ReturnType<typeof undetermined> | ReturnType<typeof ok<void, string>>>
+  | undefined;
 
 function checkJjVersion() {
   return (versionCheck ??= (async () => {
@@ -28,7 +30,9 @@ function checkJjVersion() {
         // An unavailable executable is reported using the same recovery instruction.
       }
     }
-    return undetermined(`jj ${minimumJjVersion} 以上が要る（見つかったのは ${found} at ${location}）。PATH の先頭に新しい jj を置く`);
+    return undetermined(
+      `jj ${minimumJjVersion} 以上が要る（見つかったのは ${found} at ${location}）。PATH の先頭に新しい jj を置く`,
+    );
   })());
 }
 
@@ -47,7 +51,9 @@ export async function snapshotWorkingCopy(cwd: string) {
   });
   const [stderr, exit] = await Promise.all([new Response(child.stderr).text(), child.exited]);
   if (exit !== 0 || signal.aborted)
-    return undetermined(`作業コピーを取り込めない: ${stderr.split("\n")[0] ?? ""}。jj st で原因を見るか、commit してから semlint check @- にかける`);
+    return undetermined(
+      `作業コピーを取り込めない: ${stderr.split("\n")[0] ?? ""}。jj st で原因を見るか、commit してから semlint check @- にかける`,
+    );
   return ok(undefined);
 }
 

@@ -105,7 +105,11 @@ test("default ignore excludes dependencies at every depth; explicit ignore repla
   await write(cwd, "node_modules/dep/file.txt", "dependency");
   await write(cwd, "app/node_modules/dep/file.txt", "dependency");
   await checked(cwd, "root()", 0);
-  await write(cwd, "semlint.toml", 'edition = 1\n[repo]\nname="fixture"\n[files]\nstrict=true\nignore=[]\n');
+  await write(
+    cwd,
+    "semlint.toml",
+    'edition = 1\n[repo]\nname="fixture"\n[files]\nstrict=true\nignore=[]\n',
+  );
   const included = await checked(cwd, "root()", 1);
   expect(
     new Set(included.findings.filter((f) => f.check === "files.strict").map((f) => f.path)),
@@ -113,7 +117,12 @@ test("default ignore excludes dependencies at every depth; explicit ignore repla
 }, 60000);
 
 for (const [label, files, path, cause] of [
-  ["syntax", { ".semlint/note.ts": "export default { broken: ; };" }, ".semlint/note.ts", "Unexpected"],
+  [
+    "syntax",
+    { ".semlint/note.ts": "export default { broken: ; };" },
+    ".semlint/note.ts",
+    "Unexpected",
+  ],
   [
     "missing import",
     { ".semlint/note.ts": 'import x from "./helpers/missing.ts"; export default x;' },

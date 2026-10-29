@@ -110,8 +110,11 @@ async function fixture(
       return done((cmd.length === 3 ? join(prefix, "opt/semlint") : prefix) + "\n");
     if (cmd[0] === "brew") return done();
     if (cmd[0] === "sh")
-      return done(join(root, scenario.shadow === true ? "old/semlint" : "homebrew/bin/semlint") + "\n");
-    if (cmd[0] === "semlint") return done(scenario.stale === true ? "semlint 0.1.6\n" : "semlint 0.1.7\n");
+      return done(
+        join(root, scenario.shadow === true ? "old/semlint" : "homebrew/bin/semlint") + "\n",
+      );
+    if (cmd[0] === "semlint")
+      return done(scenario.stale === true ? "semlint 0.1.6\n" : "semlint 0.1.7\n");
     return done("", 9, "unexpected command");
   };
   const progress: string[] = [];
@@ -130,7 +133,8 @@ test("hashes four published archives, commits only the common-tap formula, upgra
   expect(formula).toContain("class Semlint < Formula");
   expect(formula).toContain('homepage "https://github.com/fuyutarow/semlint"');
   expect(formula).toContain('shell_output("#{bin}/semlint --version")');
-  for (const platform of releasePlatforms) expect(formula).toContain(`semlint-0.1.7-${platform}.tar.gz`);
+  for (const platform of releasePlatforms)
+    expect(formula).toContain(`semlint-0.1.7-${platform}.tar.gz`);
   expect(formula).toContain('assert_equal "semlint #{version}"');
   expect(formula).not.toContain("GitHub::API.credentials");
   expect(formula).not.toContain("Authorization:");

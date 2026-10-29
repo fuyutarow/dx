@@ -250,7 +250,10 @@ export async function review(
       if (passing.get(type.name)?.(record) === true) continue;
       const source = yield* requireValue(head.sources.get(record), "missing review source");
       const adapter = formatAdapter(type.format);
-      const rubricText = yield* requireValue(head.files[yield* rubricPath(type, head.files)], "missing rubric");
+      const rubricText = yield* requireValue(
+        head.files[yield* rubricPath(type, head.files)],
+        "missing rubric",
+      );
       const rubric = yield* parseRubric(rubricText);
       if (rubric.criteria.length > 8)
         return undetermined(`${type.review.rubric}: jex の問いは 8 つまで`);

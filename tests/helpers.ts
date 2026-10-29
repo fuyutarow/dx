@@ -95,7 +95,11 @@ export async function repo(options: Parameters<typeof typeSource>[0] = {}, confi
     options.review !== undefined && !config.includes("[review]")
       ? '\n[review]\ncommand = ["jex"]\n'
       : "";
-  await write(cwd, "semlint.toml", `edition = 1\n[repo]\nname = "fixture"\n${config}${reviewConfig}`);
+  await write(
+    cwd,
+    "semlint.toml",
+    `edition = 1\n[repo]\nname = "fixture"\n${config}${reviewConfig}`,
+  );
   await write(cwd, ".semlint/note.ts", typeSource(options));
   if (options.review !== undefined) await write(cwd, ".semlint/rubrics/r.toml", 'rubric = "r"\n');
   const base = await advance(cwd);

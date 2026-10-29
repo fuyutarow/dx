@@ -21,10 +21,7 @@ export async function execute(invocation: Invocation, cwd = process.cwd()) {
   if (snapshot.isErr()) return snapshot;
   return evaluate(invocation, cwd);
 }
-async function evaluate(
-  invocation: Invocation,
-  cwd: string,
-): Promise<Result<Output, string>> {
+async function evaluate(invocation: Invocation, cwd: string): Promise<Result<Output, string>> {
   return safeTry(async function* () {
     const repo = yield* await root(cwd);
     const head = yield* await revision(repo, invocation.rev);

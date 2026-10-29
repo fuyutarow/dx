@@ -36,7 +36,9 @@ export function reviewCommandRequirement(
   config: Config,
 ) {
   if (types.some((type) => type.review !== undefined) && config.review.command === undefined)
-    return undetermined('policy: semlint.toml: [review] command を書く（例: ["agx", "worker", "jev"]）');
+    return undetermined(
+      'policy: semlint.toml: [review] command を書く（例: ["agx", "worker", "jev"]）',
+    );
   return ok(undefined);
 }
 export async function loadTypes(files: Readonly<Record<string, string>>) {
