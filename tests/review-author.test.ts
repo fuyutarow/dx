@@ -65,19 +65,19 @@ test("I-06 author policy accepts machines for unknown authors and still rejects 
 
 test("real retrospective policy and six authorless records review into external verdict files from an empty child", async () => {
   const { cwd } = await repo();
-  await rm(join(cwd, ".dx/note.ts"));
+  await rm(join(cwd, ".semlint/note.ts"));
   for (const [path, text] of Object.entries(fixture.policy))
     await write(
       cwd,
       path,
-      path === ".dx/retro.ts"
-        ? text.replace('place: "file:.dx/verdicts/*.jsonl"', 'place: "file:.verdicts/*.jsonl"')
+      path === ".semlint/retro.ts"
+        ? text.replace('place: "file:.semlint/verdicts/*.jsonl"', 'place: "file:.verdicts/*.jsonl"')
         : text,
     );
   await write(
     cwd,
-    "dx.toml",
-    `[repo]\nname = "retrospectives"\n[review]\ncommand = ${JSON.stringify([
+    "semlint.toml",
+    `edition = 1\n[repo]\nname = "retrospectives"\n[review]\ncommand = ${JSON.stringify([
       process.execPath,
       join(import.meta.dir, "fixtures/fake-jex.ts"),
     ])}\n[files]\nignore = ["**/node_modules/**"]\n`,
