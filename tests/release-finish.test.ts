@@ -10,6 +10,8 @@ const done = (stdout = "", exit = 0, stderr = "") => ({ stdout, exit, stderr });
 async function fixture(
   scenario: {
     missing?: boolean;
+    formulaMissing?: boolean;
+    formulaForbidden?: boolean;
     digest?: boolean;
     conflict?: boolean;
     unpublished?: boolean;
@@ -76,7 +78,9 @@ async function fixture(
       if (
         cmd[4] !== "repos/fuyutarow/homebrew-tap/contents/Formula/semlint.rb" ||
         !cmd.includes("branch=alpha") ||
-        !cmd.includes(`sha=${"a".repeat(40)}`) ||
+        (scenario.formulaMissing === true && !published
+          ? cmd.some ( (arg) => arg.startsWith("sha=") )
+          : !cmd.includes(`sha=${"a".repeat(40)}`)) ||
         encodedFormula === undefined
       )
         return done("", 1, "wrong publication scope or missing SHA precondition");
@@ -86,6 +90,10 @@ async function fixture(
       published = true;
       return done("b".repeat(40));
     }
+    if (cmd[0] === "gh" && cmd[1] === "api" && scenario.formulaForbidden === true)
+      return done("", 1, "gh: Forbidden (HTTP 403)");
+    if (cmd[0] === "gh" && cmd[1] === "api" && scenario.formulaMissing === true && !published)
+      return done("", 1, "gh: Not Found (HTTP 404)");
     if (cmd[0] === "gh" && cmd[1] === "api")
       return done(
         JSON.stringify({
@@ -168,6 +176,29 @@ test("hashes four published archives, commits only the common-tap formula, upgra
     "-f",
     "tool=semlint",
   ]);
+});
+
+test("creates a missing formula without SHA and continues", async () => {
+  const f = await fixture({ formulaMissing: true });
+  const result = await f.invoke();
+  expect(result.isOk(), result.isErr() ? result.error : "").toBe(true);
+  const put = f.calls.find((cmd) => cmd.includes("PUT"));
+  expect(put).toBeDefined();
+  expect(put?.some((arg) => arg.startsWith("sha="))).toBe(false);
+  expect(f.calls).toContainEqual(["brew", "update"]);
+});
+
+test("formula GET forbidden fails before publication", async () => {
+  const f = await fixture({ formulaForbidden: true });
+  const result = await f.invoke();
+  expect(result.isErr() && result.error).toContain("HTTP 403");
+  expect(f.calls.some((cmd) => cmd.includes("PUT") || cmd[0] === "brew")).toBe(false);
+});
+
+test("missing formula creation conflicts fail closed", async () => {
+  const f = await fixture({ formulaMissing: true, conflict: true });
+  expect((await f.invoke()).isErr()).toBe(true);
+  expect(f.calls.some((cmd) => cmd[0] === "brew")).toBe(false);
 });
 
 test("missing archives and checksum mismatches cannot publish a formula or touch brew", async () => {

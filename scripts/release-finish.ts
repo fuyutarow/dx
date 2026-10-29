@@ -93,11 +93,15 @@ async function consumerRoots(workspace: string, explicit: readonly string[]) {
 async function updateFormula(repo: string, text: string, runner: FinishRunner) {
   return safeTry(async function* () {
     const endpoint = `repos/${tapRepo}/contents/${formulaPath}`;
-    const current = jsonOf(contentSchema).safeParse(
-      yield* await command(runner, ["gh", "api", `${endpoint}?ref=alpha`], repo),
-    );
-    if (!current.success) return err("cannot decode the published common-tap formula");
-    if (Buffer.from(current.data.content, "base64").toString("utf8") !== text) {
+    const getArgs = ["gh", "api", `${endpoint}?ref=alpha`];
+    const response = yield* ResultAsync.fromPromise(runner(getArgs, repo), String);
+    const missing = response.exit !== 0 && /\bHTTP 404\b/u.test(response.stderr);
+    if (response.exit !== 0 && !missing)
+      return err(`${JSON.stringify(getArgs)} exited ${response.exit}: ${(response.stderr + response.stdout).slice(0, 4096)}`);
+    const current = missing ? undefined : jsonOf(contentSchema).safeParse(response.stdout);
+    if (current !== undefined && !current.success)
+      return err("cannot decode the published common-tap formula");
+    if (current === undefined || (current.success && Buffer.from(current.data.content, "base64").toString("utf8") !== text)) {
       // Contents API commits only this file to alpha; the blob SHA rejects concurrent edits.
       yield* await command(
         runner,
@@ -109,8 +113,7 @@ async function updateFormula(repo: string, text: string, runner: FinishRunner) {
           endpoint,
           "-f",
           "branch=alpha",
-          "-f",
-          `sha=${current.data.sha}`,
+          ...(current?.success === true ? ["-f", `sha=${current.data.sha}`] : []),
           "-f",
           "message=release: update semlint formula",
           "-f",
