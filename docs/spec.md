@@ -427,6 +427,7 @@ I-02 では `id` が新規・変更記録ならその finding を new とし、`
 **移行の不変条件:**
 
 - 移行で、今動いている機能を減らさない。置き換え先が動いて受け入れられるまで、旧い機能は消さない。
+- 使う側の repo の移行（配置や名前の切り替え）は、前後で finding が一致することに加えて、その repo の gate 全体（`mise run check`）が sandbox の外で通ることを確かめてから受け入れる。finding の一致は既存の記録が同じに読めることしか示さず、書き手が新しい記録を admit できることは示さない。旧い名前を呼ぶ試験や task が gate から届かずに残っていないことも確かめる（2026-10-30、research-record-v2 の check が移行の後 12 時間壊れていた。retrospectives `records/20261030_semlint-rename-night.md`）。
 - retrospectives の `candidate.ts` は、その repo の書き手がすべて自分の workspace で書くようになるまで残す。
 - soks の hook は、harness に規則を置き直すまで残す。
 
