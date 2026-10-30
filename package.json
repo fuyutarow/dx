@@ -1,6 +1,6 @@
 {
   "name": "semlint",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Semantic lint and admission for records in jj repositories",
   "bin": {
