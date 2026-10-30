@@ -66,19 +66,10 @@ export async function snapshotWorkingCopy(cwd: string) {
   return ok(undefined);
 }
 
-export async function jj(cwd: string, args: string[], milliseconds = 120000) {
-  const version = await checkJjVersion();
-  if (version.isErr()) return version;
+async function runJj(cwd: string, args: string[], milliseconds: number) {
   const signal = AbortSignal.timeout(Math.max(1, Math.ceil(milliseconds)));
   const child = Bun.spawn({
-    cmd: [
-      "jj",
-      "--ignore-working-copy",
-      "--at-operation=@",
-      "--no-pager",
-      "--color=never",
-      ...args,
-    ],
+    cmd: ["jj", "--ignore-working-copy", "--no-pager", "--color=never", ...args],
     cwd,
     stdin: "ignore",
     stdout: "pipe",
@@ -91,9 +82,27 @@ export async function jj(cwd: string, args: string[], milliseconds = 120000) {
     new Response(child.stderr).text(),
     child.exited,
   ]);
-  if (signal.aborted) return undetermined("jj read timed out");
-  if (exit !== 0) return undetermined(`jj: ${stderr.trim()}`);
-  return ok(stdout);
+  return { stdout, stderr, exit, aborted: signal.aborted };
+}
+
+// Concurrent jj operations leave several operation heads; `--at-operation=@` then refuses to pick one.
+const divergentOperations = 'The "@" expression resolved to more than one operation';
+
+export async function jj(cwd: string, args: string[], milliseconds = 120000) {
+  const version = await checkJjVersion();
+  if (version.isErr()) return version;
+  let result = await runJj(cwd, ["--at-operation=@", ...args], milliseconds);
+  if (!result.aborted && result.exit !== 0 && result.stderr.includes(divergentOperations)) {
+    // Loading the repository without a pinned operation merges the heads, as any jj command does.
+    const merge = await runJj(cwd, ["log", "--no-graph", "-r", "root()", "-T", '""'], milliseconds);
+    if (merge.aborted) return undetermined("jj read timed out");
+    if (merge.exit !== 0)
+      return undetermined(`jj の並行した操作を合流できない: ${merge.stderr.trim()}`);
+    result = await runJj(cwd, ["--at-operation=@", ...args], milliseconds);
+  }
+  if (result.aborted) return undetermined("jj read timed out");
+  if (result.exit !== 0) return undetermined(`jj: ${result.stderr.trim()}`);
+  return ok(result.stdout);
 }
 export async function root(cwd: string) {
   return safeTry(async function* () {
