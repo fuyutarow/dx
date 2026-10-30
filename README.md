@@ -25,6 +25,7 @@ mise run check
 
 呼び出す cwd は対象 jj repo 内です。`semlint` package の `bin` は `src/main.ts`、公開 API は
 `src/index.ts` にあります。ソース版には Bun 1.4.3 以上と jj と Git が PATH に必要です。
+semlint には jj 0.46.0 以上が必要です。古い版では `UNDETERMINED:jj 0.46.0 以上が要る（見つかったのは <version> at <path>）。PATH の先頭に新しい jj を置く` と表示して exit 4 で止まります。`command -v jj` と `jj --version` で PATH が選ぶ jj を確認し、新しい jj（Homebrew の jj など）を PATH の先頭に置いてください。mise で jj を固定している場合は、その固定を 0.46 以上にしてください。
 mise は Bun 1.4.3 に固定し、package.json の engines にも最低版を宣言しています。
 型検査は既存の tsconfig.json を使う `bun check`（`mise run typecheck`）で行います。
 tsgo（`@typescript/native-preview`）は不要です。依存の固定版は package.json と bun.lock にあります。
